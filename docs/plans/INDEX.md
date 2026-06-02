@@ -9,7 +9,7 @@
 ## 當前狀態
 
 - **Phase**：M7 進度推進中
-- **Sprint 目標**：L2 push 任務與 RPY 控制已成功接通，L2 環境已成功在 collect 迴圈中完成一輪測試，準備進入 L3 pick & place 任務
+- **Sprint 目標**：L2 push 任務與 RPY 控制已成功接通，相機已修正為正立的高解析度第一人稱頭部視角（Ego / Head Camera），L2 環境已成功在 collect 迴圈中完成一輪測試，準備進入 L3 pick & place 任務
 - **下一動作**：啟動 L3 任務，設計與註冊 L3 雙臂 pick & place 環境（首次引入 gripper 動作）
 
 ---
