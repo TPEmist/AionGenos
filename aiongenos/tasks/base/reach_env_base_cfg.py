@@ -37,16 +37,15 @@ class AionGenosReachEnvBaseCfg(ReachEnvCfg):
             spawn=sim_utils.PinholeCameraCfg(
                 focal_length=12.0,
                 focus_distance=400.0,
-                horizontal_aperture=36.0,  # Widen FOV (standard 36mm sensor width)
+                horizontal_aperture=40.0,  # Wide FOV to capture both hands and workspace
                 clipping_range=(0.1, 1.0e5),
             ),
-            # Positioned to look down at the workspace (approx center X=0.2, Y=0.0, Z=0.4)
-            # Located at (X=0.7, Y=0.0, Z=0.8) pointing towards robot base
+            # Positioned at the robot's head/neck looking forward and down at the table
             # Convention: ROS (+Z forward, +Y down, +X right)
             offset=CameraCfg.OffsetCfg(
-                pos=(0.7, 0.0, 0.8),
-                # Correct orientation for ROS convention looking at origin (right-side up)
-                rot=(-0.3799, 0.5963, 0.5963, -0.3799),
+                pos=(-0.15, 0.0, 0.75),
+                # Looking forward, pitched down 30 degrees (right-side up)
+                rot=(0.433, 0.75, -0.25, 0.433),
                 convention="ros",
             ),
         )
