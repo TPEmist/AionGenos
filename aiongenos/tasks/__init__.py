@@ -21,3 +21,13 @@ gym.register(
         "env_cfg_entry_point": "aiongenos.tasks.L1_dual_trace.dual_trace_cfg:L1DualTraceEnvCfg",
     },
 )
+
+# Register the L2 dual push environment
+gym.register(
+    id="Isaac-AionGenos-L2-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": "aiongenos.tasks.L2_dual_push.dual_push_cfg:L2DualPushEnvCfg",
+    },
+)
