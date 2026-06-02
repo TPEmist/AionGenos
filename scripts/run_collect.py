@@ -1,0 +1,92 @@
+# Copyright (c) 2026, AionGenos Cognitive Evolution Pipeline
+# All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
+"""Launch script to run the AionGenos Cognitive Evolution collector orchestrator loop."""
+
+import argparse
+import logging
+import os
+import sys
+
+# Setup logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
+
+# Launch Isaac Sim Simulator first
+from isaaclab.app import AppLauncher
+
+# Add custom arguments
+parser = argparse.ArgumentParser(description="Run bimanual cognitive collect loop.")
+parser.add_argument("--num_episodes", type=int, default=5, help="Number of episodes to collect.")
+parser.add_argument("--level", type=int, default=0, help="Initial curriculum level to run (0-4).")
+parser.add_argument("--teacher_url", type=str, default=None, help="Overrides VLM teacher URL.")
+# Append AppLauncher CLI args
+AppLauncher.add_app_launcher_args(parser)
+args_cli = parser.parse_args()
+
+# Launch the simulation app
+app_launcher = AppLauncher(args_cli)
+simulation_app = app_launcher.app
+
+# Rest of the imports follow simulation launch
+import gymnasium as gym
+import torch
+
+from aiongenos.config import AionGenosConfig
+from aiongenos.curriculum.manager import AionGenosCurriculumManager
+from aiongenos.curriculum.arena_adapter import ArenaEnvBuilder
+from aiongenos.replay.buffer import ReplayBuffer
+from aiongenos.orchestrator import run_collect_loop, IsaacLabEnvInterface
+
+def main():
+    logger.info("Initializing AionGenos collector orchestrator...")
+    
+    # Initialize global config
+    config = AionGenosConfig()
+    if args_cli.teacher_url:
+        config.teacher_url = args_cli.teacher_url
+        
+    logger.info(f"VLM Teacher URL: {config.teacher_url}")
+    
+    # Initialize ReplayBuffer
+    replay = ReplayBuffer(config.local_replay_path)
+    logger.info(f"Writing replays to: {config.local_replay_path}")
+    
+    # Initialize CurriculumManager
+    curriculum = AionGenosCurriculumManager(
+        config=config.curriculum,
+        replay_buffer=replay,
+        start_level=args_cli.level
+    )
+    
+    # Build environment using Arena/IsaacLab builder
+    logger.info(f"Building environment for Level {args_cli.level}...")
+    env = ArenaEnvBuilder.build_env(level=args_cli.level, num_envs=1)
+    
+    # Wrap environment with the concrete EnvInterface
+    env_interface = IsaacLabEnvInterface(env)
+    
+    try:
+        # Run end-to-end collect loop
+        stats = run_collect_loop(
+            config=config,
+            env=env_interface,
+            curriculum=curriculum,
+            replay=replay,
+            max_episodes=args_cli.num_episodes,
+            check_advance_every=10,
+        )
+        logger.info("Collect loop execution complete.")
+        logger.info(f"Stats summary: {stats}")
+    except Exception as e:
+        logger.exception(f"Error during collect loop execution: {e}")
+    finally:
+        # Clean up environment and close app
+        logger.info("Shutting down environment and simulator...")
+        env.close()
+
+if __name__ == "__main__":
+    main()
+    simulation_app.close()
