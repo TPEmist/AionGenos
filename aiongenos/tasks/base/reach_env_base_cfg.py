@@ -31,22 +31,22 @@ class AionGenosReachEnvBaseCfg(ReachEnvCfg):
         self.scene.camera = CameraCfg(
             prim_path="{ENV_REGEX_NS}/Robot/Camera",
             update_period=0.0,  # Update every step
-            height=128,
-            width=128,
+            height=256,
+            width=256,
             data_types=["rgb"],
             spawn=sim_utils.PinholeCameraCfg(
                 focal_length=12.0,
                 focus_distance=400.0,
-                horizontal_aperture=20.955,
+                horizontal_aperture=36.0,  # Widen FOV (standard 36mm sensor width)
                 clipping_range=(0.1, 1.0e5),
             ),
             # Positioned to look down at the workspace (approx center X=0.2, Y=0.0, Z=0.4)
-            # Located at (X=0.7, Y=0.0, Z=0.7) pointing towards robot base
+            # Located at (X=0.7, Y=0.0, Z=0.8) pointing towards robot base
             # Convention: ROS (+Z forward, +Y down, +X right)
             offset=CameraCfg.OffsetCfg(
                 pos=(0.7, 0.0, 0.8),
-                # Looking down and slightly back at workspace
-                rot=(0.2588, 0.9659, 0.0, 0.0),
+                # Correct orientation for ROS convention looking at origin (right-side up)
+                rot=(-0.3799, 0.5963, 0.5963, -0.3799),
                 convention="ros",
             ),
         )
