@@ -16,7 +16,7 @@ LEVEL_TO_GYM_ID: Dict[int, str] = {
     0: "Isaac-AionGenos-L0-v0",
     1: "Isaac-AionGenos-L1-v0",  # Custom task for L1 dual trace
     2: "Isaac-AionGenos-L2-v0",  # Custom task for L2 dual push (RPY control)
-    3: "Isaac-Reach-OpenArm-Bi-v0",  # Candidate/fallback for L3 pick place
+    3: "Isaac-AionGenos-L3-v0",  # Custom task for L3 pick place
     4: "Isaac-Reach-OpenArm-Bi-v0",  # Candidate/fallback for L4 handover
 }
 

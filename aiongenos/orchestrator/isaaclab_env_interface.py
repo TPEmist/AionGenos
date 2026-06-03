@@ -41,6 +41,8 @@ class IsaacLabEnvInterface:
         self.left_body_idx = 0
         self.right_body_idx = 0
         
+        self.left_finger_joint_ids = []
+        self.right_finger_joint_ids = []
         if self.robot is not None:
             # Resolve left end-effector body index
             for name in ["openarm_left_hand", "left_hand", "left_link7", "panda_hand", "panda_link7"]:
@@ -58,6 +60,17 @@ class IsaacLabEnvInterface:
                     break
                 except Exception:
                     pass
+            # Resolve finger joint IDs
+            try:
+                self.left_finger_joint_ids = self.robot.find_joints("openarm_left_finger_joint.*")[0]
+                logger.info(f"Resolved left finger joints: {self.left_finger_joint_ids}")
+            except Exception:
+                pass
+            try:
+                self.right_finger_joint_ids = self.robot.find_joints("openarm_right_finger_joint.*")[0]
+                logger.info(f"Resolved right finger joints: {self.right_finger_joint_ids}")
+            except Exception:
+                pass
         else:
             logger.warning("Robot articulation not found in environment scene!")
 
@@ -144,11 +157,23 @@ class IsaacLabEnvInterface:
                 "right_yaw": right_rpy_int[2],
             })
 
-        # Gripper state defaults (for L3+)
+        # Gripper state (for L3+)
         if level_config.control_mode == ControlMode.POSITION_RPY_GRIPPER:
+            left_gripper_state = "open"
+            right_gripper_state = "open"
+            
+            if len(self.left_finger_joint_ids) > 0:
+                # Average position of left fingers
+                left_pos = self.robot.data.joint_pos[0, self.left_finger_joint_ids].mean().item()
+                left_gripper_state = "closed" if left_pos < 0.015 else "open"
+            if len(self.right_finger_joint_ids) > 0:
+                # Average position of right fingers
+                right_pos = self.robot.data.joint_pos[0, self.right_finger_joint_ids].mean().item()
+                right_gripper_state = "closed" if right_pos < 0.015 else "open"
+                
             state.update({
-                "left_gripper": "open",
-                "right_gripper": "open",
+                "left_gripper": left_gripper_state,
+                "right_gripper": right_gripper_state,
             })
 
         return state
@@ -170,6 +195,17 @@ class IsaacLabEnvInterface:
             left_quat = command.left.quaternion or (1.0, 0.0, 0.0, 0.0)
             right_quat = command.right.quaternion or (1.0, 0.0, 0.0, 0.0)
             action_list = list(left_pos) + list(left_quat) + list(right_pos) + list(right_quat)
+        elif action_dim == 16:
+            # Absolute pose + binary gripper action mode:
+            # [left_pos(3), left_quat(4), left_gripper(1), right_pos(3), right_quat(4), right_gripper(1)]
+            left_quat = command.left.quaternion or (1.0, 0.0, 0.0, 0.0)
+            right_quat = command.right.quaternion or (1.0, 0.0, 0.0, 0.0)
+            left_gripper_val = -1.0 if command.left.gripper_close else 1.0
+            right_gripper_val = -1.0 if command.right.gripper_close else 1.0
+            action_list = (
+                list(left_pos) + list(left_quat) + [left_gripper_val] +
+                list(right_pos) + list(right_quat) + [right_gripper_val]
+            )
         else:
             # Fallback scaling/truncating to match action space dimension
             action_list = list(left_pos) + list(right_pos)

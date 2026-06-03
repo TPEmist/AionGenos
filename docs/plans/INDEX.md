@@ -8,9 +8,9 @@
 
 ## 當前狀態
 
-- **Phase**：M7 進度推進中
-- **Sprint 目標**：L2 push 任務與 RPY 控制已成功接通，相機已修正為正立的高解析度第一人稱頭部視角（Ego / Head Camera），L2 環境已成功在 collect 迴圈中完成一輪測試，準備進入 L3 pick & place 任務
-- **下一動作**：啟動 L3 任務，設計與註冊 L3 雙臂 pick & place 環境（首次引入 gripper 動作）
+- **Phase**：M7 進度已完成，L3 pick & place 成功部署並驗證
+- **Sprint 目標**：L3 pick & place 任務與 6-DoF + 雙手 binary gripper 主動控制已成功接通並註冊，相機視角與物體生成正確，L3 環境已成功通過整合測試
+- **下一動作**：評估或啟動 Phase B / L4 雙手協調與遞接（Bimanual Handover）任務
 
 ---
 
@@ -25,7 +25,7 @@
 | M4 | L0 ≥ 100 success replay + 遠端 trainer 雛形 | 11–13 | ✅ done | QLoRA 1 epoch + GGUF 轉換 + student endpoint reload |
 | M5 | Stage 4-A + 4-B + L0 student eval | 14–16 | ✅ done | student :18889 上線；100 ep eval；distillation gap 量化 |
 | M6 | Curriculum 機制 + L1 unlock + L1 跑通 | 17–22 | ✅ done | L0 ≥ 60% → 自動 unlock L1；L1 完整 loop 一輪 |
-| M7 | L2（首次 RPY）+ L3 stretch | 23–28 | ⬜ pending | L2 push 任務 + RPY round-trip；L4 列為 Phase B |
+| M7 | L2（首次 RPY）+ L3 stretch | 23–28 | ✅ done | L2 push 任務 + RPY RTT 與 L3 pick & place (6-DoF + active gripper) 全綠 |
 
 **POC 交付下限** = M5 + M6 完成
 
@@ -38,7 +38,7 @@
 | L0 | Bimanual reach to 2 cubes | EE position-only (3D × 2) | ✅ done |
 | L1 | Bimanual trace waypoints | EE position chunk | ✅ done |
 | L2 | Bimanual push | EE pos + pitch/yaw (5D × 2) | ✅ done |
-| L3 | Bimanual pick & place（近物） | EE pos + RPY + gripper (7D × 2) | ⬜ M7 stretch |
+| L3 | Bimanual pick & place（近物） | EE pos + RPY + gripper (7D × 2) | ✅ done |
 | L4 | Bimanual handover | 同 L3 + 雙臂協調 | ⬜ Phase B |
 
 **晉級規則**：當前 level success rate ≥ 60% 自動 unlock 下一級；12 hr collect 不到 100 success 標 `curriculum_blocked`。
@@ -66,6 +66,7 @@
 - [x] IsaacLab-Arena 是真實官方 repo（NVIDIA isaac-sim org，418⭐，pin `release/0.2.1`）
 - [x] RoboTwin 2.0 整合分支提供 ~50 dual-arm tabletop tasks
 - [x] Pi-0.5 paper（arxiv 2504.16054）action representation 確認：joint+EE dual-mode、自然語言介面 high↔low、50 Hz / 50-step chunk
+- [x] Level 3 Pick & Place (16D 行動維度、雙夾爪主動控制、SeattleLabTable 桌子與 DexCube 物體生成) 整合測試全數通過
 
 ---
 
@@ -125,4 +126,5 @@
 
 | 日期 | 變更 |
 |---|---|
+| 2026-06-03 | 完成 Level 3 雙手 Pick & Place 環境開發、動作維度接通（16D 控臂 + 夾爪）、桌子與物體生成、並將所有環境單元與整合測試跑通 |
 | 2026-06-02 | 初版；POC 計畫定稿；新增 Pi-0.5 對齊的 §3.5 action representation；雙機拓撲確認 |
