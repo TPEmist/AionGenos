@@ -43,8 +43,8 @@ class AionGenosReachEnvBaseCfg(ReachEnvCfg):
             # Positioned at the robot's head/neck looking forward and down at the table
             offset=CameraCfg.OffsetCfg(
                 pos=(0.1, 0.0, 0.85),
-                # Corrected quaternion signs for (orient: x0, y-35, z-90)
-                rot=(0.67438, -0.21263, -0.21263, -0.67438),
+                # Pure +35 degrees pitch under world convention (looking forward and down)
+                rot=(0.95372, 0.0, 0.30071, 0.0),
                 convention="world",
             ),
         )
