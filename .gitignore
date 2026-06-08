@@ -1,6 +1,11 @@
 # Data (replay buffers, eval reports)
 data/
 *.log
+logs/
+scratch/
+
+# Test cache
+.pytest_cache/
 
 # Python
 __pycache__/
