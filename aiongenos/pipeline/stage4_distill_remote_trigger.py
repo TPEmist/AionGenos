@@ -22,6 +22,8 @@ def trigger_remote_train(
     replay_path: str,
     run_id: str,
     ssh_key: Optional[str] = None,
+    remote_python: str = "python3",
+    base_model: Optional[str] = None,
 ) -> bool:
     """Trigger QLoRA training on the remote server via SSH.
 
@@ -31,6 +33,8 @@ def trigger_remote_train(
         replay_path: Path to replays on remote server.
         run_id: Current run ID for training data selection.
         ssh_key: Optional SSH key path.
+        remote_python: Path to python interpreter on remote server.
+        base_model: Optional base model ID to use for training.
 
     Returns:
         True if trigger succeeded.
@@ -40,13 +44,16 @@ def trigger_remote_train(
         ssh_args.extend(["-i", ssh_key])
     ssh_args.append(f"{remote_user}@{remote_host}")
 
+    base_model_arg = f"--base-model {base_model} " if base_model else ""
+
     # Build remote command
     remote_cmd = (
-        f"cd /data/aiongenos && "
-        f"python3 server_side/train_qlora_gemma4.py "
+        f"cd ~/CYTu/AionGenos_server && "
+        f"{remote_python} server_side/train_qlora_gemma4.py "
         f"--replay-path {replay_path}/{run_id}/success "
-        f"--output-dir /data/lora_checkpoints/{run_id} "
-        f"2>&1 | tee /data/logs/train_{run_id}.log"
+        f"--output-dir ~/CYTu/AionGenos_server/data/lora_checkpoints/{run_id} "
+        f"{base_model_arg}"
+        f"2>&1 | tee ~/CYTu/AionGenos_server/data/logs/train_{run_id}.log"
     )
     ssh_args.append(remote_cmd)
 
@@ -78,6 +85,8 @@ def trigger_remote_export_and_reload(
     remote_user: str,
     run_id: str,
     ssh_key: Optional[str] = None,
+    remote_python: str = "python3",
+    base_model: Optional[str] = None,
 ) -> bool:
     """Export LoRA to GGUF and reload student server.
 
@@ -86,6 +95,8 @@ def trigger_remote_export_and_reload(
         remote_user: SSH username.
         run_id: Run ID for checkpoint path.
         ssh_key: Optional SSH key path.
+        remote_python: Path to python interpreter on remote server.
+        base_model: Optional base model ID to use for export.
 
     Returns:
         True if export + reload succeeded.
@@ -95,12 +106,29 @@ def trigger_remote_export_and_reload(
         ssh_args.extend(["-i", ssh_key])
     ssh_args.append(f"{remote_user}@{remote_host}")
 
+    base_model_arg = f"--base-model {base_model} " if base_model else ""
+
+    model_env = ""
+    if base_model and "E4B" in base_model:
+        model_env = (
+            "export MODEL_PATH=/home/exx/.cache/llama.cpp/unsloth_gemma-4-E4B-it-GGUF_gemma-4-E4B-it-Q4_K_M.gguf && "
+            "export MMPROJ_PATH=/home/exx/.cache/llama.cpp/unsloth_gemma-4-E4B-it-GGUF_mmproj-F16.gguf && "
+        )
+    elif base_model and "31b" in base_model.lower():
+        model_env = (
+            "export MODEL_PATH=/home/exx/.cache/llama.cpp/ggml-org_gemma-4-31B-it-GGUF_gemma-4-31B-it-Q4_K_M.gguf && "
+            "export MMPROJ_PATH=/home/exx/.cache/llama.cpp/ggml-org_gemma-4-31B-it-GGUF_mmproj-gemma-4-31B-it-Q8_0.gguf && "
+        )
+
+    venv_python = "~/CYTu/test_zone/gemma3-bbox-finetune/.venv/bin/python"
     remote_cmd = (
-        f"cd /data/aiongenos && "
-        f"python3 server_side/export_lora_gguf.py "
-        f"--checkpoint-dir /data/lora_checkpoints/{run_id} "
-        f"--output /data/lora_gguf/{run_id}/adapter.gguf && "
-        f"bash server_side/reload_student.sh /data/lora_gguf/{run_id}/adapter.gguf"
+        f"cd ~/CYTu/AionGenos_server && "
+        f"{remote_python} server_side/export_lora_gguf.py "
+        f"--checkpoint-dir ~/CYTu/AionGenos_server/data/lora_checkpoints/{run_id} "
+        f"--output ~/CYTu/AionGenos_server/data/lora_gguf/{run_id}/adapter.gguf "
+        f"{base_model_arg}&& "
+        f"{venv_python} server_side/patch_gguf.py ~/CYTu/AionGenos_server/data/lora_gguf/{run_id}/adapter.gguf && "
+        f"{model_env}bash server_side/reload_student.sh ~/CYTu/AionGenos_server/data/lora_gguf/{run_id}/adapter.gguf"
     )
     ssh_args.append(remote_cmd)
 
