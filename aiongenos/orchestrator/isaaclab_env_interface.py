@@ -75,8 +75,48 @@ class IsaacLabEnvInterface:
             logger.warning("Robot articulation not found in environment scene!")
 
     def reset(self) -> dict:
-        """Reset environment, return initial state dict."""
+        """Reset environment, return initial state dict.
+
+        After ``env.reset()`` Isaac Lab's CommandManager has not yet resampled
+        a new target — querying it returns the (0, 0, 0) sentinel. We need to
+        step the env once so the manager regenerates targets.
+
+        However we must NOT use a zero action: the L0/L1 action terms are
+        ``DifferentialInverseKinematicsActionCfg(command_type='position',
+        use_relative_mode=False)``. In absolute-IK mode a zero action is
+        interpreted as "drive both EEs to base-frame origin (0, 0, 0)", which
+        immediately undoes the ``reset_joints_by_offset`` randomization (this
+        was bug V3 — Z-axis std collapsed to 1-2 grid units).
+
+        Fix: feed the *current* EE pose as the action so the IK target equals
+        the current state, leaving joints undisturbed.
+        """
         obs, info = self.env.reset()
+
+        try:
+            action_shape = self.env.action_space.shape
+            action_dim = action_shape[-1] if len(action_shape) > 0 else 6
+
+            if self.robot is not None and action_dim in (6, 14, 16):
+                # Build a "stay-in-place" action from the current EE poses.
+                left_pos_b, right_pos_b, left_quat_w, right_quat_w = self._get_ee_poses()
+                if action_dim == 6:
+                    parts = [*left_pos_b, *right_pos_b]
+                elif action_dim == 14:
+                    parts = [*left_pos_b, *left_quat_w, *right_pos_b, *right_quat_w]
+                else:  # 16: pose + 1-bit gripper per arm; gripper open = +1
+                    parts = [*left_pos_b, *left_quat_w, 1.0, *right_pos_b, *right_quat_w, 1.0]
+                hold_action = torch.tensor(
+                    [parts], device=self.env.unwrapped.device, dtype=torch.float32
+                )
+            else:
+                hold_action = torch.zeros(
+                    (1, action_dim), device=self.env.unwrapped.device, dtype=torch.float32
+                )
+            self.env.step(hold_action)
+        except Exception as e:
+            logger.debug(f"warm-up step after reset skipped: {e}")
+
         return {"obs": obs, "info": info}
 
     def get_rgb(self) -> bytes:
@@ -321,3 +361,15 @@ class IsaacLabEnvInterface:
         right_target = right_term.pose_command_w[0, :3].cpu().numpy()
         
         return left_target, right_target
+
+    def get_current_distances(self) -> dict[str, float]:
+        """Get current distances from left and right end effectors to targets."""
+        if self.robot is None:
+            return {"dist_red": 0.0, "dist_blue": 0.0}
+        left_target_pos, right_target_pos = self._get_target_poses()
+        left_pos_w = self.robot.data.body_pos_w[0, self.left_body_idx].cpu().numpy()
+        right_pos_w = self.robot.data.body_pos_w[0, self.right_body_idx].cpu().numpy()
+        left_dist = float(np.linalg.norm(left_pos_w - left_target_pos))
+        right_dist = float(np.linalg.norm(right_pos_w - right_target_pos))
+        return {"dist_red": left_dist, "dist_blue": right_dist}
+

@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import math
+import isaaclab.envs.mdp as mdp
 import isaaclab.sim as sim_utils
 from isaaclab.envs import ManagerBasedRLEnvCfg
 from isaaclab.managers import ActionTermCfg as ActionTerm
@@ -51,3 +52,22 @@ class AionGenosReachEnvBaseCfg(ReachEnvCfg):
 
         # Ensure that simulation outputs RGB images at correct intervals
         self.sim.render_interval = self.decimation
+
+        # ── Initial-pose randomization (T-8a, F15 fix) ────────────────────
+        # IsaacLab's default ``reset_joints_by_scale`` MULTIPLIES the default
+        # joint pose, but OpenArm's default has joint2/5/6/7/finger == 0, so
+        # ``0 * any_scale == 0`` left those joints fixed and the EE landed at
+        # the same task-space spot every reset (see F15 in INDEX). We replace
+        # it with ``reset_joints_by_offset`` (additive bias around the default
+        # pose), which perturbs every joint regardless of its default value.
+        # Range ±0.2 rad (~±11°) chosen conservatively: large enough to give
+        # task-space EE diversity, small enough to keep the arm in a sensible
+        # forward-facing pose. IsaacLab clamps to soft joint limits internally.
+        self.events.reset_robot_joints = EventTerm(
+            func=mdp.reset_joints_by_offset,
+            mode="reset",
+            params={
+                "position_range": (-0.2, 0.2),
+                "velocity_range": (0.0, 0.0),
+            },
+        )

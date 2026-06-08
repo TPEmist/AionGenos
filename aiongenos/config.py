@@ -11,6 +11,14 @@ from enum import Enum
 from pathlib import Path
 from typing import Tuple
 
+from aiongenos.vlm.task_instructions import (
+    L0_REACH_TWO_CUBES,
+    L1_DUAL_TRACE,
+    L2_DUAL_PUSH,
+    L3_PICK_PLACE_CLOSE,
+    L4_BLOCK_HANDOVER,
+)
+
 
 class ControlMode(str, Enum):
     """Control mode for each curriculum level."""
@@ -59,9 +67,21 @@ class LevelConfig:
     task_instruction_template: str
     workspace_bounds: WorkspaceBounds = field(default_factory=WorkspaceBounds)
     episode_length_s: float = 24.0
-    sim_steps_per_subgoal: int = 60  # ≈ 1 s at 60 Hz sim
+    # T-8c: 60→30 (1Hz→2Hz VLM frequency, plan §3.5.5 path).
+    sim_steps_per_subgoal: int = 30  # ≈ 0.5 s at 60 Hz sim
     max_retry_on_parse_fail: int = 2
     max_critic_retries: int = 1  # Stage 3 retry after critic
+
+    # Multi-round closed-loop within an episode (Option A, 2026-06-03).
+    # VLM is re-queried with fresh RGB + EE state each round until success / plateau / cap.
+    # T-8(a) → V1: 15 → 25 → 40 (longer rounds; offsets the 0.5s/round shrink).
+    max_subgoals_per_episode: int = 40
+    subgoal_success_threshold_m: float = 0.05  # both arms < threshold → success
+    plateau_min_progress_m: float = 0.01  # < 1 cm improvement counted as no progress
+    # T-8b: plateau patience now denotes consecutive rounds where the rolling
+    # mean (over `plateau_window`) failed to improve by `plateau_min_progress_m`.
+    plateau_patience: int = 5
+    plateau_window: int = 3  # rolling-window size for mean-progress evaluation
 
 
 # Pre-defined level configs
@@ -70,45 +90,41 @@ LEVEL_CONFIGS: dict[int, LevelConfig] = {
         level=0,
         name="L0_reach_two_cubes",
         control_mode=ControlMode.POSITION_ONLY,
-        task_instruction_template=(
-            "Move both end-effectors to the target positions. "
-            "Left arm should reach the {left_target_color} target, "
-            "right arm should reach the {right_target_color} target."
-        ),
+        task_instruction_template=L0_REACH_TWO_CUBES,
+        max_subgoals_per_episode=40,  # V1: 25→40
+        plateau_patience=5,
     ),
     1: LevelConfig(
         level=1,
         name="L1_dual_trace",
         control_mode=ControlMode.POSITION_ONLY,
-        task_instruction_template=(
-            "Follow the waypoint trajectory with both arms. "
-            "Left arm traces {left_trace_shape}, right arm traces {right_trace_shape}."
-        ),
+        task_instruction_template=L1_DUAL_TRACE,
+        max_subgoals_per_episode=40,
+        plateau_patience=5,
     ),
     2: LevelConfig(
         level=2,
         name="L2_dual_push",
         control_mode=ControlMode.POSITION_RPY_2DOF,
-        task_instruction_template=(
-            "Push the {object_color} block to the {target_color} zone using both arms cooperatively."
-        ),
+        task_instruction_template=L2_DUAL_PUSH,
+        max_subgoals_per_episode=40,
+        plateau_patience=5,
     ),
     3: LevelConfig(
         level=3,
         name="L3_pick_place_close",
         control_mode=ControlMode.POSITION_RPY_GRIPPER,
-        task_instruction_template=(
-            "Pick up the {object_color} object with one arm and place it at the {target_color} zone."
-        ),
+        task_instruction_template=L3_PICK_PLACE_CLOSE,
+        max_subgoals_per_episode=40,
+        plateau_patience=5,
     ),
     4: LevelConfig(
         level=4,
         name="L4_block_handover",
         control_mode=ControlMode.POSITION_RPY_GRIPPER,
-        task_instruction_template=(
-            "Pick up the {object_color} block with the left arm, "
-            "hand it over to the right arm, and place it at the {target_color} zone."
-        ),
+        task_instruction_template=L4_BLOCK_HANDOVER,
+        max_subgoals_per_episode=40,
+        plateau_patience=5,
     ),
 }
 
@@ -133,11 +149,15 @@ class AionGenosConfig:
         default_factory=lambda: os.environ.get("REMOTE_HOST", "10.80.9.148")
     )
     remote_user: str = field(
-        default_factory=lambda: os.environ.get("REMOTE_USER", "user")
+        default_factory=lambda: os.environ.get("REMOTE_USER", "exx")
     )
     remote_replay_path: str = field(
-        default_factory=lambda: os.environ.get("REMOTE_REPLAY_PATH", "/data/replays")
+        default_factory=lambda: os.environ.get("REMOTE_REPLAY_PATH", "~/CYTu/AionGenos_server/data/replays")
     )
+    remote_python: str = field(
+        default_factory=lambda: os.environ.get("REMOTE_PYTHON", "python3")
+    )
+
 
     # Workspace & scalar guard
     workspace_bounds: WorkspaceBounds = field(default_factory=WorkspaceBounds)
