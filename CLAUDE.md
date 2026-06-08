@@ -10,9 +10,9 @@ Opus 4.8 (1M context)（Max）. Individual subagents can downgrade in frontmatte
 
 ## Startup Flow
 
-1. Read **`workspace/INDEX.md`** (project list, recent priorities, to-do items)
+1. Read **`/home/control/AionGenos/docs/plans/INDEX.md`** (project list, recent priorities, to-do items)
 2. Determine mode: Secretary mode (default) or Project mode
-3. Project mode requires additionally reading `workspace/projects/{name}/INDEX.md` (+ `SYSTEM.md` if exists)
+
 
 > In Claude Code / Cowork, secretary Skill auto-loads, no manual read needed.
 > On other platforms (Antigravity, etc.) manually read corresponding Skill files below.
@@ -60,14 +60,6 @@ Secretary routes incoming tasks to one of five departments. Full decision tree, 
 | Strategy & Commercialization | `strategy-commercialization` | Pricing, positioning, investors, GTM, scope/pivot decisions (`/plan-ceo-review`) |
 | Biz Dev | (secretary mode, no skill) | Deal negotiation, intros, BD outreach |
 
-## Cross-Platform Paths
-
-| Platform | Root Directory (startup location) | workspace Path |
-|---|---|---|
-| Cowork | `/sessions/.../mnt/project-secretary/` | `project-secretary/workspace/` |
-| Claude Code | `/Users/tpemist/DEV/2026_DEV/project-secretary/` | `/Users/tpemist/DEV/2026_DEV/project-secretary/workspace/` |
-
-> This file (CLAUDE.md) in the project-secretary root (`/Users/tpemist/DEV/2026_DEV/project-secretary/` on this machine). Cowork auto-reads when mounting; Claude Code also starts from this directory.
 
 ## Cross-Platform Agent Guide
 
@@ -77,6 +69,3 @@ If not in Claude Code / Cowork (e.g., Gemini / Sonnet on Antigravity):
 - Handoff protocol: Read `.claude/skills/handoff/SKILL.md`
 - Tool SOPs: Read `.claude/skills/chrome-sop/`, `gcp-ops/`, `github-ops/`, `gemini-ops/`, `subagent-guide/` SKILL.md
 
-## About SYSTEM.md
-
-> There is no `workspace/SYSTEM.md` — it was a legacy file fully migrated into Skills (secretary Skill is the single source of truth: Model Default → this file, behavior rules → secretary, wrap-up → review, handoff → handoff). The "SYSTEM.md if exists" in Startup Flow step 3 refers only to optional per-project files, none of which currently exist.
