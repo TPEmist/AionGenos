@@ -12,6 +12,8 @@ from pathlib import Path
 from typing import Tuple
 
 from aiongenos.vlm.task_instructions import (
+    L0A_SINGLE_REACH_LEFT,
+    L0A_SINGLE_REACH_RIGHT,
     L0_REACH_TWO_CUBES,
     L1_DUAL_TRACE,
     L2_DUAL_PUSH,
@@ -84,8 +86,29 @@ class LevelConfig:
     plateau_window: int = 3  # rolling-window size for mean-progress evaluation
 
 
-# Pre-defined level configs
+# Pre-defined level configs.
+#
+# Negative-numbered levels are pre-L0 sub-stages added by V4 (sensory-
+# integration ordering: master single-channel before dual-channel). The
+# advancement order is encoded in ``LEVEL_ORDER`` below — the curriculum
+# manager treats that list as the source of truth, not the integer values.
 LEVEL_CONFIGS: dict[int, LevelConfig] = {
+    -2: LevelConfig(
+        level=-2,
+        name="L0a_single_reach_left",
+        control_mode=ControlMode.POSITION_ONLY,
+        task_instruction_template=L0A_SINGLE_REACH_LEFT,
+        max_subgoals_per_episode=40,
+        plateau_patience=5,
+    ),
+    -1: LevelConfig(
+        level=-1,
+        name="L0a_single_reach_right",
+        control_mode=ControlMode.POSITION_ONLY,
+        task_instruction_template=L0A_SINGLE_REACH_RIGHT,
+        max_subgoals_per_episode=40,
+        plateau_patience=5,
+    ),
     0: LevelConfig(
         level=0,
         name="L0_reach_two_cubes",
@@ -127,6 +150,11 @@ LEVEL_CONFIGS: dict[int, LevelConfig] = {
         plateau_patience=5,
     ),
 }
+
+
+# Curriculum advancement order. Negative ids are V4 sub-stages, traversed
+# before L0 (sensory-integration: single-channel → dual-channel).
+LEVEL_ORDER: tuple[int, ...] = (-2, -1, 0, 1, 2, 3, 4)
 
 
 @dataclass

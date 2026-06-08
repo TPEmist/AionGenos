@@ -31,6 +31,20 @@ from aiongenos.pipeline.stage3_critic import generate_critic_feedback
 logger = logging.getLogger(__name__)
 
 
+def _active_arm_for_level(level_config: LevelConfig) -> Optional[str]:
+    """V4: identify which single arm is active for L0a sub-stages.
+
+    Returns ``"left"`` / ``"right"`` for L0a-L/R, ``None`` for any other
+    level (= both arms active).
+    """
+    name = level_config.name
+    if name.endswith("_left"):
+        return "left"
+    if name.endswith("_right"):
+        return "right"
+    return None
+
+
 def _grounding_targets_base_frame(env) -> Optional[tuple[np.ndarray, np.ndarray]]:
     """Resolve current GT targets in the robot's base frame, or None on failure."""
     try:
@@ -164,7 +178,8 @@ def _run_episode(
                 f"grounding L/R cm={ge_l*100:.1f}/{ge_r*100:.1f}"
             )
 
-        attempt = env.execute_command(command, sim_steps)
+        active_arm = _active_arm_for_level(level_config)
+        attempt = env.execute_command(command, sim_steps, active_arm=active_arm)
 
         if dump_dir is not None:
             post_rgb = env.get_rgb()

@@ -2,6 +2,24 @@
 
 import gymnasium as gym
 
+# Register the L0a single-arm reach environments (V4: pre-L0 sub-stage).
+gym.register(
+    id="Isaac-AionGenos-L0a-Left-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": "aiongenos.tasks.L0a_single_reach.single_reach_cfg:L0aSingleReachLeftEnvCfg",
+    },
+)
+gym.register(
+    id="Isaac-AionGenos-L0a-Right-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": "aiongenos.tasks.L0a_single_reach.single_reach_cfg:L0aSingleReachRightEnvCfg",
+    },
+)
+
 # Register the L0 reach two cubes environment
 gym.register(
     id="Isaac-AionGenos-L0-v0",

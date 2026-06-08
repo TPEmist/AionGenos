@@ -15,6 +15,16 @@ from __future__ import annotations
 
 from typing import Final
 
+L0A_SINGLE_REACH_LEFT: Final[str] = (
+    "Move your LEFT end-effector to the {target_color} target. "
+    "Your right arm is held still — you do not control it."
+)
+
+L0A_SINGLE_REACH_RIGHT: Final[str] = (
+    "Move your RIGHT end-effector to the {target_color} target. "
+    "Your left arm is held still — you do not control it."
+)
+
 L0_REACH_TWO_CUBES: Final[str] = (
     "Move both end-effectors to the target positions. "
     "Left arm should reach the {left_target_color} target, "
@@ -40,7 +50,11 @@ L4_BLOCK_HANDOVER: Final[str] = (
 )
 
 # Convenience map for tooling that wants to enumerate all instructions.
+# Sub-stage levels use negative ids (curriculum manager treats LEVEL_ORDER
+# as the source of truth, not the integer values).
 LEVEL_TASK_INSTRUCTIONS: Final[dict[int, str]] = {
+    -2: L0A_SINGLE_REACH_LEFT,
+    -1: L0A_SINGLE_REACH_RIGHT,
     0: L0_REACH_TWO_CUBES,
     1: L1_DUAL_TRACE,
     2: L2_DUAL_PUSH,

@@ -66,8 +66,17 @@ class EnvInterface(Protocol):
         """Get current state dict for prompt template."""
         ...
 
-    def execute_command(self, command: BimanualCommand, steps: int) -> AttemptResult:
-        """Execute a bimanual command for N sim steps."""
+    def execute_command(
+        self,
+        command: BimanualCommand,
+        steps: int,
+        active_arm: Optional[str] = None,
+    ) -> AttemptResult:
+        """Execute a bimanual command for N sim steps.
+
+        ``active_arm`` (V4): when ``"left"`` / ``"right"``, the inactive arm
+        is held in place regardless of the VLM's emitted target.
+        """
         ...
 
     def get_current_distances(self) -> dict[str, float]:
@@ -84,6 +93,16 @@ class CollectStats:
     critic_retries: int = 0
     total_vlm_latency_ms: float = 0.0
     run_id: str = ""
+
+
+def _active_arm_for_level(level_config: LevelConfig) -> Optional[str]:
+    """V4: identify which single arm is active for L0a sub-stages."""
+    name = level_config.name
+    if name.endswith("_left"):
+        return "left"
+    if name.endswith("_right"):
+        return "right"
+    return None
 
 
 def run_collect_loop(
@@ -210,7 +229,12 @@ def run_collect_loop(
             prev_predicted_left = (stage1_result.left.position.x, stage1_result.left.position.y, stage1_result.left.position.z)
             prev_predicted_right = (stage1_result.right.position.x, stage1_result.right.position.y, stage1_result.right.position.z)
 
-            attempt = env.execute_command(command, level_config.sim_steps_per_subgoal)
+            active_arm = _active_arm_for_level(level_config)
+            attempt = env.execute_command(
+                command,
+                level_config.sim_steps_per_subgoal,
+                active_arm=active_arm,
+            )
             trajectory.extend(attempt.trajectory)
             flags.extend(attempt.flags)
             rgb_end_final = attempt.rgb_end_bytes or env.get_rgb()

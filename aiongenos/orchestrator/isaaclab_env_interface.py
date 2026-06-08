@@ -7,6 +7,8 @@
 
 import io
 import logging
+from typing import Optional
+
 import numpy as np
 import torch
 import gymnasium as gym
@@ -218,15 +220,40 @@ class IsaacLabEnvInterface:
 
         return state
 
-    def execute_command(self, command: BimanualCommand, steps: int) -> AttemptResult:
-        """Execute a bimanual command for N sim steps."""
+    def execute_command(
+        self,
+        command: BimanualCommand,
+        steps: int,
+        active_arm: Optional[str] = None,
+    ) -> AttemptResult:
+        """Execute a bimanual command for N sim steps.
+
+        Args:
+            command: VLM-derived target for both arms.
+            steps: number of sim steps to servo.
+            active_arm: V4 — when set to ``"left"`` or ``"right"``, the inactive
+                arm's command is overridden with its current EE pose (hold in
+                place) regardless of what the VLM emitted. ``None`` (default)
+                means both arms execute the VLM command.
+        """
         left_pos = command.left.position
         right_pos = command.right.position
-        
+
+        # V4 single-arm masking: replace the inactive arm with hold-in-place.
+        if active_arm in ("left", "right"):
+            try:
+                cur_left_b, cur_right_b, _, _ = self._get_ee_poses()
+                if active_arm == "left":
+                    right_pos = (float(cur_right_b[0]), float(cur_right_b[1]), float(cur_right_b[2]))
+                else:
+                    left_pos = (float(cur_left_b[0]), float(cur_left_b[1]), float(cur_left_b[2]))
+            except Exception as e:
+                logger.warning(f"single-arm mask skipped: {e}")
+
         # Build action list depending on action space dimension
         action_shape = self.env.action_space.shape
         action_dim = action_shape[-1] if len(action_shape) > 0 else 6
-        
+
         if action_dim == 6:
             # Position-only action mode: [left_x, left_y, left_z, right_x, right_y, right_z]
             action_list = list(left_pos) + list(right_pos)

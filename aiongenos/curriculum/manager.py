@@ -12,7 +12,13 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
-from aiongenos.config import AionGenosConfig, CurriculumConfig, LEVEL_CONFIGS, LevelConfig
+from aiongenos.config import (
+    AionGenosConfig,
+    CurriculumConfig,
+    LEVEL_CONFIGS,
+    LEVEL_ORDER,
+    LevelConfig,
+)
 from aiongenos.replay.buffer import ReplayBuffer
 from aiongenos.replay.schema import EpisodeOutcome
 
@@ -62,16 +68,24 @@ class AionGenosCurriculumManager:
         config: CurriculumConfig,
         replay_buffer: ReplayBuffer,
         start_level: int = 0,
-        max_level: int = 4,
+        max_level: Optional[int] = None,
     ):
         self.config = config
         self.replay = replay_buffer
-        self.max_level = max_level
+        # Source of truth for level traversal is LEVEL_ORDER (V4 added pre-L0
+        # sub-stages with negative ids — integer arithmetic on the level field
+        # is no longer safe).
+        self._order: tuple[int, ...] = LEVEL_ORDER
+        if start_level not in self._order:
+            raise ValueError(
+                f"start_level={start_level} not in LEVEL_ORDER={self._order}"
+            )
+        self.max_level = self._order[-1] if max_level is None else max_level
         self.current_level = start_level
 
-        # Initialize level states
+        # Initialize level states for every level in LEVEL_ORDER.
         self.levels: dict[int, LevelState] = {}
-        for lv in range(max_level + 1):
+        for lv in self._order:
             status = LevelStatus.ACTIVE if lv == start_level else LevelStatus.LOCKED
             self.levels[lv] = LevelState(
                 level=lv,
@@ -116,19 +130,21 @@ class AionGenosCurriculumManager:
             state.success_rate >= self.config.advance_threshold
             and state.total_count >= 10  # minimum sample size
         ):
-            if self.current_level >= self.max_level:
+            cur_idx = self._order.index(self.current_level)
+            if cur_idx >= len(self._order) - 1:
                 msg = f"L{self.current_level} passed but already at max level"
                 return False, msg
 
-            # Advance!
+            # Advance to the next level in LEVEL_ORDER.
+            prev_level = self.current_level
             state.status = LevelStatus.PASSED
-            self.current_level += 1
+            self.current_level = self._order[cur_idx + 1]
             next_state = self.levels[self.current_level]
             next_state.status = LevelStatus.ACTIVE
             next_state.start_time = time.time()
 
             msg = (
-                f"ADVANCE: L{self.current_level - 1} → L{self.current_level} "
+                f"ADVANCE: L{prev_level} → L{self.current_level} "
                 f"(SR={state.success_rate:.1%}, n={state.total_count})"
             )
             logger.info(msg)
