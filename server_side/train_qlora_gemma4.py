@@ -8,7 +8,24 @@ from PIL import Image
 
 import torch
 import torch.nn as nn
+import torchvision
 from torch.utils.data import Dataset
+
+# ==================== System/Venv Compatibility Patches ====================
+# Restore path after imports to prevent sub-imports from pointing to wrong venv
+original_path = list(sys.path)
+# Prepend venv site-packages to load custom gemma-4 capable transformers/peft
+sys.path.insert(0, "/home/exx/CYTu/test_zone/gemma3-bbox-finetune/.venv/lib/python3.10/site-packages")
+
+# Apply flex_attention patch for compatibility with torch 2.6.0
+try:
+    import torch.nn.attention.flex_attention as fa
+    fa.AuxRequest = type('AuxRequest', (object,), {})
+except Exception:
+    pass
+
+# Apply float8 compatibility patch
+torch.float8_e8m0fnu = getattr(torch, "float8_e8m0fnu", torch.uint8)
 
 # ==================== Monkey-Patch PEFT #3129 for Gemma 4 ====================
 # Gemma 4 uses Gemma4ClippableLinear in vision/audio towers which inherits from
@@ -41,12 +58,15 @@ except Exception as e:
 
 from transformers import (
     AutoProcessor,
-    AutoModelForVision2Seq,
+    AutoModelForMultimodalLM,
     BitsAndBytesConfig,
     TrainingArguments,
     Trainer,
 )
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+
+# Restore original path to avoid side-effects on subsequent imports
+sys.path = original_path
 
 # System prompt identical to stage 1 template
 STAGE1_SYSTEM = (
@@ -145,7 +165,7 @@ class ReplayDataset(Dataset):
         # Apply standard Gemma 4 chat template format
         # Format: <start_of_turn>user\nSystem message\n<image>\nUser prompt<end_of_turn>\n<start_of_turn>model\nResponse<end_of_turn>
         full_prompt = (
-            f"<start_of_turn>user\n{ex['system_prompt']}\n<image>\n{ex['user_prompt']}<end_of_turn>\n"
+            f"<start_of_turn>user\n{ex['system_prompt']}\n<|image|>\n{ex['user_prompt']}<end_of_turn>\n"
             f"<start_of_turn>model\n"
         )
         
@@ -156,6 +176,8 @@ class ReplayDataset(Dataset):
         input_ids = batch["input_ids"][0]
         attention_mask = batch["attention_mask"][0]
         pixel_values = batch["pixel_values"][0] if "pixel_values" in batch else None
+        image_position_ids = batch["image_position_ids"][0] if "image_position_ids" in batch else None
+        mm_token_type_ids = batch["mm_token_type_ids"][0] if "mm_token_type_ids" in batch else None
         
         # 2. Setup labels with loss masking
         labels = input_ids.clone()
@@ -191,6 +213,10 @@ class ReplayDataset(Dataset):
             input_ids = input_ids[:self.max_length]
             attention_mask = attention_mask[:self.max_length]
             labels = labels[:self.max_length]
+            if image_position_ids is not None:
+                image_position_ids = image_position_ids[:self.max_length]
+            if mm_token_type_ids is not None:
+                mm_token_type_ids = mm_token_type_ids[:self.max_length]
 
         item = {
             "input_ids": input_ids,
@@ -199,6 +225,10 @@ class ReplayDataset(Dataset):
         }
         if pixel_values is not None:
             item["pixel_values"] = pixel_values
+        if image_position_ids is not None:
+            item["image_position_ids"] = image_position_ids
+        if mm_token_type_ids is not None:
+            item["mm_token_type_ids"] = mm_token_type_ids
             
         return item
 
@@ -221,6 +251,12 @@ def collate_fn(batch):
     
     if "pixel_values" in batch[0]:
         collated["pixel_values"] = torch.stack([item["pixel_values"] for item in batch])
+    if "image_position_ids" in batch[0]:
+        image_position_ids = [item["image_position_ids"] for item in batch]
+        collated["image_position_ids"] = torch.nn.utils.rnn.pad_sequence(image_position_ids, batch_first=True, padding_value=-1)
+    if "mm_token_type_ids" in batch[0]:
+        mm_token_type_ids = [item["mm_token_type_ids"] for item in batch]
+        collated["mm_token_type_ids"] = torch.nn.utils.rnn.pad_sequence(mm_token_type_ids, batch_first=True, padding_value=0)
         
     return collated
 
@@ -254,7 +290,7 @@ def main():
     )
     
     print(f"Loading base model in 4-bit: {args.base_model}")
-    model = AutoModelForVision2Seq.from_pretrained(
+    model = AutoModelForMultimodalLM.from_pretrained(
         args.base_model,
         quantization_config=bnb_config,
         device_map="auto",
@@ -267,7 +303,7 @@ def main():
     peft_config = LoraConfig(
         r=16,
         lora_alpha=32,
-        target_modules="all-linear",
+        target_modules=".*language_model\\.layers\\.\\d+\\.(self_attn\\.(q|k|v|o)_proj|mlp\\.(gate|up|down)_proj)",
         lora_dropout=0.05,
         bias="none",
         task_type="CAUSAL_LM",
@@ -293,7 +329,7 @@ def main():
         learning_rate=args.lr,
         logging_steps=1,
         save_strategy="epoch",
-        evaluation_strategy="no",
+        eval_strategy="no",
         fp16=False,
         bf16=True,
         optim="paged_adamw_8bit",

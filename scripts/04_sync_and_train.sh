@@ -39,6 +39,7 @@ def main():
     parser = argparse.ArgumentParser(description="AionGenos Sync and Remote Training Trigger")
     parser.add_argument("--run-id", type=str, help="Run ID to train on. Defaults to latest local run.")
     parser.add_argument("--ssh-key", type=str, help="Optional SSH key path for remote server access.")
+    parser.add_argument("--base-model", type=str, help="Hugging Face base model ID to use (e.g. google/gemma-4-E4B-it).")
     args = parser.parse_args()
 
     # Load configuration
@@ -78,6 +79,8 @@ def main():
         replay_path=config.remote_replay_path,
         run_id=run_id,
         ssh_key=args.ssh_key,
+        remote_python=config.remote_python,
+        base_model=args.base_model,
     )
     
     if not train_ok:
@@ -91,6 +94,8 @@ def main():
         remote_user=config.remote_user,
         run_id=run_id,
         ssh_key=args.ssh_key,
+        remote_python=config.remote_python,
+        base_model=args.base_model,
     )
 
     if reload_ok:

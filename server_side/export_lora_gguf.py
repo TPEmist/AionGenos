@@ -7,9 +7,9 @@ from pathlib import Path
 def find_convert_script():
     """Search for convert_lora_to_gguf.py in common locations."""
     search_dirs = [
+        Path.home() / "CYTu/llama.cpp",
         Path("/data/llama.cpp"),
         Path("/root/llama.cpp"),
-        Path("/home"),
         Path("."),
     ]
     
@@ -60,12 +60,27 @@ def main():
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # Use venv python if available to ensure all convert dependencies (sentencepiece, gguf) are satisfied
+    venv_python = "/home/exx/CYTu/test_zone/gemma3-bbox-finetune/.venv/bin/python"
+    python_exec = venv_python if os.path.exists(venv_python) else sys.executable
+
+    # Resolve Hugging Face repo ID to local cache directory path if it's not already a local path
+    base_model_path = args.base_model
+    if not os.path.isdir(base_model_path):
+        print(f"Resolving base model repo ID '{base_model_path}' to local cache snapshot directory...")
+        try:
+            from huggingface_hub import snapshot_download
+            base_model_path = snapshot_download(args.base_model, local_files_only=True)
+            print(f"Resolved base model path: {base_model_path}")
+        except Exception as e:
+            print(f"Warning: Could not resolve base model local path via huggingface_hub: {e}")
+
     # Build llama.cpp convert command
     cmd = [
-        "python3", convert_script,
+        python_exec, convert_script,
         str(adapter_path),
         "--outfile", str(output_path),
-        "--base", args.base_model
+        "--base", base_model_path
     ]
 
     print(f"Executing: {' '.join(cmd)}")

@@ -6,7 +6,7 @@ set -euo pipefail
 
 LORA_PATH="${1:-}"
 PORT="${STUDENT_PORT:-18889}"
-LOG_DIR="/data/logs"
+LOG_DIR="data/logs"
 
 if [ -z "${LORA_PATH}" ]; then
     echo "Error: No LoRA adapter path provided." >&2
