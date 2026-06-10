@@ -6,6 +6,7 @@
 import math
 import isaaclab.envs.mdp as mdp
 import isaaclab.sim as sim_utils
+from aiongenos.mdp.reset import reset_joints_to_target_with_offset
 from isaaclab.envs import ManagerBasedRLEnvCfg
 from isaaclab.managers import ActionTermCfg as ActionTerm
 from isaaclab.managers import CurriculumTermCfg as CurrTerm
@@ -53,20 +54,34 @@ class AionGenosReachEnvBaseCfg(ReachEnvCfg):
         # Ensure that simulation outputs RGB images at correct intervals
         self.sim.render_interval = self.decimation
 
-        # ── Initial-pose randomization (T-8a, F15 fix) ────────────────────
-        # IsaacLab's default ``reset_joints_by_scale`` MULTIPLIES the default
-        # joint pose, but OpenArm's default has joint2/5/6/7/finger == 0, so
-        # ``0 * any_scale == 0`` left those joints fixed and the EE landed at
-        # the same task-space spot every reset (see F15 in INDEX). We replace
-        # it with ``reset_joints_by_offset`` (additive bias around the default
-        # pose), which perturbs every joint regardless of its default value.
-        # Range ±0.2 rad (~±11°) chosen conservatively: large enough to give
-        # task-space EE diversity, small enough to keep the arm in a sensible
-        # forward-facing pose. IsaacLab clamps to soft joint limits internally.
+        # ── Initial-pose randomization (T-8a, F15 fix → C3 pre-reach) ─────
+        # History:
+        # • F15: IsaacLab's reset_joints_by_scale silently no-ops on OpenArm
+        #   (default joints all zero, scale × 0 = 0).
+        # • T-8a: switched to reset_joints_by_offset(±0.2 rad) — fixed X/Y
+        #   diversity but Z still locked because the default pose has both
+        #   arms hanging straight down, so the EE Z is dominated by the rigid
+        #   forearm length.
+        # • C3 (visual debug, F22): with arms hanging the wrist EEs land in
+        #   the lower 1/3 of the camera image and frequently occlude the
+        #   cube target. View-sanity script picked
+        #     P1_mild_forward = {joint2: 0.5, joint4: 0.8}
+        #   (i.e. shoulder pitched forward, elbow flexed) as the cleanest
+        #   pre-reach pose: cube clearly visible, both EEs in frame, no
+        #   self-occlusion across ~10 random samples.
+        #
+        # We use our custom reset_joints_to_target_with_offset which sets
+        # the target joint pose first, then jitters by ±0.2 rad on top.
         self.events.reset_robot_joints = EventTerm(
-            func=mdp.reset_joints_by_offset,
+            func=reset_joints_to_target_with_offset,
             mode="reset",
             params={
+                "target_joint_pos": {
+                    "openarm_left_joint2": 0.5,
+                    "openarm_left_joint4": 0.8,
+                    "openarm_right_joint2": 0.5,
+                    "openarm_right_joint4": 0.8,
+                },
                 "position_range": (-0.2, 0.2),
                 "velocity_range": (0.0, 0.0),
             },
