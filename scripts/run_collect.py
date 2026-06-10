@@ -10,8 +10,17 @@ import logging
 import os
 import sys
 
-# Setup logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+# Setup logging — IsaacLab's AppLauncher reconfigures the root logger after
+# import (see scripts/05_eval.py for the same fix). Install a stream handler
+# directly on the aiongenos.* loggers so per-round INFO lines from
+# collect/eval/stage1 still reach stdout.
+_handler = logging.StreamHandler(sys.stdout)
+_handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
+for _name in ("aiongenos", "__main__"):
+    _l = logging.getLogger(_name)
+    _l.setLevel(logging.INFO)
+    _l.addHandler(_handler)
+    _l.propagate = False
 logger = logging.getLogger(__name__)
 
 # Launch Isaac Sim Simulator first
