@@ -283,7 +283,22 @@ def run_collect_loop(
                     "actual_right_start": list(prev_actual_right or ()),
                     "final_dist_l_cm": float(final_dist_l * 100) if not math.isnan(final_dist_l) else None,
                     "final_dist_r_cm": float(final_dist_r * 100) if not math.isnan(final_dist_r) else None,
-                    "vlm_thought": (getattr(stage1_result, "thought", "") or "")[:600],
+                    # Full thought (NOT truncated). The thought is the most
+                    # information-rich signal we have for diagnosing whether
+                    # the VLM is actually reasoning vs. running a fallback,
+                    # so we keep it intact in meta.json.
+                    "vlm_thought": getattr(stage1_result, "thought", "") or "",
+                    # Full raw response (regex-parser source) — useful when
+                    # debugging parse failures or comparing thought vs. emitted
+                    # coordinates.
+                    "vlm_full_response": (
+                        vlm_interactions[-1].full_response
+                        if vlm_interactions else ""
+                    ),
+                    # Programmatic critic feedback that was injected as the
+                    # "### CRITIC FEEDBACK FROM PREVIOUS ROUND" suffix on the
+                    # round's user prompt; None on round 1.
+                    "critic_feedback": critic_feedback,
                     "vlm_stop": bool(getattr(stage1_result, "stop", False)),
                     "attempt_outcome": attempt.outcome,
                     "stage1_latency_ms": float(stage1_latency),
