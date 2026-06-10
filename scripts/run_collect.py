@@ -9,6 +9,7 @@ import argparse
 import logging
 import os
 import sys
+from pathlib import Path
 
 # Setup logging — IsaacLab's AppLauncher reconfigures the root logger after
 # import (see scripts/05_eval.py for the same fix). Install a stream handler
@@ -29,8 +30,15 @@ from isaaclab.app import AppLauncher
 # Add custom arguments
 parser = argparse.ArgumentParser(description="Run bimanual cognitive collect loop.")
 parser.add_argument("--num_episodes", type=int, default=5, help="Number of episodes to collect.")
-parser.add_argument("--level", type=int, default=0, help="Initial curriculum level to run (0-4).")
+parser.add_argument("--level", type=int, default=0, help="Initial curriculum level to run (-2..4).")
 parser.add_argument("--teacher_url", type=str, default=None, help="Overrides VLM teacher URL.")
+parser.add_argument(
+    "--dump_images_root",
+    type=str,
+    default=None,
+    help="When set, write per-round RGB pairs and meta.json under "
+         "{dump_images_root}/{run_id}/{episode_id}/. Use for V4 playback.",
+)
 # Append AppLauncher CLI args
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
@@ -86,6 +94,7 @@ def main():
             replay=replay,
             max_episodes=args_cli.num_episodes,
             check_advance_every=10,
+            dump_images_root=Path(args_cli.dump_images_root) if args_cli.dump_images_root else None,
         )
         logger.info("Collect loop execution complete.")
         logger.info(f"Stats summary: {stats}")

@@ -14,12 +14,14 @@ Isaac Sim runtime and is provided via the EnvInterface protocol.
 
 from __future__ import annotations
 
+import json
 import logging
+import math
 import time
 import uuid
-import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional, Protocol
 
 from aiongenos.config import AionGenosConfig, LevelConfig
@@ -112,6 +114,7 @@ def run_collect_loop(
     replay: ReplayBuffer,
     max_episodes: int = 1000,
     check_advance_every: int = 10,
+    dump_images_root: Optional[Path] = None,
 ) -> CollectStats:
     """Run the 4-stage cognitive evolution collect loop.
 
@@ -122,6 +125,10 @@ def run_collect_loop(
         replay: Replay buffer for storage.
         max_episodes: Max episodes to collect.
         check_advance_every: Check curriculum advance every N episodes.
+        dump_images_root: When set, write per-round RGB pairs (and a meta.json
+            summarising VLM I/O per round) under
+            ``{dump_images_root}/{run_id}/{episode_id}/round_NN_{pre,post}.png``
+            for offline playback / debugging.
 
     Returns:
         CollectStats with aggregated metrics.
@@ -130,6 +137,8 @@ def run_collect_loop(
     stats = CollectStats(run_id=run_id)
 
     logger.info(f"Starting collect loop: run_id={run_id}, max_episodes={max_episodes}")
+    if dump_images_root is not None:
+        logger.info(f"  dump_images_root={dump_images_root / run_id}")
 
     for ep_idx in range(max_episodes):
         # Check if blocked
@@ -171,8 +180,19 @@ def run_collect_loop(
         no_progress_rounds = 0
         combined_history: list[float] = []  # T-8b rolling-mean plateau
 
+        # F19/V4 playback support: per-round RGB + meta dump.
+        ep_dump_dir: Optional[Path] = None
+        round_meta: list[dict] = []
+        if dump_images_root is not None:
+            ep_dump_dir = dump_images_root / run_id / episode_id
+            ep_dump_dir.mkdir(parents=True, exist_ok=True)
+            if rgb_start:
+                (ep_dump_dir / "episode_start.png").write_bytes(rgb_start)
+
         for round_idx in range(max_rounds):
             rgb = env.get_rgb()
+            if ep_dump_dir is not None and rgb:
+                (ep_dump_dir / f"round_{round_idx + 1:02d}_pre.png").write_bytes(rgb)
             state = env.get_state(level_config)
             try:
                 state["instruction"] = level_config.task_instruction_template.format(**state)
@@ -239,12 +259,35 @@ def run_collect_loop(
             flags.extend(attempt.flags)
             rgb_end_final = attempt.rgb_end_bytes or env.get_rgb()
 
+            if ep_dump_dir is not None and attempt.rgb_end_bytes:
+                (ep_dump_dir / f"round_{round_idx + 1:02d}_post.png").write_bytes(
+                    attempt.rgb_end_bytes
+                )
+
             final_dist_l = float("nan")
             final_dist_r = float("nan")
             if attempt.trajectory:
                 last = attempt.trajectory[-1].distances
                 final_dist_l = last.get("dist_red", float("nan"))
                 final_dist_r = last.get("dist_blue", float("nan"))
+
+            if ep_dump_dir is not None:
+                round_meta.append({
+                    "round": round_idx + 1,
+                    "active_arm": active_arm,
+                    "vlm_left_pos_int": list(prev_predicted_left or ()),
+                    "vlm_right_pos_int": list(prev_predicted_right or ()),
+                    "command_left_pos_m": [float(v) for v in command.left.position],
+                    "command_right_pos_m": [float(v) for v in command.right.position],
+                    "actual_left_start": list(prev_actual_left or ()),
+                    "actual_right_start": list(prev_actual_right or ()),
+                    "final_dist_l_cm": float(final_dist_l * 100) if not math.isnan(final_dist_l) else None,
+                    "final_dist_r_cm": float(final_dist_r * 100) if not math.isnan(final_dist_r) else None,
+                    "vlm_thought": (getattr(stage1_result, "thought", "") or "")[:600],
+                    "vlm_stop": bool(getattr(stage1_result, "stop", False)),
+                    "attempt_outcome": attempt.outcome,
+                    "stage1_latency_ms": float(stage1_latency),
+                })
 
             combined = (final_dist_l + final_dist_r) if not (
                 math.isnan(final_dist_l) or math.isnan(final_dist_r)
@@ -324,6 +367,26 @@ def run_collect_loop(
             outcome, flags, trajectory, vlm_interactions,
             episode_latency_ms, rgb_start, rgb_end_final, ep_start,
         )
+
+        # Persist per-round dump meta.json alongside the PNGs (V4 playback).
+        if ep_dump_dir is not None:
+            if rgb_end_final:
+                (ep_dump_dir / "episode_end.png").write_bytes(rgb_end_final)
+            (ep_dump_dir / "meta.json").write_text(
+                json.dumps(
+                    {
+                        "episode_id": episode_id,
+                        "run_id": run_id,
+                        "level": level_config.level,
+                        "level_name": level_config.name,
+                        "outcome": outcome.value if hasattr(outcome, "value") else str(outcome),
+                        "flags": list(flags),
+                        "rounds": round_meta,
+                    },
+                    indent=2,
+                )
+            )
+
         curriculum.record_episode(outcome)
         stats.total_episodes += 1
 
