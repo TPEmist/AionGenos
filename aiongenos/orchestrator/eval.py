@@ -4,7 +4,8 @@ Each episode runs up to ``max_subgoals_per_episode`` rounds:
   Round k: VLM observes fresh RGB + EE state → outputs sub-goal → IK servo for
   ``sim_steps`` steps. Episode stops on:
     - success: both arms within ``subgoal_success_threshold_m`` of target
-    - vlm_stop: VLM emits STOP=true
+    - vlm_stop_premature: VLM emits STOP=true but EE not within threshold
+      (NOT counted as success — see F19)
     - plateau: best distance fails to improve > ``plateau_min_progress_m``
                for ``plateau_patience`` consecutive rounds
     - max_rounds: round budget exhausted
@@ -231,7 +232,10 @@ def _run_episode(
             break
 
         if getattr(stage1_result, "stop", False):
-            outcome = "vlm_stop"
+            # F19: VLM saying STOP=True ≠ success. The genuine-convergence
+            # branch above is what flips outcome to "success"; if we reach
+            # here, distance never made it inside threshold.
+            outcome = "vlm_stop_premature"
             break
 
         # T-8b Plateau detection: rolling-mean over the last `plateau_window`

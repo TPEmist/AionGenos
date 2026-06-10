@@ -270,8 +270,17 @@ def run_collect_loop(
                 break
 
             if getattr(stage1_result, "stop", False):
-                outcome = EpisodeOutcome.SUCCESS
-                stats.success_episodes += 1
+                # F19 fix: VLM saying STOP=True does NOT imply success — verify
+                # against distance threshold. The earlier "real" success branch
+                # above already covers genuine convergence; if we get here, the
+                # VLM thinks it's done but the EE isn't on target.
+                outcome = EpisodeOutcome.VLM_STOP_PREMATURE
+                flags.append("vlm_stop_premature")
+                logger.info(
+                    f"  VLM emitted STOP=True at round {round_idx + 1} but "
+                    f"final dist L/R cm={final_dist_l*100:.1f}/{final_dist_r*100:.1f} > threshold "
+                    f"{success_thresh*100:.1f}cm → mark vlm_stop_premature"
+                )
                 break
 
             # T-8b Plateau detection: rolling-mean over `plateau_window` rounds

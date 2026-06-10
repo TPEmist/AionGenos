@@ -22,6 +22,10 @@ class EpisodeOutcome(str, Enum):
     OBJECT_LOST = "object_lost"
     VLM_PARSE_FAIL = "vlm_parse_fail"
     NEAR_SINGULARITY = "near_singularity"
+    # F19: VLM emitted STOP=True before reaching the success threshold.
+    # Treated as failure for replay purposes (does NOT enter Stage 4-A
+    # training data) so the success_replay/ folder stays clean.
+    VLM_STOP_PREMATURE = "vlm_stop_premature"
 
 
 class TimeStep(BaseModel):
