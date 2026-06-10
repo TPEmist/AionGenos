@@ -2,29 +2,28 @@
 
 > Embodied AI 開源研究框架。VLA 物理常識作為 System 2，蒸餾為 LoRA System 1，零示範雙臂任務。
 > 計畫全文：[`docs/plans/01_poc_cognitive_evolution_pipeline.md`](docs/plans/01_poc_cognitive_evolution_pipeline.md)
-> 最後更新：2026-06-02
+> 最後更新：2026-06-10
 
 ---
 
 ## 當前狀態
 
-- **Phase**：M7 進度完成，L3 pick & place 成功部署；遠端 QLoRA 訓練環境及 GGUF 熱重載（Reload）管道已全線打通；E4B+LoRA student multi-round L0 closed-loop eval 完成。
-- **Sprint 目標**：已成功在遠端 GPU 伺服器驗證 QLoRA 微調流水線（以 E4B 作為 POC 模型成功完成 1 epoch 訓練收斂、GGUF 導出、元數據 patch、並部署熱重載，student:18889 + LoRA `a318eb38` 線上）。**Multi-round closed-loop 機制（Option A）跑通**：兩端 SR=0/5；teacher avg 3.4 round / grounding 31.0/22.8cm；student avg 3.8 round / grounding 38.2/26.9cm / speedup 2.06×。**關鍵發現**：VLM grounding 不只 bias 還是 high variance（同 episode 不同 round 預測互相不一致），純 multi-round 解不了 R1 風險。
-- **最新動作與進展（2026-06-04）**：
-  1. **遠端 SSH 與伺服器恢復**：遠端 148 主機已重啟，SSH 連線成功修復。已手動重新拉起遠端 Teacher (18888) 與 Student (18889) `llama-server` 服務。
-  2. **多輪閉環 & Critic 機制部署**：完成 `collect.py` 與 `eval.py` 同步，整合 stateful `EpisodeConversation` 與 programmatic observable-only critic feedback。
-  3. **Context Length 最佳化**：實作 `EpisodeConversation` 對話歷史自動清理機制，僅保留當前最新一輪 User Turn 的影像 `image_url`。
-  4. **Teacher CoT Token 預算調升**：`max_tokens` 1024→2048；timeout 60→180s。
-  5. **31B teacher 全面替換 + LoRA 410e0f79 線上**。
-  6. **Run 85ccf9a4 進行中**（6/10 ep 完成）：6/6 timeout-plateau，**但 best_combined 平均 40 cm，多次單臂 < 15cm（F8 突破信號）**。VLM 在 episode 內顯現真實軸向自學軌跡（F11）。
-  7. **診斷工具上線**：`scripts/diagnostics/replay_summary.py`，產出 round-by-round 收斂表與 plateau 分析。
-  8. **發現 latency 異常增長（50s→340s/call，F12）**，強烈懷疑 teacher server `n_ctx=2048` 不夠 conversation history。
+- **Phase**：M7 進度完成；遠端 31B QLoRA + GGUF 熱重載 + multi-round closed-loop + V4 sensory-integration sub-stage（L0a-L/R）+ C3 pre-reach reset pose 全部建好。**正在攻 R1 grounding 弱化**，問題分三層：mirror bias（V4 已解）→ base-frame mismatch（F24-F27 鎖定主因）→ 視覺場景貧瘠（C3 改善中）。
+- **Sprint 目標**：在 V4 + C3 改動後**取得 L0a-Left 第一個真實 success replay**，啟動 Stage 4-A 二輪 QLoRA 訓練。
+- **最新動作與進展（2026-06-08 ~ 06-10）**：
+  1. **V4 落地**（commit `9c9ccdd`）：`Isaac-AionGenos-L0a-{Left,Right}-v0` sub-stage 註冊，`LEVEL_ORDER=(-2,-1,0,1,2,3,4)`，`IsaacLabEnvInterface.execute_command(active_arm)` 強制 hold-in-place 對側手；`docs/plans/sensory_integration_curriculum.md` 設計文件落地。
+  2. **首跑 V4 5 ep on L0a-Left**（run 571472d8）：消除 mirror bias（X-flipped 0% in 4/5 ep；對照 V3 是 33-100%）→ F16/F17 確認；但 SR 仍 0/5 → F18 grounding 才是真瓶頸。
+  3. **F19 STOP=True 假成功 bug 修好**（commit `53948b4`）：`vlm_stop_premature` 不再記為 success。手動把 false-success replay `571472d8/b0c28c0a` 搬到 failure 區。
+  4. **Playback infra 上線**（commit `dcc8be3`）：collect.py 加 `--dump_images_root`；`scripts/diagnostics/playback_episode.py` 工具。
+  5. **Reasoning analyser 上線**（commit `191ee0a`）：vlm_thought 完整保留（不再 600 字截斷），新加 `vlm_full_response`、`critic_feedback` 兩欄；`reasoning_analysis.py` 工具產出 token-presence × distance × thought-similarity × coord-volatility 四維 cross-round 報告。
+  6. **F24-F27 主因鎖定**（run 67a99349 / 14 round trace + V4 5 ep 視覺檢查）：(a) VLM 全程零 X+/Y+/Z+ 軸向 reasoning，只用 forward / backward / left / right（F24）；(b) thought volatility 0.09 = VLM 真在想新方案（F25）；(c) Z std=1（F18 重發）；(d) 場景灰階 + cube 5×5px + 雙臂遮擋 + camera 角度（F20-F23）。
+  7. **C3 pre-reach reset 落地**（commit `ee2de8a`）：`aiongenos/mdp/reset.py` 新加 `reset_joints_to_target_with_offset`；base config target 設左右 `joint2=0.5, joint4=0.8`，view_sanity 12 張取樣選定。Camera 不動（C4 經 view_sanity 證 default 已最佳）。
+- **🟡 進行中**：PID 2793645 跑 5 ep L0a-Left + C3 + dump，預計 ~70 min；run id 落盤後查診斷。
 - **下一動作優先序**：
-  - ✅ T-4 teacher n_ctx=16384、T-4b student 確認不擴張、T-8a/b/c/T-8(a)/T-11 全部完成（2026-06-04）
-  - (P0) **等當前 5 ep collect (PID 2120953, run ae692e9d) 跑完**（每 ep ~14 min，5 ep 約 70 min）；診斷 EE 多樣性、SR、plateau 觸發點
-  - (P1) 若 EE 多樣性足（std ≥ 3 grid/軸）→ 進 P2；若否 → 啟用 Plan B (T-8a-B IK reset)
-  - (P1) 若 SR > 0/5 → 立刻觸發 `04_sync_and_train.sh` (T-7) 訓練新 LoRA → reload student → eval
-  - (P2) 若仍 SR 0/5 但 best_combined 平均下降 → 加 collect 量；若 best_combined 不變 → 還有更深問題（如 prompt structure / VLM grounding 限制），回頭設計
+  - (P0) 若 L0a-Left SR ≥ 1/5 → 立刻觸發 `04_sync_and_train.sh` 訓 v3 LoRA → reload student → reach_two_cubes (L0) eval
+  - (P0) 若仍 0/5 但 best_combined 顯著下降（< 25cm avg）→ 加 5 ep 累積；若 best_combined 持平 → 動 prompt（避開 task 知識注入）或考慮 cube 放大（C5）
+  - (P1) reasoning analyser 加跨 ep 跨 run 統計：「VLM 是否在 N ep 後開始用 X+/Y+/Z+ 描述 → 軸向自學是否真會發生」
+  - (P2) 增量訓練（每 5 success 觸發 mini-LoRA）— 等首次有 success 才有意義
 
 ---
 
@@ -45,17 +44,21 @@
 
 ---
 
-## Curriculum Ladder（5 級）
+## Curriculum Ladder（5 級 + V4 sub-stage）
 
 | Lv | 任務 | 控制模式 | 狀態 |
 |---|---|---|---|
-| L0 | Bimanual reach to 2 cubes | EE position-only (3D × 2) | ✅ done |
-| L1 | Bimanual trace waypoints | EE position chunk | ✅ done |
-| L2 | Bimanual push | EE pos + pitch/yaw (5D × 2) | ✅ done |
-| L3 | Bimanual pick & place（近物） | EE pos + RPY + gripper (7D × 2) | ✅ done |
+| **L0a-L** (-2) | Single-arm reach (左) | EE position-only 3D（右臂 hold-in-place）| ✅ env done / SR 未驗 |
+| **L0a-R** (-1) | Single-arm reach (右) | EE position-only 3D（左臂 hold-in-place）| ⏳ env done / 未跑 |
+| L0 | Bimanual reach to 2 cubes | EE position-only (3D × 2) | ✅ env done |
+| L1 | Bimanual trace waypoints | EE position chunk | ✅ env done |
+| L2 | Bimanual push | EE pos + pitch/yaw (5D × 2) | ✅ env done |
+| L3 | Bimanual pick & place（近物） | EE pos + RPY + gripper (7D × 2) | ✅ env done |
 | L4 | Bimanual handover | 同 L3 + 雙臂協調 | ⬜ Phase B |
 
-**晉級規則**：當前 level success rate ≥ 60% 自動 unlock 下一級；12 hr collect 不到 100 success 標 `curriculum_blocked`。
+**晉級規則**：當前 level success rate ≥ 60% 自動 unlock 下一級（依 `LEVEL_ORDER` 順序）；12 hr collect 不到 100 success 標 `curriculum_blocked`。
+
+**V4 設計理由**：見 `docs/plans/sensory_integration_curriculum.md`。VLM 在 L0 雙臂 reach 表現出強 mirror bias（pred_R = mirror(pred_L)），符合感覺統合理論「single-channel 未穩定就嘗試 dual-channel 會學成 hack」的預測；L0a-L/R 是 plan §2.2 的合法擴展（cumulative training data 仍滿足）。
 
 ---
 
@@ -125,6 +128,13 @@
 
 | 日期 | 變更 |
 |---|---|
+| 2026-06-10 | **C3 pre-reach reset arm pose 落地**（commit `ee2de8a`）：新模組 `aiongenos/mdp/reset.py` 提供 `reset_joints_to_target_with_offset(target_joint_pos: dict, position_range, ...)`；base config target = `{openarm_left/right_joint2: 0.5, joint4: 0.8}`，jitter ±0.2 rad。view_sanity script (12 張 × 3 camera × 4 pose) 取樣選定。Camera 不動。**正在跑 5 ep L0a-Left + C3 + dump（PID 2793645，run id 待落盤）**。 |
+| 2026-06-10 | **Reasoning analyser + 完整 thought trace**（commit `191ee0a`）：collect.py meta.json 移除 600 字 thought 截斷，新加 `vlm_full_response` 與 `critic_feedback` 欄；`scripts/diagnostics/reasoning_analysis.py` 提供 token-presence × distance × similarity × coord-volatility 四維 cross-round 報告。執行 V4 ep 67a99349/a047ccbe（14 round）證實 F24（VLM 0 個 X+/Y+/Z+ 軸向 token，全用 forward/left）+ F25（thought sim 0.09 = 不重複）。 |
+| 2026-06-10 | **Playback infra**（commit `dcc8be3`）：collect.py 加 `--dump_images_root`；`scripts/diagnostics/playback_episode.py` 工具（人類視覺 + thought 配對）。 |
+| 2026-06-10 | **F19 STOP=True 假成功 bug 修好**（commit `53948b4`）：`EpisodeOutcome.VLM_STOP_PREMATURE` 新狀態；collect.py / eval.py 都改成「VLM 出 STOP 但 dist 沒過閾值 → 標 vlm_stop_premature 不是 success」。手動把 false-success replay `571472d8/b0c28c0a` 搬到 failure 區。 |
+| 2026-06-10 | **L0a target_color="red" fix**（commit `259bb80`）：先前 `state['target_color']=='green'` 跟視覺紅 cube marker 矛盾。 |
+| 2026-06-10 | **collect.py logger 過 IsaacLab AppLauncher fix**（commit `6e32c7d`）：與 05_eval.py 同步。 |
+| 2026-06-08 | **V4 sensory-integration sub-stage 落地 + 首跑**（commit `9c9ccdd`）：(a) 新增 `aiongenos/tasks/L0a_single_reach/{__init__.py, single_reach_cfg.py}`；(b) `LEVEL_CONFIGS` 加 -2/-1，新增 `LEVEL_ORDER=(-2,-1,0,1,2,3,4)`；(c) `AionGenosCurriculumManager` 改用 LEVEL_ORDER 替代 `range(max_level+1)`；(d) `IsaacLabEnvInterface.execute_command(active_arm)` 強制 hold-in-place 對側手；(e) 新增 `docs/plans/sensory_integration_curriculum.md` 設計文件（4 個借用的 SI 概念 + 為何 task-agnostic）。**首跑 5 ep on L0a-Left（run 571472d8）**：mirror bias X-flipped 從 V3 33-100% 降到 4/5 ep 的 0%（F16）；right-arm hold mask 100% 工作（F17）；但 SR 仍 0/5 → F18 grounding 才是真瓶頸。 |
 | 2026-06-04 | **T-8 task-agnostic 放寬全套上線**：(T-11) 修 collect.py `total_vlm_latency_ms` per-episode 累計 bug — `_write_episode` 改用 `sum(i.latency_ms for i in vlm_interactions)`；(T-8a) `AionGenosReachEnvBaseCfg` 加 `events.reset_robot_joints` 覆蓋使用 `mdp.reset_joints_by_offset` (±0.2 rad)，解 F15 `reset_joints_by_scale` 對 OpenArm 結構性無效（5/7 joint default=0）；(T-8c) `LevelConfig.sim_steps_per_subgoal` 60→30（VLM 1Hz→2Hz，plan §3.5.5 路徑）；(T-8(a)) `max_subgoals_per_episode` 15→25 補回 round 數；(T-8b) plateau 公式改 last-N rolling mean — 現比較「最近 plateau_window=3 round 平均 combined dist」vs「再前 window 平均」，連續 patience=5 round 沒進步才殺。同步更新 collect.py 與 eval.py，加診斷工具 `scripts/diagnostics/check_ee_randomness.py`。**首 ep 驗證**（run ae692e9d / d1417df3）：(1) Latency 修正驗證 — `total_vlm_latency_ms=826s` 等於 sum(per-round) 不再跨 ep 累計；(2) EE 初始位多樣性 — L=(-11,+36,-50) R=(-50,-47,-51)，明顯偏離舊 run 的固定 (-33,±33,-54)；(3) 17 round 才 plateau，新公式給 VLM 更多探索空間；(4) Plan B (IK-based EE reset) 寫成 `aiongenos/curriculum/reset_ik.py` stub 待用 |
 | 2026-06-04 | **Image dump + thought 揭示真正根因 — VLM 把螢幕座標當 base frame**。R2/R3 thought：「red cube at (-30, 20, 0)」「red X=-40」，GT 紅 cube_L = (+25, +20, +46)；VLM 看到紅 cube 在畫面左下用螢幕直覺估 X 負，但 base frame `+X = 機器人正前方 / +Y = 機器人左手邊 / +Z = 上`，紅 cube 在機器人左前方 → 實際 X 全正。整套 [-100, 100] 整數網格 prompt 無軸向定義；thought 與 output 數字也不一致（R3 thought X=-40 / output X=-3，差 13×）。**user 否決 prompt 注入軸向**（違反「對新生兒一樣」task-agnostic 原則），改方向：拉高 round 上限 + 改 Stage 3 critic 提供 observable feedback（distance / EE pose 變化）讓 VLM 自己學軸向。新增 `eval.py` 圖片 dump 與 meta.json (`--dump_images` flag)，`scripts/05_eval.py` 加 `--dump_root` |
 | 2026-06-03 | **Multi-round closed-loop L0 eval（Q5 Option A 實作後）**：Teacher SR 0/5（avg 3.4 round, plateau:3 / max_rounds:2, grounding err L/R 31.0/22.8cm, final dist 31.6/19.8cm, latency 7434ms/call），Student SR 0/5（avg 3.8 round, plateau:2 / max_rounds:3, grounding err 38.2/26.9cm, final dist 40.8/22.0cm, latency 3614ms/call, **speedup 2.06×**）。Multi-round 機制正確（reset 後 GT 正常、plateau 偵測 work），但 SR 沒救起來（後來 dump 證根因是 prompt 軸向定義缺失）。新增 `LevelConfig.max_subgoals_per_episode` (L0=4) / `subgoal_success_threshold_m` / `plateau_min_progress_m` / `plateau_patience` / `IsaacLabEnvInterface.reset` warm-up step / eval.py multi-round + `_run_episode` |
@@ -142,31 +152,28 @@
 | # | 任務 | 細節 | 完成日 |
 |---|---|---|---|
 | T-D1 | eval.py multi-round closed-loop 機制 | `_run_episode` round loop / plateau 偵測 / outcome 分布 logging / `LevelConfig.max_subgoals_per_episode` 等欄位 | 2026-06-03 |
-| T-D2 | 修 env reset→target race | `IsaacLabEnvInterface.reset` 加 zero-action warm-up step | 2026-06-03 |
-| T-D3 | 圖片 dump (Q3) | `--dump_images` flag → `data/eval_dumps/{stamp}/{teacher\|student}/{ep_id}/round_NN_{pre,post}.png` + `meta.json` | 2026-06-04 |
+| T-D2 | 修 env reset→target race | `IsaacLabEnvInterface.reset` 加 zero-action warm-up step（V3 後改為 hold-in-place）| 2026-06-04 |
+| T-D3 | eval 圖片 dump (Q3) | `--dump_images` flag + `meta.json` | 2026-06-04 |
+| T-D4 | T-8 task-agnostic 放寬全套（T-8a/b/c + max_subgoals 25→40 + T-11 latency bug fix） | 詳見變更日誌 2026-06-04 | 2026-06-04 |
+| T-D5 | V4 sensory-integration sub-stage L0a-L/R | `aiongenos/tasks/L0a_single_reach/` + `LEVEL_ORDER` + `active_arm` mask | 2026-06-08 |
+| T-D6 | V4 首跑 5 ep on L0a-Left（run 571472d8） | F16-F18：mirror 消除但 grounding 仍是瓶頸 | 2026-06-08 |
+| T-D7 | F19 STOP=True 假成功 bug 修 | `EpisodeOutcome.VLM_STOP_PREMATURE` + 手動清 false-success replay | 2026-06-10 |
+| T-D8 | Playback infra（collect.py `--dump_images_root` + `playback_episode.py`） | 詳見變更日誌 | 2026-06-10 |
+| T-D9 | Reasoning analyser + 完整 thought trace（不截斷 + new fields）| `reasoning_analysis.py` 四維 cross-round 報告 | 2026-06-10 |
+| T-D10 | C3 pre-reach reset arm pose | `reset_joints_to_target_with_offset({joint2:0.5, joint4:0.8}, ±0.2)` | 2026-06-10 |
 
 **進行中 / 高優先（active）**
 
 | # | 任務 | 緣由 | 細節 | 狀態 |
 |---|---|---|---|---|
-| T-1 | 拉高 round 上限 + critic feedback 化 | user 哲學決定（Q9）：靠多輪 + critic 自我修正讓 VLM 自學軸向，禁止 prompt 注入軸向 | 已實作：max_subgoals=15, plateau_patience=5；critic feedback 每 round 注入 EpisodeConversation；run 85ccf9a4 6 ep 證明軸向自學成立（F11） | **done（基本機制）** |
-| T-2 | Q7 — Round 間 conversation memory | VLM 每 round 從零開始；T-1 critic feedback 必須跨 round 累積才有意義 | 已實作：`EpisodeConversation` 含 image_url 自動清理，僅保留最新一輪 image | **done** |
-| T-8 | task-agnostic 放寬組合 | 撐起 R2-R3 修正能力，給 VLM 學軸向直覺空間 | 拆成 T-8a/b/c + ep 加長，全 task-agnostic | **done（已實裝）** |
-| T-8a | randomize 初始 EE pose — Plan A | F15：`reset_joints_by_scale` 對 OpenArm 結構性無效（5/7 joint default=0）| `AionGenosReachEnvBaseCfg.events.reset_robot_joints` 改用 `mdp.reset_joints_by_offset`，position_range ±0.2 rad，clamp 到 joint limits | **done** — 首 ep 驗 EE 初始位明顯偏離 fixed point |
-| T-8a-B | randomize 初始 EE pose — Plan B fallback | 若 Plan A joint-space 隨機後 IK 仍偏到不自然姿態 | `aiongenos/curriculum/reset_ik.py` stub 已寫；task-space 隨機 EE 用 `DifferentialIKController` solve；trade-off：每 reset +5-10ms vs joint-space near-zero | scaffolded / **deferred until Plan A 證不夠** |
-| T-8b | plateau 公式 last-N rolling mean | F10：best_combined monotone 公式把 VLM 振盪當 plateau | `eval._run_episode` & `collect._run_episode` 都改：比較最近 `plateau_window=3` round 平均 vs 再前 window 平均，差 < `plateau_min_progress=1cm` 才算停滯，連續 `plateau_patience=5` round 沒進步才殺 | **done** — 首 ep 跑 17 round 才 plateau |
-| T-8c | sub-goal 60→30 step | VLM 1Hz→2Hz，plan §3.5.5 路徑；給 VLM 更密視覺反饋 | `LevelConfig.sim_steps_per_subgoal` 60→30，等價 0.5s/round | **done** |
-| T-8(a) | 單 ep 加長 max_subgoals 15→25 | T-8c 把 sec/round 砍半後補回 round 預算 | `LevelConfig.max_subgoals_per_episode` 15→25 全 level | **done** |
-| T-4 | Teacher server `n_ctx`=16384 確認 | 透過 `:18888/props` 直接查得，已是 16384 不需重啟；F12 latency 爆炸是診斷工具 bug 不是真問題 | 驗證指令：`curl -s http://10.80.9.148:18888/props \| python3 -c "import sys,json,d=json.load(sys.stdin);print(d['default_generation_settings']['n_ctx'])"` | **done** |
-| T-4b | ~~Student server n_ctx 升級~~ | user 否決：student 用 `--reasoning off --reasoning-budget 0` 輸出短，2048 ctx 足夠（不像 teacher 要承受長 CoT） | — | **cancelled** |
-| T-11 | 修 collect.py `total_vlm_latency_ms` per-episode 沒重置 bug | F14：CollectStats 物件跨 episode 累積，replay 欄位不能信 | `aiongenos/orchestrator/collect.py` 在 `for ep_idx` 開頭 reset `stats.total_vlm_latency_ms=0`；或寫 `episode.total_vlm_latency_ms = sum(i.latency_ms for i in vlm_interactions)` | **open / 高優先 (lossless data fix)** |
-| T-3 | Grounding sanity baseline (plan §M1) | 量化 bias / variance，當前用 GT 距離但模型只看 RGB → sanity-check 必須在 prompt 改後 | `scripts/grounding_sanity.py`：固定 reset state，不執行動作只重複 query 20 次；報告 mean / std / GT | open / blocked by T-1 |
-| T-4 | Teacher server `n_ctx` 加大至 16384 | T-2 conversation memory 需要 ≥16K context；plan §M0 Q1 早已標記 | 請 user 重啟 `:18888` teacher 加 `--ctx-size 16384` | awaiting user |
-| T-5 | collect.py 同步 multi-round | eval.py 已 multi-round，collect 仍 single-shot+1 critic retry → 訓練資料分布不對齊 | 把 `run_collect_loop` Stage 1 包進 round loop，重用 eval 的 `_run_episode` 終止邏輯 | open / blocked by T-1 |
-| T-6 | 切回 31B teacher 重 baseline | 目前 student=E4B+LoRA `a318eb38`；31B base 下載完成後重跑 5-10 ep eval | check `~/.cache/llama.cpp/ggml-org_gemma-4-31B-it-GGUF*.gguf` 完整 | open |
-| T-7 | collect 寫 ≥100 success replay 啟動 Stage 4-A 二輪 | M5 後續，blocked by T-8（rules 鬆綁後才能取得 success） | `scripts/run_collect.py` → `scripts/04_sync_and_train.sh` → reload student → eval 比較 SR | blocked by T-8 |
-| T-9 | 增量訓練：每 N success episode 觸發 mini-LoRA 增量更新 | F11 顯示 episode 內 VLM 在學軸向但跨 episode 不延續；越早把直覺進權重越好 | (a) 每 5 success episode 觸發 04_sync_and_train.sh；(b) train script 改支援 incremental（從 410e0f79 base 接續而非 from-scratch）；(c) student 自動 reload；(d) 後續 collect 用更新後的 student 收集更多 success 形成正向循環 | **idea / blocked by T-7** |
-| T-10 | 診斷工具：`scripts/diagnostics/replay_summary.py` | 看 round-by-round 收斂、plateau 觸發點、latency 趨勢 | 已實作；用法 `python3 scripts/diagnostics/replay_summary.py [--run RUN]` | **done** |
+| **T-12** | **C3 5 ep L0a-Left 實測**（pre-reach reset 在跑） | C3 commit 完成；驗證 EE Z std + reasoning trace 是否轉用 X/Y/Z + SR 是否突破 0 | PID 2793645，run id 待落盤；跑完跑 `replay_summary.py` + `reasoning_analysis.py` + `check_ee_randomness.py` | **🟡 in-flight** |
+| **T-7** | collect ≥1 success replay → 觸發 Stage 4-A 二輪訓練 | M5 後續；C3 + V4 後預期可有 success | `scripts/run_collect.py` → `scripts/04_sync_and_train.sh` → reload student → eval 比較 SR | blocked by T-12 |
+| T-9 | 增量訓練：每 N success episode 觸發 mini-LoRA | F11 顯示 episode 內 VLM 在學軸向但跨 episode 不延續 | (a) 每 5 success ep 觸發 04_sync_and_train.sh；(b) train script 改支援 incremental（從 410e0f79 base 接續）；(c) student 自動 reload；(d) 後續 collect 用更新後的 student 形成正向循環 | **idea / blocked by T-7** |
+| T-13 | reasoning analyser 跨 ep 統計：「VLM 是否在 N ep 後出現 X+/Y+/Z+ 軸向 token」 | F24 證 14 round 內 0 軸向 token；想知道是否多 ep 累積後會自然湧現（self-emergence proof）| reasoning_analysis.py 加 `--cross_run` 模式，掃整 run 目錄產 ep×round 大表 | open |
+| T-3 | Grounding sanity baseline (plan §M1) | 量化 bias / variance；現在 C3 改完視覺後是好時機 | `scripts/grounding_sanity.py`：固定 reset state，不執行動作只重複 query 20 次；報告 mean / std / GT | open |
+| T-5 | collect.py 同步 multi-round | 已隨 V4/T-D5 對齊，但 collect 結尾 critic retry 邏輯需要 review | 已並用 EpisodeConversation；critic 邏輯已併入 round loop | mostly done / 待 audit |
+| T-6 | E4B student 是否退役？ | 目前 student=31B+LoRA `410e0f79`，E4B 暫不用；future Stage 4-B CoT-strip 仍需小模型 | 等 31B 訓練收斂後再決定；若 31B 速度可接受可暫不退 | open / low |
+| T-8a-B | randomize 初始 EE pose — Plan B fallback | C3 已用 task-space target，joint Z 自由度仍小；若 C3 後 Z std 仍 < 3 grid 才用 IK reset | `aiongenos/curriculum/reset_ik.py` stub 已寫 | scaffolded / deferred |
 
 **已取消 / 暫緩（cancelled / deferred）**
 
@@ -199,6 +206,18 @@
 |F13| Teacher n_ctx=16384 已就緒、但 student n_ctx=2048（per-slot 1024） | `curl :18888/props` & `:18889/props` 確認 | collect 階段只用 teacher → 不影響當前；之後 eval student 時必須升級 student | T-4b：student n_ctx 升級至 8192（CTX_SIZE 環境變數重啟 18889） | 2026-06-04 | 2026-06-04 | active |
 |F14| **collect.py `total_vlm_latency_ms` 累計沒重置** | F12 root cause：collect.py 把同一 stat 物件跨 episode 累積，replay 寫入時直接寫 stat 累計值 | replay 欄位 `total_vlm_latency_ms` 不能信，必須改用 sum 個別 `interaction.latency_ms` | T-11 修 collect.py per-episode reset；補 sanity test | 2026-06-04 | 2026-06-04 | **bug** |
 |F15| **`reset_joints_by_scale` 對 OpenArm 結構性無效**（重大隱性 bug） | 10/10 ep 初始 EE 全在 (-33,±33,-54)，最大差異 1-3 grid（≤1cm）。原因：OpenArm default joint pos 中 joint2/5/6/7/finger 預設值=0，scale 函數是「乘」default → 0×任何=0；只有 joint1/3/4 (1.57/-1.57/1.57) 會被擾動但落到 EE 也只是小位移 | 結果：之前所有 collect / eval 全是「同一張視覺場景」訓練，根本沒驗證泛化。Plan §M1 grounding sanity 標準（20 張多樣 RGB）實質沒滿足 | T-8a 換 `reset_joints_by_offset`（offset 而非 scale）解決 | 2026-06-04 | 2026-06-04 | **CRITICAL bug** |
+|F16| **V4 sub-stage 完全消除 mirror bias** | run 571472d8 5 ep on L0a-Left：4/5 ep X-flipped 0%；對照 V3 同等條件 33-100% | 證實「mirror bias 是 dual-arm 任務 above-competence 的副產品」(SI 假說)；single-arm task 隔離後就消失 | F18 grounding 才是真瓶頸 | 2026-06-08 | 2026-06-08 | **active / V4 win** |
+|F17| **Hold-in-place mask 100% 正常工作** | run 571472d8 5 ep × 全 round 右臂預測都被 `IsaacLabEnvInterface.execute_command(active_arm)` 強制覆寫成 init pose；replay 中 vlm_right_pos_int 任意但 sim 中 EE 不動 | 證實 `active_arm` 機制可用於後續 task 中任何「該臂不該動」的子任務 | — | 2026-06-08 | 2026-06-08 | **active** |
+|F18| **mirror bias 解除後 SR 仍 0/5 → grounding 才是真瓶頸** | run 571472d8 SR 0/5；4 個真 timeout 的 final_L 都 22-42 cm；F8 之前看到的 best_combined 改善是 V3 + critic feedback 合力，不是 V4 直接貢獻 | 把問題從複合（mirror+grounding）拆成單純（grounding only），下一步討論才能聚焦 | F24-F27 主因深挖 | 2026-06-08 | 2026-06-08 | **active** |
+|F19| **STOP=True 假成功 bug** | 571472d8/b0c28c0a outcome=success rounds=1 final L=37.1cm（離閾值很遠）；collect.py 看到 stage1.stop=True 就無條件 SUCCESS，未驗距離 → false-success 會污染訓練資料 | commit `53948b4` 修：新增 `EpisodeOutcome.VLM_STOP_PREMATURE`；保留真 SUCCESS 分支（dist 過閾值才算）。手動把該 ep 改 outcome 並搬到 failure/。 | T-7 訓練前再 audit 全部 success replay | 2026-06-10 | 2026-06-10 | **fixed** |
+|F20| **場景全灰階、cube 5×5 px** | 5 個 V4 ep start/end PNG (256²)：天空淺灰 / 地面深灰 / 機器人黑白；唯一非灰物件 = 紅 cube ≈ 0.4% 影像面積 | VLM 從稀疏視覺找小紅點 + 估 base frame 座標，太難。Plan §M0 場景設計沒考慮 grounding sanity 條件 | C5 cube 放大；C1 桌面（暫緩） | 2026-06-10 | 2026-06-10 | **active / 視覺層** |
+|F21| **Cube 永遠在「畫面左下偏左」** | 5/5 ep cube 出現在影像 (x≈70-90, y≈140-180)；但 GT base frame X 全正、Y 0.15-0.25。代表 camera 角度讓 base frame `+X = 畫面下、+Y = 畫面左` | VLM 用螢幕直覺映射「畫面左下 = 負座標」必然錯估方向 | C4 camera 調整（已試 pitch55/70 但 default 仍最佳） | 2026-06-10 | 2026-06-10 | **active / 視覺層** |
+|F22| **Reset 雙臂大幅遮擋畫面下 1/3** | 4/5 ep start frame 機器人手臂佔畫面下半，cube 在下半時常被自己手臂擋住 | reset 預設姿勢直立，wrist 在 camera 視線下方 | C3 pre-reach 改 reset arm 到前伸姿勢（已實作） | 2026-06-10 | 2026-06-10 | **C3 fix in flight** |
+|F23| **Reset 姿勢非 reach-ready** | OpenArm default joint pos 全 0 → 雙臂垂直；reach 前方 cube 必須先大幅 shoulder pitch | VLM 第一個 round 必然只是把臂往前甩，浪費 round 預算 | C3 改 `joint2=0.5, joint4=0.8` | 2026-06-10 | 2026-06-10 | **C3 fix in flight** |
+|F24| **VLM 全程零 base-frame 軸向 reasoning** | run 67a99349/a047ccbe 14 round trace：thought 中 X+/X-/Y+/Y-/Z+/Z- token 命中 0/0/0/0/0/1；forward/backward/left/right 命中 67 次 | VLM 完全用螢幕語言、不用 base frame 軸向描述空間。即使 critic feedback 給整數座標 delta，thought 仍轉譯成方向詞而不是反思軸向 | 等 reasoning analyser 跨 ep 統計：是否會在 N ep 後出現軸向 token | 2026-06-10 | 2026-06-10 | **CRITICAL / F5 實證** |
+|F25| **VLM 確實在思考新假設，不是 stuck** | thought consecutive similarity mean=0.09（極低）；regression / progress / correction / self_critique token 在多 round 出現 | critic feedback 真的被消化（thought 提及上 round 數值）；問題不在 prompt 設計 / context, 在 base VLM grounding 本身 | — | 2026-06-10 | 2026-06-10 | **active / 樂觀** |
+|F26| **VLM 探索範圍合理但收斂不到位** | 14 round 中 best_L=26.6cm @ R8（接近 GT），R9-14 仍找不到比這更近的位置 | 不是 VLM 找不到方向，是 [-100,100] 整數網格 + 5cm 閾值下，要從「方向粗估」進到「精修」缺乏精度工具 | C5 閾值放寬 / cube 放大都會改變這個動力 | 2026-06-10 | 2026-06-10 | **active** |
+|F27| **VLM 本質誤解：螢幕「左下」不等於 base frame 「X 負 Y 正」** | thought R3：「cube is in negative X region」；GT X 全正。VLM 看「畫面下方」直覺映射到「X 負」，但 base frame `+X = forward = 畫面下方` | F5 的具體實證；多輪 critic feedback 仍未矯正這個認知 → 證明 zero-demo + 純 observable feedback 不足以教軸向 | C3 改善視覺後再驗一次；若仍 0/5 則需重新討論 prompt 邊界 | 2026-06-10 | 2026-06-10 | **CRITICAL** |
 
 
 ---
