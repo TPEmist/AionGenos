@@ -167,6 +167,10 @@ class IsaacLabEnvInterface:
             bounds.x_bounds, bounds.y_bounds, bounds.z_bounds
         )
 
+        # V4: L0a sub-stage marker is red (configured in single_reach_cfg.py),
+        # so target_color must match for the instruction template to align
+        # with what the VLM sees. Other levels keep their existing fillers.
+        is_l0a = level_config.name.startswith("L0a_")
         state = {
             "left_x": left_pos_int[0],
             "left_y": left_pos_int[1],
@@ -179,7 +183,7 @@ class IsaacLabEnvInterface:
             "left_trace_shape": "circle",
             "right_trace_shape": "square",
             "object_color": "yellow",
-            "target_color": "green",
+            "target_color": "red" if is_l0a else "green",
         }
 
         # For pose-level controls, include RPY
