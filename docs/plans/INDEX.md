@@ -18,12 +18,13 @@
   5. **Reasoning analyser 上線**（commit `191ee0a`）：vlm_thought 完整保留（不再 600 字截斷），新加 `vlm_full_response`、`critic_feedback` 兩欄；`reasoning_analysis.py` 工具產出 token-presence × distance × thought-similarity × coord-volatility 四維 cross-round 報告。
   6. **F24-F27 主因鎖定**（run 67a99349 / 14 round trace + V4 5 ep 視覺檢查）：(a) VLM 全程零 X+/Y+/Z+ 軸向 reasoning，只用 forward / backward / left / right（F24）；(b) thought volatility 0.09 = VLM 真在想新方案（F25）；(c) Z std=1（F18 重發）；(d) 場景灰階 + cube 5×5px + 雙臂遮擋 + camera 角度（F20-F23）。
   7. **C3 pre-reach reset 落地**（commit `ee2de8a`）：`aiongenos/mdp/reset.py` 新加 `reset_joints_to_target_with_offset`；base config target 設左右 `joint2=0.5, joint4=0.8`，view_sanity 12 張取樣選定。Camera 不動（C4 經 view_sanity 證 default 已最佳）。
-- **🟡 進行中**：PID 2793645 跑 5 ep L0a-Left + C3 + dump，預計 ~70 min；run id 落盤後查診斷。
+- **🟡 進行中**：D3 PID 1237148 跑 10 ep L0a-Left + C3 + D1 + dump，run id 待落盤，預計 ~140 min。
 - **下一動作優先序**：
-  - (P0) 若 L0a-Left SR ≥ 1/5 → 立刻觸發 `04_sync_and_train.sh` 訓 v3 LoRA → reload student → reach_two_cubes (L0) eval
-  - (P0) 若仍 0/5 但 best_combined 顯著下降（< 25cm avg）→ 加 5 ep 累積；若 best_combined 持平 → 動 prompt（避開 task 知識注入）或考慮 cube 放大（C5）
-  - (P1) reasoning analyser 加跨 ep 跨 run 統計：「VLM 是否在 N ep 後開始用 X+/Y+/Z+ 描述 → 軸向自學是否真會發生」
-  - (P2) 增量訓練（每 5 success 觸發 mini-LoRA）— 等首次有 success 才有意義
+  - (P0) D3 跑完後跑診斷三件套（`replay_summary` / `check_ee_randomness` / `reasoning_analysis`），看 D1 後 SR 是否非 0
+  - (P0) 若 ≥ 1 success → 立刻觸發 `04_sync_and_train.sh` 訓新 LoRA → reload student → L0 eval（這就是 SI 學習階段第一輪）
+  - (P0) 若 0 success 但有 1+ ep final_L < 6cm 卻被 plateau 殺 → 動 plateau patience 或 success threshold 再放鬆
+  - (P1) T-13 cross-ep reasoning token 統計：F29 軸向 token 是否在 D3 多 ep 後變主流
+  - (P2) 增量訓練（每 5 success 觸發 mini-LoRA）— 等 D3 出 success 才意義
 
 ---
 
@@ -128,6 +129,7 @@
 
 | 日期 | 變更 |
 |---|---|
+| 2026-06-11 | **🚀 V4+C3 首跑（run `0602e905`，5 ep on L0a-Left）三大突破 + 兩個決定**：(a) **EE randomization 第一次 HEALTHY**（Z std 1-2 → 8-18 grid，F15/F18 真正修好）；(b) **F28 接近 success**：ep 0eda8269 R10 final_L=5.9cm / R12=5.4cm，差 5cm 閾值 0.4cm 但被 plateau 殺；(c) **F29 軸向自學湧現**：thought 中 X+/Y+/Z+ token 從 V4 base 0/14 round → 26 round 內 30+ 命中（VLM 開始用 X/Y/Z 而非 forward/left）。Avg best_combined 47.5 → **31.8 cm** 大幅下降。SR 仍 0/5 但 2/5 vlm_parse_fail（context 累積長 round 後 teacher CoT 出格式錯）+ 1/5 near_singularity。**並行決定 D1+D3**：D1 success threshold 0.05→0.06 m（commit `61cd1b1`，task-agnostic 微調，給 5.4-5.9cm 邊界 ep 變 success）；D3 跑 10 ep L0a-Left（PID 1237148, run id 待落盤）拿 baseline。 |
 | 2026-06-10 | **C3 pre-reach reset arm pose 落地**（commit `ee2de8a`）：新模組 `aiongenos/mdp/reset.py` 提供 `reset_joints_to_target_with_offset(target_joint_pos: dict, position_range, ...)`；base config target = `{openarm_left/right_joint2: 0.5, joint4: 0.8}`，jitter ±0.2 rad。view_sanity script (12 張 × 3 camera × 4 pose) 取樣選定。Camera 不動。**正在跑 5 ep L0a-Left + C3 + dump（PID 2793645，run id 待落盤）**。 |
 | 2026-06-10 | **Reasoning analyser + 完整 thought trace**（commit `191ee0a`）：collect.py meta.json 移除 600 字 thought 截斷，新加 `vlm_full_response` 與 `critic_feedback` 欄；`scripts/diagnostics/reasoning_analysis.py` 提供 token-presence × distance × similarity × coord-volatility 四維 cross-round 報告。執行 V4 ep 67a99349/a047ccbe（14 round）證實 F24（VLM 0 個 X+/Y+/Z+ 軸向 token，全用 forward/left）+ F25（thought sim 0.09 = 不重複）。 |
 | 2026-06-10 | **Playback infra**（commit `dcc8be3`）：collect.py 加 `--dump_images_root`；`scripts/diagnostics/playback_episode.py` 工具（人類視覺 + thought 配對）。 |
@@ -166,7 +168,9 @@
 
 | # | 任務 | 緣由 | 細節 | 狀態 |
 |---|---|---|---|---|
-| **T-12** | **C3 5 ep L0a-Left 實測**（pre-reach reset 在跑） | C3 commit 完成；驗證 EE Z std + reasoning trace 是否轉用 X/Y/Z + SR 是否突破 0 | PID 2793645，run id 待落盤；跑完跑 `replay_summary.py` + `reasoning_analysis.py` + `check_ee_randomness.py` | **🟡 in-flight** |
+| **T-12** | C3 5 ep L0a-Left 實測（run 0602e905） | 驗證 EE Z std + reasoning trace + SR | EE HEALTHY（Z std 8-18）；F28 R10/R12 final_L=5.4-5.9cm；F29 軸向 token 30+ | **done — 結果見 F28/F29** |
+| **D1** | success threshold 0.05→0.06 m（task-agnostic 微調，commit `61cd1b1`） | F28 ep 0eda8269 R12 final_L=5.4cm 差 0.4cm；F29 軸向已開始學 | `LevelConfig.subgoal_success_threshold_m`；plan §3.5 沒寫死 5cm 是硬閾值 | **done** |
+| **D3** | 10 ep L0a-Left（C3 + D1 + dump，PID 1237148） | 看 D1 後 success rate 是否非 0；reasoning analyser 跨 ep 看軸向 token 是否成長 | TAG=d3，pointer 在 `/tmp/aiongenos_d3_*.txt`；預計 ~140 min | **🟡 in-flight** |
 | **T-7** | collect ≥1 success replay → 觸發 Stage 4-A 二輪訓練 | M5 後續；C3 + V4 後預期可有 success | `scripts/run_collect.py` → `scripts/04_sync_and_train.sh` → reload student → eval 比較 SR | blocked by T-12 |
 | T-9 | 增量訓練：每 N success episode 觸發 mini-LoRA | F11 顯示 episode 內 VLM 在學軸向但跨 episode 不延續 | (a) 每 5 success ep 觸發 04_sync_and_train.sh；(b) train script 改支援 incremental（從 410e0f79 base 接續）；(c) student 自動 reload；(d) 後續 collect 用更新後的 student 形成正向循環 | **idea / blocked by T-7** |
 | T-13 | reasoning analyser 跨 ep 統計：「VLM 是否在 N ep 後出現 X+/Y+/Z+ 軸向 token」 | F24 證 14 round 內 0 軸向 token；想知道是否多 ep 累積後會自然湧現（self-emergence proof）| reasoning_analysis.py 加 `--cross_run` 模式，掃整 run 目錄產 ep×round 大表 | open |
@@ -217,7 +221,10 @@
 |F24| **VLM 全程零 base-frame 軸向 reasoning** | run 67a99349/a047ccbe 14 round trace：thought 中 X+/X-/Y+/Y-/Z+/Z- token 命中 0/0/0/0/0/1；forward/backward/left/right 命中 67 次 | VLM 完全用螢幕語言、不用 base frame 軸向描述空間。即使 critic feedback 給整數座標 delta，thought 仍轉譯成方向詞而不是反思軸向 | 等 reasoning analyser 跨 ep 統計：是否會在 N ep 後出現軸向 token | 2026-06-10 | 2026-06-10 | **CRITICAL / F5 實證** |
 |F25| **VLM 確實在思考新假設，不是 stuck** | thought consecutive similarity mean=0.09（極低）；regression / progress / correction / self_critique token 在多 round 出現 | critic feedback 真的被消化（thought 提及上 round 數值）；問題不在 prompt 設計 / context, 在 base VLM grounding 本身 | — | 2026-06-10 | 2026-06-10 | **active / 樂觀** |
 |F26| **VLM 探索範圍合理但收斂不到位** | 14 round 中 best_L=26.6cm @ R8（接近 GT），R9-14 仍找不到比這更近的位置 | 不是 VLM 找不到方向，是 [-100,100] 整數網格 + 5cm 閾值下，要從「方向粗估」進到「精修」缺乏精度工具 | C5 閾值放寬 / cube 放大都會改變這個動力 | 2026-06-10 | 2026-06-10 | **active** |
-|F27| **VLM 本質誤解：螢幕「左下」不等於 base frame 「X 負 Y 正」** | thought R3：「cube is in negative X region」；GT X 全正。VLM 看「畫面下方」直覺映射到「X 負」，但 base frame `+X = forward = 畫面下方` | F5 的具體實證；多輪 critic feedback 仍未矯正這個認知 → 證明 zero-demo + 純 observable feedback 不足以教軸向 | C3 改善視覺後再驗一次；若仍 0/5 則需重新討論 prompt 邊界 | 2026-06-10 | 2026-06-10 | **CRITICAL** |
+|F27| **VLM 本質誤解：螢幕「左下」不等於 base frame 「X 負 Y 正」** | thought R3：「cube is in negative X region」；GT X 全正。VLM 看「畫面下方」直覺映射到「X 負」，但 base frame `+X = forward = 畫面下方` | F5 的具體實證；多輪 critic feedback 仍未矯正這個認知 → 證明 zero-demo + 純 observable feedback 不足以教軸向 | C3 改善視覺後再驗一次；若仍 0/5 則需重新討論 prompt 邊界 | 2026-06-10 | 2026-06-10 | **partially resolved by F29** |
+|F28| **C3 後 V4 已逼近 success threshold**（差 0.4cm） | run 0602e905 ep 0eda8269 R10 final_L=5.9cm、R11=7.6cm、R12=5.4cm、R13-18 在 5.4-12cm 徘徊；ep 4ea88ef5 R12 L=8.7cm | VLM 確實學會把 EE 移到 cube 附近；plateau patience 殺掉「已收斂在 5cm 邊界但震盪」的 ep。閾值 5cm 是 plan §3.5 的軟目標非硬閾值 | D1: threshold 0.05→0.06 m；D3 跑 10 ep 累積樣本 | 2026-06-11 | 2026-06-11 | **active / breakthrough** |
+|F29| **軸向自學湧現**（C3 + 視覺改善後）| run 0602e905 ep c67a1dec 26 round：x_neg×11 / y_pos×2 / y_neg×9 / z_pos×4 / z_neg×9 / frame_reflection×30+ 命中（對照 V4 base 67a99349 的 14 round 全 0）| VLM 開始把 thought 用 base frame 軸向描述、不只是 forward/left。critic feedback × pre-reach pose × 多 round 探索的合力結果 | T-13 cross-ep token 統計（看是否第 N ep 後變主流） | 2026-06-11 | 2026-06-11 | **active / VLM 自學的真實證據** |
+|F30| **長 episode（>20 round）容易 vlm_parse_fail** | run 0602e905 5 ep 中 2/5 vlm_parse_fail，都是 26 round 後出現；EpisodeConversation 累積到一定大小後 teacher CoT 開始出 schema 錯 | 不是嚴重 bug 但浪費長 ep 累積的 reasoning trace；可能要把 conversation 在 N round 後做 summary compression 或重置 | 暫不處理；觀察 D3 出現頻率 | 2026-06-11 | 2026-06-11 | active / minor |
 
 
 ---
