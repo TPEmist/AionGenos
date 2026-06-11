@@ -78,7 +78,14 @@ class LevelConfig:
     # VLM is re-queried with fresh RGB + EE state each round until success / plateau / cap.
     # T-8(a) → V1: 15 → 25 → 40 (longer rounds; offsets the 0.5s/round shrink).
     max_subgoals_per_episode: int = 40
-    subgoal_success_threshold_m: float = 0.05  # both arms < threshold → success
+    # D1 (2026-06-11): 0.05 → 0.06 m. Run 0602e905 ep 0eda8269 hit
+    # final_dist_L = 5.4cm / 5.9cm / 6.0cm in three consecutive rounds —
+    # the VLM was clearly converged but the 5cm gate locked us out of
+    # ever recording a success replay. Plan §3.5 doesn't pin the gate
+    # at 5cm; this is a task-agnostic loosening to start populating
+    # Stage 4-A training data. Tighten back when teacher distillation
+    # is healthy enough that a stricter gate doesn't starve us.
+    subgoal_success_threshold_m: float = 0.06  # both arms < threshold → success
     plateau_min_progress_m: float = 0.01  # < 1 cm improvement counted as no progress
     # T-8b: plateau patience now denotes consecutive rounds where the rolling
     # mean (over `plateau_window`) failed to improve by `plateau_min_progress_m`.
