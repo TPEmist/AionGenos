@@ -54,6 +54,21 @@ class AionGenosReachEnvBaseCfg(ReachEnvCfg):
         # Ensure that simulation outputs RGB images at correct intervals
         self.sim.render_interval = self.decimation
 
+        # ── F35 fix: lock target through whole episode ──────────────────
+        # IsaacLab's stock reach env resamples the goal pose every 4 sim-sec
+        # (resampling_time_range=(4.0, 4.0) on each pose command). With our
+        # multi-round episodes (≤40 rounds × 30 sim steps × 1/60 s ≈ up to
+        # 20 sim-sec) the cube target jumps 2-5 times mid-episode; the VLM
+        # sees its previously-correct guess suddenly become "wrong" and
+        # rewrites its mental model. Run b6783e98 ep e892cd33 R17 caught
+        # this in the act (right-arm dist 11.6→5.1cm with right arm
+        # hold-in-place — only the GT target moved). For collect/eval we
+        # want the target stable for the whole episode; "freeze" it by
+        # pushing the resampling window past episode_length_s.
+        _LOCK = (1e6, 1e6)  # effectively never resample
+        self.commands.left_ee_pose.resampling_time_range = _LOCK
+        self.commands.right_ee_pose.resampling_time_range = _LOCK
+
         # ── Initial-pose randomization (T-8a, F15 fix → C3 pre-reach) ─────
         # History:
         # • F15: IsaacLab's reset_joints_by_scale silently no-ops on OpenArm

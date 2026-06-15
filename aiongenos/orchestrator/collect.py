@@ -315,10 +315,25 @@ def run_collect_loop(
             )
 
             # ── Termination checks ──
-            if (
-                not math.isnan(final_dist_l) and not math.isnan(final_dist_r)
-                and final_dist_l < success_thresh and final_dist_r < success_thresh
-            ):
+            # F33: success criteria must respect active_arm. For L0a
+            # sub-stages the inactive arm is held in place by the env
+            # interface, so its dist is the random initial-spawn offset
+            # to the (also random) target — typically 12-25cm and never
+            # under threshold. Asking "both arms < threshold" therefore
+            # makes L0a structurally 0% even when the active arm is
+            # converged. Bimanual levels (L0..L4) keep the stricter
+            # both-arms gate.
+            if active_arm == "left":
+                ok = (not math.isnan(final_dist_l)) and final_dist_l < success_thresh
+            elif active_arm == "right":
+                ok = (not math.isnan(final_dist_r)) and final_dist_r < success_thresh
+            else:
+                ok = (
+                    not math.isnan(final_dist_l) and not math.isnan(final_dist_r)
+                    and final_dist_l < success_thresh
+                    and final_dist_r < success_thresh
+                )
+            if ok:
                 outcome = EpisodeOutcome.SUCCESS
                 stats.success_episodes += 1
                 break

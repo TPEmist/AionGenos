@@ -219,11 +219,18 @@ def _run_episode(
                 "stage1_latency_ms": float(stage1_latency),
             })
 
-        # ── Termination checks ──
-        if (
-            not np.isnan(final_dist_l) and not np.isnan(final_dist_r)
-            and final_dist_l < success_thresh and final_dist_r < success_thresh
-        ):
+        # ── Termination checks (F33: active-arm-aware) ──
+        if active_arm == "left":
+            ok = (not np.isnan(final_dist_l)) and final_dist_l < success_thresh
+        elif active_arm == "right":
+            ok = (not np.isnan(final_dist_r)) and final_dist_r < success_thresh
+        else:
+            ok = (
+                not np.isnan(final_dist_l) and not np.isnan(final_dist_r)
+                and final_dist_l < success_thresh
+                and final_dist_r < success_thresh
+            )
+        if ok:
             outcome = "success"
             break
 
