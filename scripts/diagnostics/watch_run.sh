@@ -20,8 +20,12 @@ mkdir -p "$OUT_DIR"
 LAST_SNAP=0
 
 while true; do
-  s=$(ls "data/replays/${RUN_ID}/success/"*.json 2>/dev/null | wc -l)
-  f=$(ls "data/replays/${RUN_ID}/failure/"*.json 2>/dev/null | wc -l)
+  # Need both `2>/dev/null` AND `|| true`: under `set -e`, `find` exits
+  # non-zero when the parent dir doesn't exist (success/ may not be
+  # created until the first success replay). Both forms of robustness
+  # are required.
+  s=$(find "data/replays/${RUN_ID}/success" -maxdepth 1 -name '*.json' 2>/dev/null | wc -l || true)
+  f=$(find "data/replays/${RUN_ID}/failure" -maxdepth 1 -name '*.json' 2>/dev/null | wc -l || true)
   total=$((s + f))
 
   # snap whenever we cross a new multiple of STEP
