@@ -8,23 +8,21 @@
 
 ## 當前狀態
 
-- **Phase**：M7 進度完成；遠端 31B QLoRA + GGUF 熱重載 + multi-round closed-loop + V4 sensory-integration sub-stage（L0a-L/R）+ C3 pre-reach reset pose 全部建好。**正在攻 R1 grounding 弱化**，問題分三層：mirror bias（V4 已解）→ base-frame mismatch（F24-F27 鎖定主因）→ 視覺場景貧瘠（C3 改善中）。
-- **Sprint 目標**：在 V4 + C3 改動後**取得 L0a-Left 第一個真實 success replay**，啟動 Stage 4-A 二輪 QLoRA 訓練。
-- **最新動作與進展（2026-06-08 ~ 06-10）**：
-  1. **V4 落地**（commit `9c9ccdd`）：`Isaac-AionGenos-L0a-{Left,Right}-v0` sub-stage 註冊，`LEVEL_ORDER=(-2,-1,0,1,2,3,4)`，`IsaacLabEnvInterface.execute_command(active_arm)` 強制 hold-in-place 對側手；`docs/plans/sensory_integration_curriculum.md` 設計文件落地。
-  2. **首跑 V4 5 ep on L0a-Left**（run 571472d8）：消除 mirror bias（X-flipped 0% in 4/5 ep；對照 V3 是 33-100%）→ F16/F17 確認；但 SR 仍 0/5 → F18 grounding 才是真瓶頸。
-  3. **F19 STOP=True 假成功 bug 修好**（commit `53948b4`）：`vlm_stop_premature` 不再記為 success。手動把 false-success replay `571472d8/b0c28c0a` 搬到 failure 區。
-  4. **Playback infra 上線**（commit `dcc8be3`）：collect.py 加 `--dump_images_root`；`scripts/diagnostics/playback_episode.py` 工具。
-  5. **Reasoning analyser 上線**（commit `191ee0a`）：vlm_thought 完整保留（不再 600 字截斷），新加 `vlm_full_response`、`critic_feedback` 兩欄；`reasoning_analysis.py` 工具產出 token-presence × distance × thought-similarity × coord-volatility 四維 cross-round 報告。
-  6. **F24-F27 主因鎖定**（run 67a99349 / 14 round trace + V4 5 ep 視覺檢查）：(a) VLM 全程零 X+/Y+/Z+ 軸向 reasoning，只用 forward / backward / left / right（F24）；(b) thought volatility 0.09 = VLM 真在想新方案（F25）；(c) Z std=1（F18 重發）；(d) 場景灰階 + cube 5×5px + 雙臂遮擋 + camera 角度（F20-F23）。
-  7. **C3 pre-reach reset 落地**（commit `ee2de8a`）：`aiongenos/mdp/reset.py` 新加 `reset_joints_to_target_with_offset`；base config target 設左右 `joint2=0.5, joint4=0.8`，view_sanity 12 張取樣選定。Camera 不動（C4 經 view_sanity 證 default 已最佳）。
-- **🟡 進行中**：D3 PID 1237148 跑 10 ep L0a-Left + C3 + D1 + dump，run id 待落盤，預計 ~140 min。
+- **Phase**：🚀 **L0a-Left 首次取得真實 success replay**（D4 run `e227aeaa`，1/5 = 20% SR）。F35（target resampling 鎖定）+ F33（active-arm-only success criteria）+ D1 撤回三合一是關鍵。
+- **Sprint 目標**：擴大 L0a-Left collect（≥10 success）→ 觸發 Stage 4-A 二輪 QLoRA 訓練 → reload student → L0 雙臂 eval。
+- **最新動作與進展（2026-06-15 ~ 06-16）**：
+  1. **D4 三合一 fix 跑通**（commit `9274c0c`，run e227aeaa, 5 ep）：F35 target resampling 鎖定 + F33 active-arm-only success criteria + D1 撤回 6→5cm。**SR=1/5 (20%)**；ep `0fb0b1ac` 2 round 直達 final_L=3.9cm（< 5cm 嚴格閾值），thought 用「positive X, Y, Z directions」軸向描述（F29 軸向自學 → F37 真 success）。
+  2. **F35 確認生效**：success ep 全 50 step 中 R_dist 全 24.18-24.20cm flat，hold-in-place 右臂的 GT target 確實鎖死（之前 b6783e98 R17 6.5cm 跳變消失）。
+  3. **F33 確認生效**：L0a-Left success 從「兩臂同時 < threshold」改為「active arm < threshold」，原本結構性 0% 解開。
+  4. **D1 撤回 + stop_premature 降到 1/5**（D3 是 3/10）：H8 確認；VLM 提早 STOP 副作用降低。
+  5. **Avg rounds 19.2 → 11.6**：F35 後 episode 收斂更快（target 不變 → 不需重新適應）。
+  6. **F39 副作用 — `near_singularity` 3/5 ep**（D3 是 1/10）：F35 鎖定 target 後 VLM 持續往同方向推 → IK 進近奇異點。不阻塞但軌跡不平滑。
+  7. **EE Randomness 5 ep STRUCTURALLY-BROKEN warning**（Y std=2.4 grid）：5 ep 太少不能下結論；待 D5 100 ep 看是否樣本問題或結構性。
 - **下一動作優先序**：
-  - (P0) D3 跑完後跑診斷三件套（`replay_summary` / `check_ee_randomness` / `reasoning_analysis`），看 D1 後 SR 是否非 0
-  - (P0) 若 ≥ 1 success → 立刻觸發 `04_sync_and_train.sh` 訓新 LoRA → reload student → L0 eval（這就是 SI 學習階段第一輪）
-  - (P0) 若 0 success 但有 1+ ep final_L < 6cm 卻被 plateau 殺 → 動 plateau patience 或 success threshold 再放鬆
-  - (P1) T-13 cross-ep reasoning token 統計：F29 軸向 token 是否在 D3 多 ep 後變主流
-  - (P2) 增量訓練（每 5 success 觸發 mini-LoRA）— 等 D3 出 success 才意義
+  - (P0) **D5 跑 100 ep L0a-Left** — 估算 SR 真實分布、累積 ≥10 success replay、驗 EE std warning
+  - (P0) 收滿 success → 觸發 `04_sync_and_train.sh` 訓新 LoRA（incremental from `410e0f79`）→ reload student → L0 雙臂 eval
+  - (P1) 跨 ep reasoning analyser 跑（H2 最後驗證：軸向 token 是否在多 ep 後變主流）
+  - (P2) MoveIt path planning / action chunking 評估（user 提出；等 D5 數據後再判斷是否真的需要）
 
 ---
 
@@ -129,6 +127,7 @@
 
 | 日期 | 變更 |
 |---|---|
+| 2026-06-16 | **🚀 D4 跑通：L0a-Left 首次取得真實 success replay**（run `e227aeaa`, 5 ep, SR=1/5 = 20%）。三合一 commit `9274c0c`：(a) F35 base config 加 `commands.{left,right}_ee_pose.resampling_time_range = (1e6, 1e6)` 鎖定 target；(b) F33 collect/eval success criteria 改 active-arm-aware（L0a-L 只看 dist_red, L0a-R 只看 dist_blue, bimanual 維持兩臂）；(c) D1 撤回 0.06→0.05m。**首個真 success：ep `0fb0b1ac` 跑 2 round → final_L=3.9cm**，VLM thought 已切換到 X/Y/Z 軸向描述（F29 → F37 落地）。F35 verified flat（R_dist 全 24.18-24.20cm）。F38 avg rounds 19.2→11.6（target 不變 → 收斂更快）。F39 新副作用：3/5 ep `near_singularity` flag（D3 是 1/10），F35 鎖定後 VLM 持續同方向推使 IK 進近奇異點，待 D5 觀察是否需 MoveIt / action chunking。 |
 | 2026-06-11 | **🚀 V4+C3 首跑（run `0602e905`，5 ep on L0a-Left）三大突破 + 兩個決定**：(a) **EE randomization 第一次 HEALTHY**（Z std 1-2 → 8-18 grid，F15/F18 真正修好）；(b) **F28 接近 success**：ep 0eda8269 R10 final_L=5.9cm / R12=5.4cm，差 5cm 閾值 0.4cm 但被 plateau 殺；(c) **F29 軸向自學湧現**：thought 中 X+/Y+/Z+ token 從 V4 base 0/14 round → 26 round 內 30+ 命中（VLM 開始用 X/Y/Z 而非 forward/left）。Avg best_combined 47.5 → **31.8 cm** 大幅下降。SR 仍 0/5 但 2/5 vlm_parse_fail（context 累積長 round 後 teacher CoT 出格式錯）+ 1/5 near_singularity。**並行決定 D1+D3**：D1 success threshold 0.05→0.06 m（commit `61cd1b1`，task-agnostic 微調，給 5.4-5.9cm 邊界 ep 變 success）；D3 跑 10 ep L0a-Left（PID 1237148, run id 待落盤）拿 baseline。 |
 | 2026-06-10 | **C3 pre-reach reset arm pose 落地**（commit `ee2de8a`）：新模組 `aiongenos/mdp/reset.py` 提供 `reset_joints_to_target_with_offset(target_joint_pos: dict, position_range, ...)`；base config target = `{openarm_left/right_joint2: 0.5, joint4: 0.8}`，jitter ±0.2 rad。view_sanity script (12 張 × 3 camera × 4 pose) 取樣選定。Camera 不動。**正在跑 5 ep L0a-Left + C3 + dump（PID 2793645，run id 待落盤）**。 |
 | 2026-06-10 | **Reasoning analyser + 完整 thought trace**（commit `191ee0a`）：collect.py meta.json 移除 600 字 thought 截斷，新加 `vlm_full_response` 與 `critic_feedback` 欄；`scripts/diagnostics/reasoning_analysis.py` 提供 token-presence × distance × similarity × coord-volatility 四維 cross-round 報告。執行 V4 ep 67a99349/a047ccbe（14 round）證實 F24（VLM 0 個 X+/Y+/Z+ 軸向 token，全用 forward/left）+ F25（thought sim 0.09 = 不重複）。 |
@@ -163,14 +162,21 @@
 | T-D8 | Playback infra（collect.py `--dump_images_root` + `playback_episode.py`） | 詳見變更日誌 | 2026-06-10 |
 | T-D9 | Reasoning analyser + 完整 thought trace（不截斷 + new fields）| `reasoning_analysis.py` 四維 cross-round 報告 | 2026-06-10 |
 | T-D10 | C3 pre-reach reset arm pose | `reset_joints_to_target_with_offset({joint2:0.5, joint4:0.8}, ±0.2)` | 2026-06-10 |
+| T-D11 | D1 success threshold 0.05→0.06m + 撤回 | run 0602e905 hit 5.4-5.9cm 試放寬；run b6783e98 副作用太大撤回 | 2026-06-11 / 2026-06-15 |
+| T-D12 | D3 跑 10 ep 累積樣本（C3+D1）| run b6783e98, 0/10 success, 揭露 F33 + F35 結構性 bug | 2026-06-11 |
+| T-D13 | F33 active-arm-only success criteria | collect.py / eval.py 加 active_arm 偵測 | 2026-06-15 |
+| T-D14 | F35 lock target resampling | base config `resampling_time_range=(1e6,1e6)` | 2026-06-15 |
+| T-D15 | D4 三合一 fix 跑 5 ep 驗證 | **🚀 SR=1/5, ep `0fb0b1ac` final_L=3.9cm 真 success** | 2026-06-16 |
 
 **進行中 / 高優先（active）**
 
 | # | 任務 | 緣由 | 細節 | 狀態 |
 |---|---|---|---|---|
-| **T-12** | C3 5 ep L0a-Left 實測（run 0602e905） | 驗證 EE Z std + reasoning trace + SR | EE HEALTHY（Z std 8-18）；F28 R10/R12 final_L=5.4-5.9cm；F29 軸向 token 30+ | **done — 結果見 F28/F29** |
-| **D1** | success threshold 0.05→0.06 m（task-agnostic 微調，commit `61cd1b1`） | F28 ep 0eda8269 R12 final_L=5.4cm 差 0.4cm；F29 軸向已開始學 | `LevelConfig.subgoal_success_threshold_m`；plan §3.5 沒寫死 5cm 是硬閾值 | **done** |
-| **D3** | 10 ep L0a-Left（C3 + D1 + dump，PID 1237148） | 看 D1 後 success rate 是否非 0；reasoning analyser 跨 ep 看軸向 token 是否成長 | TAG=d3，pointer 在 `/tmp/aiongenos_d3_*.txt`；預計 ~140 min | **🟡 in-flight** |
+| **D5** | **跑 100 ep L0a-Left**（D4 設定，TAG=d5） | 拿真實 SR 分布、累積 ≥10 success replay、驗 EE std warning | 100 ep × ~14 min = ~23 hr；可背景跑、隨時停 | **P0 / 待啟動** |
+| **T-7** | collect ≥10 success → `04_sync_and_train.sh` 訓 v3 LoRA | M5 後續；用 D5 收到的 success replay | incremental from 410e0f79；reload student；L0 雙臂 eval 比較 SR | blocked by D5 |
+| **T-13** | reasoning analyser 跨 ep 統計（軸向 token 成長）| H2：F29 軸向湧現是否在多 ep 後變主流 | 加 `--cross_ep` 模式，掃 run 目錄產 ep×round 大表 | open / blocked by D5 |
+| **F36** | 縮 WorkspaceBounds 對齊 cube range | F32 大量 clamped 部分源於此 | 等 D5 看 clamped 比例再決定 | open / 觀察 |
+| **F39** | near_singularity 3/5 副作用對策 | MoveIt / action chunking / 純 prompt 警示 | 等 D5 100 ep 數據看是 edge case 還是系統性 | open / 待 D5 |
 | **T-7** | collect ≥1 success replay → 觸發 Stage 4-A 二輪訓練 | M5 後續；C3 + V4 後預期可有 success | `scripts/run_collect.py` → `scripts/04_sync_and_train.sh` → reload student → eval 比較 SR | blocked by T-12 |
 | T-9 | 增量訓練：每 N success episode 觸發 mini-LoRA | F11 顯示 episode 內 VLM 在學軸向但跨 episode 不延續 | (a) 每 5 success ep 觸發 04_sync_and_train.sh；(b) train script 改支援 incremental（從 410e0f79 base 接續）；(c) student 自動 reload；(d) 後續 collect 用更新後的 student 形成正向循環 | **idea / blocked by T-7** |
 | T-13 | reasoning analyser 跨 ep 統計：「VLM 是否在 N ep 後出現 X+/Y+/Z+ 軸向 token」 | F24 證 14 round 內 0 軸向 token；想知道是否多 ep 累積後會自然湧現（self-emergence proof）| reasoning_analysis.py 加 `--cross_run` 模式，掃整 run 目錄產 ep×round 大表 | open |
@@ -225,6 +231,16 @@
 |F28| **C3 後 V4 已逼近 success threshold**（差 0.4cm） | run 0602e905 ep 0eda8269 R10 final_L=5.9cm、R11=7.6cm、R12=5.4cm、R13-18 在 5.4-12cm 徘徊；ep 4ea88ef5 R12 L=8.7cm | VLM 確實學會把 EE 移到 cube 附近；plateau patience 殺掉「已收斂在 5cm 邊界但震盪」的 ep。閾值 5cm 是 plan §3.5 的軟目標非硬閾值 | D1: threshold 0.05→0.06 m；D3 跑 10 ep 累積樣本 | 2026-06-11 | 2026-06-11 | **active / breakthrough** |
 |F29| **軸向自學湧現**（C3 + 視覺改善後）| run 0602e905 ep c67a1dec 26 round：x_neg×11 / y_pos×2 / y_neg×9 / z_pos×4 / z_neg×9 / frame_reflection×30+ 命中（對照 V4 base 67a99349 的 14 round 全 0）| VLM 開始把 thought 用 base frame 軸向描述、不只是 forward/left。critic feedback × pre-reach pose × 多 round 探索的合力結果 | T-13 cross-ep token 統計（看是否第 N ep 後變主流） | 2026-06-11 | 2026-06-11 | **active / VLM 自學的真實證據** |
 |F30| **長 episode（>20 round）容易 vlm_parse_fail** | run 0602e905 5 ep 中 2/5 vlm_parse_fail，都是 26 round 後出現；EpisodeConversation 累積到一定大小後 teacher CoT 開始出 schema 錯 | 不是嚴重 bug 但浪費長 ep 累積的 reasoning trace；可能要把 conversation 在 N round 後做 summary compression 或重置 | 暫不處理；觀察 D3 出現頻率 | 2026-06-11 | 2026-06-11 | active / minor |
+|F31| **VLM 大量提早 STOP=True**（D1 副作用） | run b6783e98 (D3, 10 ep) 出現 3 個 vlm_stop_premature；D1 把閾值 5→6cm 後 VLM 看到 dist 進入 5-7cm 區間就誤判「夠近 STOP」 | F19 STOP guard 救了我們；但浪費 round 預算且 thought 紀錄不完整 | D1 已撤回（commit `9274c0c`） | 2026-06-15 | 2026-06-15 | resolved by D1 revert |
+|F32| **D3 大量 `clamped` / `out_of_workspace`** | run b6783e98 出現 48 clamped + 48 out_of_workspace flag（之前 < 5/run）；D1 後 VLM 探索更激進，常出 [-100,100] 整數網格映射到 metric workspace 的邊界 | 部分原因是 D1 副作用，部分是 WorkspaceBounds 比 cube range 寬太多 → 留 F36 觀察 | F36 縮 WorkspaceBounds（次要 todo） | 2026-06-15 | 2026-06-16 | partially resolved by D1 revert |
+|F33| **🐛 L0a success criteria 結構性 0%**（重大隱性 bug） | collect.py / eval.py 的 success 判定要求 `dist_L < t AND dist_R < t`；L0a-Left 中右臂被 hold-in-place 不動，dist_R 是隨機初始偏差（10-25cm）→ **永遠不可能** success。F18 之前以為「mirror bias 解了 grounding 還沒解」，實際更嚴重：success criteria 從定義上禁止成功 | 修法：collect/eval 加 active_arm 偵測；L0a 只看 active 那臂；雙臂 task 維持原 criteria | done in commit `9274c0c` | 2026-06-15 | 2026-06-15 | **fixed** |
+|F34| **D3 整體比 V4+C3 退步** | Avg best_combined 31.8 (V4+C3) → 37.0 (D3)；D1 6cm 閾值副作用使 VLM 進入 5-7cm 區就 STOP，沒充分用 round 預算 | D1 撤回後 D4 best_L 即降回 14.5cm | D1 已撤回 | 2026-06-15 | 2026-06-15 | resolved by D1 revert |
+|F35| **🐛 IsaacLab target 每 4 sim-sec resample**（巨大隱性 bug） | base reach env `commands.{left,right}_ee_pose.resampling_time_range=(4.0, 4.0)`；multi-round episode 跑 9-13 sim-sec 至少經歷 2-3 次 target 跳位。run b6783e98 ep e892cd33 R17 紅手在抓的右臂 dist 從 11.6 → 5.1cm 但右臂物理沒動 — 是藍 cube target 自己跳了；VLM 看 visual 以為自己 round 17 動作有效 → 整個 reasoning 被誤導 | base config override `resampling_time_range=(1e6, 1e6)` 鎖死整 ep | done in commit `9274c0c`，D4 R_dist 全程平坦驗證 | 2026-06-15 | 2026-06-16 | **fixed** |
+|F36| **WorkspaceBounds 過寬於 cube range**（次要） | `WorkspaceBounds: x=(-0.3,0.6) y=(-0.4,0.4) z=(0,0.7)`，但 `commands.left_ee_pose.ranges: x=(0.15,0.3) y=(0.15,0.25) z=(0.3,0.5)`。VLM 整數網格 [-100,100] 對應整個 WorkspaceBounds，導致 50% 預測在 cube 範圍外 | F32 大量 clamped/out_of_workspace 部分源於此；不是阻塞 bug，但壓縮 WorkspaceBounds 會讓 VLM 探索更聚焦 | 等 D5 數據再決定要不要做 | 2026-06-15 | 2026-06-16 | open |
+|F37| **🚀 L0a-Left 首次真實 success**（pipeline 完整性確認） | D4 run e227aeaa ep `0fb0b1ac` 2 round 直達 final_L=3.9cm < 5cm 嚴格閾值；thought 完整使用 X/Y/Z 軸向描述（"positive X, Y, and Z directions"）證 F29 軸向自學在 F35+F33 修復後**實質有效**，不只是 token 出現 | 證 V4 sub-stage + critic feedback + reset randomization + episode memory + target lock 整套 SI 設計可生產 success replay | 觸發 Stage 4-A 訓練（≥10 success） | 2026-06-16 | 2026-06-16 | **active / breakthrough** |
+|F38| **F35 後 avg rounds 19.2 → 11.6** | target 不再跳位 → VLM 不需重新適應 → 收斂更快或 plateau 更早觸發 | 副效益：VLM call 數減少 ≈ 40% wall-clock 加速 | — | 2026-06-16 | 2026-06-16 | active / nice |
+|F39| **F35 副作用 — `near_singularity` 3/5 ep**（之前 1/10） | F35 鎖定 target 後 VLM 連續往同方向推 → IK 解進入近奇異點。不阻塞（IK 仍出解），但 RPY 任務後可能加重 | 候選對策：MoveIt path planning（user 提）/ action chunking / 簡單加 VLM prompt 警示 | 等 D5 100 ep 數據（user 決策） | 2026-06-16 | 2026-06-16 | active / 待 D5 |
+|F40| **D1 撤回後仍偶發 `vlm_stop_premature` 1/5** | D4 ep b78fac2e R16 best_L=21cm 但 VLM 出 STOP=True；F19 fix 仍救了它 | 比例已從 D3 30% 降到 20%；可接受 | — | 2026-06-16 | 2026-06-16 | active / minor |
 
 
 ---
