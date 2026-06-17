@@ -55,7 +55,12 @@ class CurriculumConfig:
     """Curriculum advancement parameters."""
 
     advance_threshold: float = 0.6  # success rate ≥ 60% to unlock next level
-    blocked_timeout_hours: float = 12.0
+    # Plan §M5 set this to 12 h / 100 successes as a production "stuck-on-this-level"
+    # guard. During R&D we frequently want to run a single level long enough to
+    # measure the SR distribution even when SR is low (D5 hit BLOCKED at 13 h /
+    # 3 successes, which was the sentinel doing its job). Bumped to 48 h while
+    # we're tuning the loop; tighten back to 12 h once teacher SR clears 30%.
+    blocked_timeout_hours: float = 48.0
     min_success_episodes: int = 100
 
 
