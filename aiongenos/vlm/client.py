@@ -90,10 +90,43 @@ def build_chat_request(
 
 
 class EpisodeConversation:
-    """Manages the conversation history of a single episode."""
-    def __init__(self, system_prompt: str):
+    """Manages the conversation history of a single episode.
+
+    Sliding-window context strategy (A fix for F30/F43):
+    Run b6783e98 / 7c29e8ae showed teacher CoT degrading to schema
+    violations after ~25 rounds — the fully-accumulated thoughts +
+    critic feedbacks blow past the model's ability to keep emitting
+    the strict response format. We keep:
+      - the system prompt (folded into the original first user turn)
+      - the *first* user turn intact (sets the task)
+      - the most recent ``recent_window`` user/assistant pairs
+
+    Critic feedback already summarises prior rounds' deltas so dropping
+    older raw thoughts loses little signal. Image URLs are stripped from
+    all but the latest user turn (unchanged behaviour).
+    """
+
+    DEFAULT_RECENT_WINDOW: int = 6  # keep first turn + last 6 user/assistant pairs
+
+    def __init__(self, system_prompt: str, recent_window: int = DEFAULT_RECENT_WINDOW):
         self.system_prompt = system_prompt
         self.messages: list[dict] = []
+        self.recent_window = recent_window
+
+    def _prune_to_window(self) -> None:
+        """Drop middle history but keep the first user turn + last K pairs."""
+        # Keep first message (it has the system prompt baked in) + the last
+        # ``2 * recent_window`` messages (each round = 1 user + 1 assistant).
+        keep_tail = 2 * self.recent_window
+        if len(self.messages) <= keep_tail + 1:
+            return  # nothing to prune yet
+
+        first = self.messages[0]
+        tail = self.messages[-keep_tail:]
+        # Make sure tail starts on a user turn so the prompt is well-formed.
+        while tail and tail[0]["role"] != "user":
+            tail = tail[1:]
+        self.messages = [first] + tail
 
     def append_user_turn(self, user_prompt: str, image_base64: Optional[str] = None):
         """Append a user turn to the conversation history, keeping only the latest image."""
@@ -106,19 +139,23 @@ class EpisodeConversation:
         if len(self.messages) == 0:
             # First turn: fold system prompt into user message for Gemma-4 compatibility
             user_content.append({"type": "text", "text": self.system_prompt + "\n\n"})
-        
+
         if image_base64:
             user_content.append({
                 "type": "image_url",
                 "image_url": {"url": f"data:image/png;base64,{image_base64}"},
             })
-        
+
         user_content.append({"type": "text", "text": user_prompt})
         self.messages.append({"role": "user", "content": user_content})
 
     def append_assistant_turn(self, assistant_response: str):
         """Append an assistant response to the conversation history."""
         self.messages.append({"role": "assistant", "content": assistant_response})
+        # Prune AFTER each completed round so the next user_turn sees a
+        # bounded context. We do this here (not in append_user_turn) so the
+        # pair is added atomically before pruning.
+        self._prune_to_window()
 
 
 async def call_vlm(
