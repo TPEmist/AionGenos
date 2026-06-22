@@ -95,9 +95,9 @@ class ReplayDataset(Dataset):
                 # Find the Stage 1 VLM interaction
                 s1_interaction = None
                 for interaction in ep_data.get("vlm_interactions", []):
-                    if interaction.get("stage") == "stage1":
+                    if interaction.get("stage") == "stage1":  # take LAST one (the converged action)
                         s1_interaction = interaction
-                        break
+                        # no break: overwrite to keep the FINAL stage1 (F56 fix)
 
                 if not s1_interaction:
                     continue
