@@ -8,7 +8,12 @@ MODEL_PATH="${MODEL_PATH:-/home/exx/.cache/llama.cpp/ggml-org_gemma-4-31B-it-GGU
 MMPROJ_PATH="${MMPROJ_PATH:-/home/exx/.cache/llama.cpp/ggml-org_gemma-4-31B-it-GGUF_mmproj-gemma-4-31B-it-Q8_0.gguf}"
 LORA_PATH="${LORA_PATH:-}"  # Empty for initial startup (no LoRA yet)
 PORT="${STUDENT_PORT:-18889}"
-CTX_SIZE="${CTX_SIZE:-4096}"  # Student needs less context (no CoT)
+CTX_SIZE="${CTX_SIZE:-16384}"  # Match teacher. 4K was fine for single-shot
+                               # eval, but multi-round closed-loop with
+                               # EpisodeConversation blows past 4K after ~3
+                               # rounds → 400 Bad Request. Run 54acddc2
+                               # (D7 attempt 1) parse-failed 20/20 ep at R4
+                               # before this default got raised.
 
 echo "=== Starting Student llama-server ==="
 echo "Model:  ${MODEL_PATH}"
