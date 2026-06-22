@@ -47,6 +47,6 @@ fi
     --reasoning off \
     --reasoning-budget 0 \
     --host 0.0.0.0 \
-    --parallel 2 \
+    --parallel 1 \
     --verbose
 
