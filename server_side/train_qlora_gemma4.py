@@ -233,6 +233,80 @@ class ReplayDataset(Dataset):
         return item
 
 
+class JsonlReplayDataset(Dataset):
+    """One sample per JSONL line — output of scripts/training/prep_training_data.py.
+
+    Each line has its own image_path, state, critic_feedback and target_response,
+    so we don't need to re-derive (image, state, action) from a full episode.
+    The (image, response) pair is already geometrically consistent: image is
+    the RGB the VLM saw at the START of that round, response is what the VLM
+    emitted in that same round. v3.1's cross-time mismatch (init RGB ↔ final
+    coord) is gone by construction.
+    """
+
+    def __init__(self, jsonl_path, processor, stage="4A", max_length=2048):
+        self.processor = processor
+        self.stage = stage
+        self.max_length = max_length
+        self.examples = []
+
+        print(f"Loading dataset from JSONL: {jsonl_path}")
+        with open(jsonl_path, "r") as fp:
+            for line_no, raw in enumerate(fp, 1):
+                line = raw.strip()
+                if not line:
+                    continue
+                try:
+                    rec = json.loads(line)
+                except json.JSONDecodeError as e:
+                    print(f"  line {line_no}: bad JSON, skip ({e})")
+                    continue
+
+                img_path = Path(rec["image_path"])
+                if not img_path.exists():
+                    print(f"  line {line_no}: missing image {img_path}, skip")
+                    continue
+                image = Image.open(img_path).convert("RGB")
+
+                state = rec.get("state", {}) or {}
+                left_pos = state.get("left_ee", [0, 0, 0])
+                right_pos = state.get("right_ee", [0, 0, 0])
+                instruction = rec.get("task_instruction", "")
+                # Same Stage 1 user template the prompt module emits.
+                user_content = (
+                    f"TASK: {instruction}\n"
+                    f"CONTROL_MODE: end_effector_position_only\n\n"
+                    f"CURRENT STATE:\n"
+                    f"  LEFT_EE_POS  = (X={left_pos[0]}, Y={left_pos[1]}, Z={left_pos[2]})\n"
+                    f"  RIGHT_EE_POS = (X={right_pos[0]}, Y={right_pos[1]}, Z={right_pos[2]})\n\n"
+                    f"THOUGHT: <one paragraph physics reasoning>\n"
+                    f"LEFT_TARGET_POS:  X=<int> Y=<int> Z=<int>\n"
+                    f"RIGHT_TARGET_POS: X=<int> Y=<int> Z=<int>\n"
+                    f"STOP: <true|false>"
+                )
+                critic = rec.get("critic_feedback")
+                if critic:
+                    user_content += f"\n\n### CRITIC FEEDBACK FROM PREVIOUS ROUND:\n{critic}"
+
+                response_text = rec.get("target_response", "")
+                if not response_text.strip():
+                    continue
+
+                self.examples.append({
+                    "image": image,
+                    "system_prompt": STAGE1_SYSTEM,
+                    "user_prompt": user_content,
+                    "response": response_text,
+                })
+        print(f"Successfully loaded {len(self.examples)} training examples (per-round).")
+
+    def __len__(self):
+        return len(self.examples)
+
+    # Identical to ReplayDataset.__getitem__ — re-use through duck typing.
+    __getitem__ = ReplayDataset.__getitem__
+
+
 def collate_fn(batch):
     input_ids = [item["input_ids"] for item in batch]
     attention_mask = [item["attention_mask"] for item in batch]
@@ -263,7 +337,12 @@ def collate_fn(batch):
 
 def main():
     parser = argparse.ArgumentParser(description="AionGenos Student QLoRA Fine-tuning")
-    parser.add_argument("--replay-path", type=str, required=True, help="Path to folder containing success replays")
+    # Legacy: one sample per success replay (FIRST or LAST stage1 only).
+    parser.add_argument("--replay-path", type=str, default=None,
+                        help="Folder of success replay JSONs (one sample per ep).")
+    # Per-round JSONL produced by scripts/training/prep_training_data.py.
+    parser.add_argument("--jsonl-path", type=str, default=None,
+                        help="JSONL training set (one sample per round). Mutually exclusive with --replay-path.")
     parser.add_argument("--output-dir", type=str, required=True, help="Checkpoint output directory")
     parser.add_argument("--base-model", type=str, default="google/gemma-4-31b-it", help="HF base model ID or path")
     parser.add_argument("--stage", type=str, default="4A", choices=["4A", "4B"], help="Distillation stage: 4A (BC with CoT) or 4B (CoT-strip)")
@@ -272,11 +351,19 @@ def main():
     parser.add_argument("--lr", type=float, default=2e-4, help="Learning rate")
     args = parser.parse_args()
 
-    # Find JSON files
-    json_files = glob.glob(os.path.join(args.replay_path, "*.json"))
-    if not json_files:
-        print(f"Error: No json replays found at {args.replay_path}")
+    if not args.replay_path and not args.jsonl_path:
+        print("Error: must pass --replay-path OR --jsonl-path")
         sys.exit(1)
+    if args.replay_path and args.jsonl_path:
+        print("Error: --replay-path and --jsonl-path are mutually exclusive")
+        sys.exit(1)
+
+    if args.replay_path:
+        # Find JSON files (legacy mode)
+        json_files = glob.glob(os.path.join(args.replay_path, "*.json"))
+        if not json_files:
+            print(f"Error: No json replays found at {args.replay_path}")
+            sys.exit(1)
 
     # 1. Initialize Processor and Model with QLoRA Configuration
     print(f"Loading processor for base model: {args.base_model}")
@@ -314,7 +401,10 @@ def main():
     model.print_trainable_parameters()
 
     # 3. Create Dataset
-    dataset = ReplayDataset(json_files, processor, stage=args.stage)
+    if args.jsonl_path:
+        dataset = JsonlReplayDataset(args.jsonl_path, processor, stage=args.stage)
+    else:
+        dataset = ReplayDataset(json_files, processor, stage=args.stage)
     if len(dataset) == 0:
         print("Error: No valid training examples loaded. Exiting.")
         sys.exit(1)
