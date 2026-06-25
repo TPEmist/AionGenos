@@ -211,10 +211,14 @@ def run_collect_loop(
                     int(init_state["left_y"]),
                     int(init_state["left_z"]),
                 )
+                # Within-run retrieval is fine: the current episode's own
+                # recap doesn't exist at this point (it's generated post-ep).
+                # We pass exclude_run_ids=None so the teacher can learn from
+                # earlier episodes of THIS run (self-improvement loop).
                 preamble = memory_retriever.retrieve_for_episode(
                     init_rgb_bytes=rgb_start,
                     init_L_EE=init_L,
-                    exclude_run_ids={run_id},
+                    exclude_run_ids=None,
                 )
                 if not preamble.is_empty:
                     memory_preamble_text = preamble.prelude_text
