@@ -46,6 +46,7 @@ import logging
 import sys
 from collections import Counter
 from pathlib import Path
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -99,103 +100,155 @@ def build_samples(
     min_round: int = 1,
     max_active_dist_cm: float | None = None,
     only_progress_round: bool = False,
+    include_failures: bool = False,
+    progress_threshold_cm: float = 0.5,
 ) -> list[dict]:
-    """Build per-round samples from success replays of the given runs."""
+    """Build per-round samples from replay episodes (Phase 4 Option C+).
+
+    Output schema per sample (one JSONL line):
+      - ``outcome``    : "success" | "failure"  (Q9.2)
+      - ``is_progress``: bool, distance decreased >progress_threshold_cm this round (Q9.1)
+      - ``kto_label``  : "desirable" if (outcome=success AND is_progress)
+                         "undesirable" if (outcome=failure AND is_progress)
+                         omitted otherwise
+
+    Non-progress rounds are dropped by default (``only_progress_round=True``
+    is the Phase 4 Option C+ recommendation).
+    """
     samples: list[dict] = []
     skipped = Counter()
 
     for run_id in run_ids:
-        succ_dir = replay_root / run_id / "success"
-        if not succ_dir.exists():
-            logger.warning(f"  {run_id}: no success/ dir, skip")
+        run_dir = replay_root / run_id
+        if not run_dir.exists():
+            logger.warning(f"  {run_id}: no run dir, skip")
             continue
 
-        for replay_path in sorted(succ_dir.glob("*.json")):
-            ep_id = replay_path.stem
-            replay = json.loads(replay_path.read_text())
-            ep_dump_dir = dump_root / run_id / ep_id
-            meta_path = ep_dump_dir / "meta.json"
-            if not meta_path.exists():
-                skipped["no_dump_meta"] += 1
-                continue
-            meta = json.loads(meta_path.read_text())
-            meta_rounds = {r["round"]: r for r in meta.get("rounds", [])}
+        subdirs: list[tuple[str, Path]] = []
+        succ_dir = run_dir / "success"
+        if succ_dir.exists():
+            subdirs.append(("success", succ_dir))
+        if include_failures:
+            fail_dir = run_dir / "failure"
+            if fail_dir.exists():
+                subdirs.append(("failure", fail_dir))
 
-            inter = replay.get("vlm_interactions", [])
-            instruction = replay.get("instruction", "")
-            level = replay.get("level", -2)
-            level_name = replay.get("task_name", "")
-            active_arm = _resolve_active_arm(level_name)
-            n_rounds = len(inter)
+        if not subdirs:
+            logger.warning(f"  {run_id}: no success/ or failure/ dirs, skip")
+            continue
 
-            for round_idx in range(1, n_rounds + 1):
-                if round_idx < min_round:
-                    skipped["below_min_round"] += 1
+        for ep_outcome, subdir in subdirs:
+            for replay_path in sorted(subdir.glob("*.json")):
+                ep_id = replay_path.stem
+                replay = json.loads(replay_path.read_text())
+                ep_dump_dir = dump_root / run_id / ep_id
+                meta_path = ep_dump_dir / "meta.json"
+                if not meta_path.exists():
+                    skipped["no_dump_meta"] += 1
                     continue
+                meta = json.loads(meta_path.read_text())
+                meta_rounds = {r["round"]: r for r in meta.get("rounds", [])}
 
-                meta_round = meta_rounds.get(round_idx)
-                if meta_round is None:
-                    skipped["no_meta_round"] += 1
-                    continue
+                inter = replay.get("vlm_interactions", [])
+                instruction = replay.get("instruction", "")
+                level = replay.get("level", -2)
+                level_name = replay.get("task_name", "")
+                active_arm = _resolve_active_arm(level_name)
+                n_rounds = len(inter)
+                traj = replay.get("trajectory", [])
+                d_key = "dist_red" if active_arm == "left" else "dist_blue"
 
-                png_path = _round_pre_png(dump_root, run_id, ep_id, round_idx)
-                if png_path is None:
-                    skipped["no_pre_png"] += 1
-                    continue
-
-                interaction = inter[round_idx - 1]
-                response = interaction.get("full_response") or meta_round.get("vlm_full_response") or ""
-                if not response.strip():
-                    skipped["empty_response"] += 1
-                    continue
-
-                state = _state_at_round(replay, meta_round, round_idx, sim_steps_per_round)
-                dist_l = meta_round.get("final_dist_l_cm")
-                dist_r = meta_round.get("final_dist_r_cm")
-
-                # Filter: active-arm distance gate
-                if max_active_dist_cm is not None:
-                    if active_arm == "left" and dist_l is not None and dist_l > max_active_dist_cm:
-                        skipped["above_dist_gate"] += 1
-                        continue
-                    if active_arm == "right" and dist_r is not None and dist_r > max_active_dist_cm:
-                        skipped["above_dist_gate"] += 1
+                for round_idx in range(1, n_rounds + 1):
+                    if round_idx < min_round:
+                        skipped["below_min_round"] += 1
                         continue
 
-                # Filter: only keep rounds that made progress
-                if only_progress_round:
-                    # Approximate: distance went down between start and end of this round.
-                    # meta_round has only `final_dist_l/r_cm`; we compare to *next* round's
-                    # actual_left_start? We use the trajectory: distance at step
-                    # round_idx*sim_steps - 1 vs (round_idx-1)*sim_steps.
-                    traj = replay.get("trajectory", [])
-                    start_step = (round_idx - 1) * sim_steps_per_round
-                    end_step = min(round_idx * sim_steps_per_round - 1, len(traj) - 1)
-                    if 0 <= start_step < len(traj) and 0 <= end_step < len(traj):
-                        d_key = "dist_red" if active_arm == "left" else "dist_blue"
-                        d_start = (traj[start_step].get("distances") or {}).get(d_key, 0) * 100
-                        d_end = (traj[end_step].get("distances") or {}).get(d_key, 0) * 100
-                        if d_end >= d_start - 0.5:  # <0.5cm closer not "progress"
-                            skipped["no_progress"] += 1
+                    meta_round = meta_rounds.get(round_idx)
+                    if meta_round is None:
+                        skipped["no_meta_round"] += 1
+                        continue
+
+                    png_path = _round_pre_png(dump_root, run_id, ep_id, round_idx)
+                    if png_path is None:
+                        skipped["no_pre_png"] += 1
+                        continue
+
+                    interaction = inter[round_idx - 1]
+                    response = interaction.get("full_response") or meta_round.get("vlm_full_response") or ""
+                    if not response.strip():
+                        skipped["empty_response"] += 1
+                        continue
+
+                    state = _state_at_round(replay, meta_round, round_idx, sim_steps_per_round)
+                    dist_l = meta_round.get("final_dist_l_cm")
+                    dist_r = meta_round.get("final_dist_r_cm")
+
+                    # Filter: active-arm distance gate
+                    if max_active_dist_cm is not None:
+                        if active_arm == "left" and dist_l is not None and dist_l > max_active_dist_cm:
+                            skipped["above_dist_gate"] += 1
+                            continue
+                        if active_arm == "right" and dist_r is not None and dist_r > max_active_dist_cm:
+                            skipped["above_dist_gate"] += 1
                             continue
 
-                samples.append({
-                    "image_path": str(png_path.resolve()),
-                    "level": level,
-                    "task_instruction": instruction,
-                    "active_arm": active_arm,
-                    "state": state,
-                    "critic_feedback": meta_round.get("critic_feedback"),
-                    "target_response": response,
-                    "parsed_left_pos": interaction.get("parsed_left_pos"),
-                    "parsed_right_pos": interaction.get("parsed_right_pos"),
-                    "final_dist_l_cm": dist_l,
-                    "final_dist_r_cm": dist_r,
-                    "ep_id": ep_id,
-                    "run_id": run_id,
-                    "round_idx": round_idx,
-                    "round_count_in_ep": n_rounds,
-                })
+                    # Compute is_progress: distance dropped > progress_threshold_cm
+                    # this round (Q9.1). Use trajectory delta when possible.
+                    is_progress: Optional[bool] = None
+                    d_start_cm = d_end_cm = None
+                    if traj:
+                        start_step = (round_idx - 1) * sim_steps_per_round
+                        end_step = min(round_idx * sim_steps_per_round - 1, len(traj) - 1)
+                        if 0 <= start_step < len(traj) and 0 <= end_step < len(traj):
+                            d_start_cm = (traj[start_step].get("distances") or {}).get(d_key, 0) * 100
+                            d_end_cm = (traj[end_step].get("distances") or {}).get(d_key, 0) * 100
+                            is_progress = (d_end_cm < d_start_cm - progress_threshold_cm)
+
+                    # Filter: only keep rounds that made progress (Phase 4 Option C+)
+                    if only_progress_round and is_progress is False:
+                        skipped[f"no_progress_{ep_outcome}"] += 1
+                        continue
+                    if only_progress_round and is_progress is None:
+                        skipped["no_progress_indeterminate"] += 1
+                        continue
+
+                    # KTO label (Q9.2):
+                    #   desirable   = success ep + progress round  (good action that led to global success)
+                    #   undesirable = failure ep + progress round  (locally good but globally failed)
+                    #   not set otherwise (skipped or non-progress)
+                    if is_progress is True:
+                        if ep_outcome == "success":
+                            kto_label = "desirable"
+                        elif ep_outcome == "failure":
+                            kto_label = "undesirable"
+                        else:
+                            kto_label = None
+                    else:
+                        kto_label = None
+
+                    samples.append({
+                        "image_path": str(png_path.resolve()),
+                        "level": level,
+                        "task_instruction": instruction,
+                        "active_arm": active_arm,
+                        "state": state,
+                        "critic_feedback": meta_round.get("critic_feedback"),
+                        "target_response": response,
+                        "parsed_left_pos": interaction.get("parsed_left_pos"),
+                        "parsed_right_pos": interaction.get("parsed_right_pos"),
+                        "final_dist_l_cm": dist_l,
+                        "final_dist_r_cm": dist_r,
+                        "ep_id": ep_id,
+                        "run_id": run_id,
+                        "round_idx": round_idx,
+                        "round_count_in_ep": n_rounds,
+                        # Phase 4 Option C+ fields
+                        "outcome": ep_outcome,
+                        "is_progress": is_progress,
+                        "d_start_cm": d_start_cm,
+                        "d_end_cm": d_end_cm,
+                        "kto_label": kto_label,
+                    })
 
     if skipped:
         logger.info(f"  skipped: {dict(skipped)}")
@@ -234,6 +287,14 @@ def _print_stats(samples: list[dict]) -> None:
         bar = "#" * min(60, v)
         logger.info(f"    {k:>6}: {v:>3} {bar}")
 
+    # Phase 4 Option C+ extras
+    outcome_hist = Counter(s.get("outcome") for s in samples)
+    kto_hist = Counter(s.get("kto_label") for s in samples)
+    progress_hist = Counter(s.get("is_progress") for s in samples)
+    logger.info(f"  outcome split  : {dict(outcome_hist)}")
+    logger.info(f"  is_progress    : {dict(progress_hist)}")
+    logger.info(f"  kto_label      : {dict(kto_hist)}")
+
 
 def main() -> None:
     """CLI entry."""
@@ -253,7 +314,13 @@ def main() -> None:
     parser.add_argument("--max_active_dist_cm", type=float, default=None,
                         help="Drop rounds where the active arm is still > this cm from target.")
     parser.add_argument("--only_progress_round", action="store_true",
-                        help="Keep only rounds whose end_dist < start_dist (no regression rounds).")
+                        help="Keep only rounds where end_dist < start_dist - progress_threshold_cm "
+                             "(Phase 4 Option C+).")
+    parser.add_argument("--progress_threshold_cm", type=float, default=0.5,
+                        help="Min cm of distance reduction to count as 'progress' (Q9.1, default 0.5).")
+    parser.add_argument("--include_failures", action="store_true",
+                        help="Also pull samples from failure/*.json (Q9.2). Each sample is tagged with "
+                             "outcome=success|failure and kto_label=desirable|undesirable.")
     args = parser.parse_args()
 
     if args.skip_first_round and args.min_round == 1:
@@ -262,7 +329,9 @@ def main() -> None:
     logger.info(f"Replay root: {args.replay_root}")
     logger.info(f"Dump root  : {args.dump_root}")
     logger.info(f"Runs       : {args.runs}")
-    logger.info(f"Filters    : min_round={args.min_round}  max_dist={args.max_active_dist_cm}  only_progress={args.only_progress_round}")
+    logger.info(f"Filters    : min_round={args.min_round}  max_dist={args.max_active_dist_cm}  "
+                f"only_progress={args.only_progress_round}  progress_thr={args.progress_threshold_cm}cm  "
+                f"include_failures={args.include_failures}")
     logger.info("")
 
     samples = build_samples(
@@ -273,6 +342,8 @@ def main() -> None:
         min_round=args.min_round,
         max_active_dist_cm=args.max_active_dist_cm,
         only_progress_round=args.only_progress_round,
+        include_failures=args.include_failures,
+        progress_threshold_cm=args.progress_threshold_cm,
     )
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
