@@ -128,17 +128,40 @@ class EpisodeConversation:
             tail = tail[1:]
         self.messages = [first] + tail
 
-    def append_user_turn(self, user_prompt: str, image_base64: Optional[str] = None):
-        """Append a user turn to the conversation history, keeping only the latest image."""
+    def append_user_turn(
+        self,
+        user_prompt: str,
+        image_base64: Optional[str] = None,
+        preamble_text: Optional[str] = None,
+        preamble_image_base64_list: Optional[list[str]] = None,
+    ):
+        """Append a user turn to the conversation history, keeping only the latest image.
+
+        ``preamble_text`` / ``preamble_image_base64_list`` are only honored on the
+        FIRST turn of the conversation (when ``messages`` is empty). They carry
+        Phase 4 memory injection: a block of retrieved past episodes (text +
+        their init images) is glued in BEFORE the current scene image and prompt
+        so the VLM can do visual analogy against past experiences.
+        """
         # Strip/remove image_url from all existing user messages to conserve context window
         for msg in self.messages:
             if msg["role"] == "user" and isinstance(msg["content"], list):
                 msg["content"] = [part for part in msg["content"] if part["type"] == "text"]
 
         user_content: list[dict] = []
-        if len(self.messages) == 0:
+        is_first_turn = len(self.messages) == 0
+        if is_first_turn:
             # First turn: fold system prompt into user message for Gemma-4 compatibility
             user_content.append({"type": "text", "text": self.system_prompt + "\n\n"})
+
+            # Phase 4: prepend retrieved-memory preamble + past-episode images
+            if preamble_text:
+                user_content.append({"type": "text", "text": preamble_text + "\n"})
+            for b64 in preamble_image_base64_list or []:
+                user_content.append({
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/png;base64,{b64}"},
+                })
 
         if image_base64:
             user_content.append({

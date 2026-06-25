@@ -115,6 +115,8 @@ def run_collect_loop(
     max_episodes: int = 1000,
     check_advance_every: int = 10,
     dump_images_root: Optional[Path] = None,
+    memory_retriever: "Optional[object]" = None,
+    recap_buffer: "Optional[object]" = None,
 ) -> CollectStats:
     """Run the 4-stage cognitive evolution collect loop.
 
@@ -129,6 +131,13 @@ def run_collect_loop(
             summarising VLM I/O per round) under
             ``{dump_images_root}/{run_id}/{episode_id}/round_NN_{pre,post}.png``
             for offline playback / debugging.
+        memory_retriever: Optional Phase 4 ``MemoryRetriever``. When provided,
+            at R1 of every episode the top-K visually similar past recaps are
+            retrieved and their (text + init image) injected as the prompt
+            preamble for the FIRST run_stage1 call only.
+        recap_buffer: Optional Phase 4 ``RecapBuffer``. When provided, every
+            episode emits a recap at the end (regardless of success/failure)
+            and persists it into the buffer for future retrieval.
 
     Returns:
         CollectStats with aggregated metrics.
@@ -189,6 +198,35 @@ def run_collect_loop(
             if rgb_start:
                 (ep_dump_dir / "episode_start.png").write_bytes(rgb_start)
 
+        # Phase 4: Retrieve top-K past similar episodes at ep start (Q13).
+        # The retrieved (text + past images) is injected only into round 0's
+        # run_stage1 call via the conversation's preamble slot.
+        memory_preamble_text: Optional[str] = None
+        memory_preamble_images_b64: Optional[list[str]] = None
+        if memory_retriever is not None and rgb_start:
+            try:
+                init_state = env.get_state(level_config)
+                init_L = (
+                    int(init_state["left_x"]),
+                    int(init_state["left_y"]),
+                    int(init_state["left_z"]),
+                )
+                preamble = memory_retriever.retrieve_for_episode(
+                    init_rgb_bytes=rgb_start,
+                    init_L_EE=init_L,
+                    exclude_run_ids={run_id},
+                )
+                if not preamble.is_empty:
+                    memory_preamble_text = preamble.prelude_text
+                    memory_preamble_images_b64 = preamble.past_image_base64_list
+                    sims_str = ",".join(f"{s:.2f}" for s in preamble.similarities)
+                    eps_str = ",".join(r.ep_id[:8] for r in preamble.retrieved_records)
+                    logger.info(f"  memory: injected {len(preamble.retrieved_records)} past eps [{eps_str}] sims=[{sims_str}]")
+                else:
+                    logger.info("  memory: buffer empty or all candidates filtered, no preamble injected")
+            except Exception as e:
+                logger.warning(f"  memory retrieval failed (continuing without): {e}")
+
         for round_idx in range(max_rounds):
             rgb = env.get_rgb()
             if ep_dump_dir is not None and rgb:
@@ -218,6 +256,13 @@ def run_collect_loop(
                 )
                 logger.info(f"Round {round_idx + 1} Critic Feedback:\n{critic_feedback}")
 
+            # Phase 4: only round 0 receives the retrieved-memory preamble.
+            # Subsequent rounds use the existing conversation history; the
+            # preamble is fused into the first user turn once and stays there
+            # via the conversation pruning (which preserves messages[0]).
+            r1_preamble_text = memory_preamble_text if round_idx == 0 else None
+            r1_preamble_imgs = memory_preamble_images_b64 if round_idx == 0 else None
+
             stage1_result, stage1_latency, stage1_error = run_stage1(
                 level_config=level_config,
                 teacher_url=config.teacher_url,
@@ -226,6 +271,8 @@ def run_collect_loop(
                 conversation=conversation,
                 critic_feedback=critic_feedback,
                 max_retries=level_config.max_retry_on_parse_fail,
+                memory_preamble_text=r1_preamble_text,
+                memory_preamble_images_b64=r1_preamble_imgs,
             )
             stats.total_vlm_latency_ms += stage1_latency
 
@@ -417,6 +464,26 @@ def run_collect_loop(
                 )
             )
 
+        # Phase 4: post-episode self-recap (Q1 — always written).
+        if recap_buffer is not None:
+            try:
+                _emit_recap_for_episode(
+                    recap_buffer=recap_buffer,
+                    ep_id=episode_id,
+                    run_id=run_id,
+                    outcome=outcome,
+                    level_config=level_config,
+                    trajectory=trajectory,
+                    vlm_interactions=vlm_interactions,
+                    round_meta=round_meta,
+                    ep_dump_dir=ep_dump_dir,
+                    rgb_start_bytes=rgb_start,
+                    rgb_end_bytes=rgb_end_final,
+                    teacher_url=config.teacher_url,
+                )
+            except Exception as e:
+                logger.warning(f"  recap generation failed (continuing): {e}")
+
         curriculum.record_episode(outcome)
         stats.total_episodes += 1
 
@@ -499,3 +566,95 @@ def _write_episode(
         rgb_end_path=rgb_end_path,
     )
     replay.write(ep)
+
+
+# ─────────────────────── Phase 4: post-episode recap glue ───────────────────────
+
+def _emit_recap_for_episode(
+    *,
+    recap_buffer,
+    ep_id: str,
+    run_id: str,
+    outcome,
+    level_config: LevelConfig,
+    trajectory: list,
+    vlm_interactions: list,
+    round_meta: list,
+    ep_dump_dir: Optional[Path],
+    rgb_start_bytes: Optional[bytes],
+    rgb_end_bytes: Optional[bytes],
+    teacher_url: str,
+) -> None:
+    """Glue between the collect loop and ``stage4_recap.generate_recap``.
+
+    Imports are local so that orchestrator stays importable in environments
+    without torchvision (used for image embedding).
+    """
+    from aiongenos.pipeline.stage4_recap import generate_recap, _RoundInfo
+
+    active_arm = _active_arm_for_level(level_config)
+
+    init_L = (0, 0, 0)
+    final_L = (0, 0, 0)
+    init_R: Optional[tuple] = None
+    final_R: Optional[tuple] = None
+    if trajectory:
+        first_ts = trajectory[0]
+        last_ts = trajectory[-1]
+        init_L = tuple(getattr(first_ts, "left_ee_pos", None) or (0, 0, 0))
+        final_L = tuple(getattr(last_ts, "left_ee_pos", None) or (0, 0, 0))
+        ir = getattr(first_ts, "right_ee_pos", None)
+        fr = getattr(last_ts, "right_ee_pos", None)
+        if ir:
+            init_R = tuple(ir)
+        if fr:
+            final_R = tuple(fr)
+
+    # Adapt round_meta + vlm_interactions into RoundInfo
+    stage1s = [i for i in vlm_interactions if getattr(i, "stage", None) == "stage1"]
+    n = min(len(stage1s), len(round_meta)) if round_meta else len(stage1s)
+    rounds: list = []
+    for i in range(n):
+        s1 = stage1s[i]
+        meta = round_meta[i] if i < len(round_meta) else {}
+        if active_arm == "right":
+            dist = meta.get("final_dist_r_cm")
+        else:
+            dist = meta.get("final_dist_l_cm")
+        pre_png = None
+        if ep_dump_dir is not None:
+            cand = Path(ep_dump_dir) / f"round_{i + 1:02d}_pre.png"
+            if cand.exists():
+                pre_png = cand
+        rounds.append(_RoundInfo(
+            round_idx=i + 1,
+            pre_png=pre_png,
+            final_dist_cm=float(dist) if dist is not None else float("nan"),
+            parsed_left_pos=list(getattr(s1, "parsed_left_pos", None) or []) or None,
+        ))
+
+    if not rounds:
+        logger.info(f"  recap({ep_id}): no rounds (parse fail?), skip")
+        return
+
+    outcome_str = outcome.value if hasattr(outcome, "value") else str(outcome)
+    rec = generate_recap(
+        ep_id=ep_id,
+        run_id=run_id,
+        outcome=outcome_str,
+        active_arm=active_arm,
+        instruction=level_config.task_instruction_template,
+        init_L_EE=init_L,
+        final_L_EE=final_L,
+        init_R_EE=init_R,
+        final_R_EE=final_R,
+        rounds=rounds,
+        ep_dump_dir=ep_dump_dir,
+        rgb_start_bytes=rgb_start_bytes,
+        rgb_end_bytes=rgb_end_bytes,
+        teacher_url=teacher_url,
+        buffer=recap_buffer,
+        embedder_device="cpu",
+    )
+    if rec is None:
+        logger.warning(f"  recap({ep_id}): generation returned None")

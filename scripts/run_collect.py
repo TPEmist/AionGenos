@@ -39,6 +39,28 @@ parser.add_argument(
     help="When set, write per-round RGB pairs and meta.json under "
          "{dump_images_root}/{run_id}/{episode_id}/. Use for V4 playback.",
 )
+parser.add_argument(
+    "--recap_buffer_root",
+    type=str,
+    default=None,
+    help="Phase 4: when set, after each ep generate + persist a self-recap to "
+         "this directory (default workspace/recaps). Enables both write (this run) "
+         "and read (memory retrieval) of the buffer.",
+)
+parser.add_argument(
+    "--use_memory",
+    action="store_true",
+    help="Phase 4: at R1 of each ep, retrieve top-K visually similar past "
+         "recaps from --recap_buffer_root and inject into the teacher prompt. "
+         "Requires --recap_buffer_root.",
+)
+parser.add_argument(
+    "--memory_top_k", type=int, default=3, help="Top-K retrieved recaps (default 3).",
+)
+parser.add_argument(
+    "--memory_success_only", action="store_true",
+    help="Filter retrieval to is_success=True recaps only (default: include both).",
+)
 # Append AppLauncher CLI args
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
@@ -84,7 +106,27 @@ def main():
     
     # Wrap environment with the concrete EnvInterface
     env_interface = IsaacLabEnvInterface(env)
-    
+
+    # Phase 4: wire optional memory buffer + retriever
+    recap_buffer = None
+    memory_retriever = None
+    if args_cli.recap_buffer_root:
+        from aiongenos.memory.recap_buffer import RecapBuffer
+        recap_buffer = RecapBuffer(root=args_cli.recap_buffer_root)
+        recap_buffer.load()
+        logger.info(f"Recap buffer at {args_cli.recap_buffer_root}: {len(recap_buffer)} existing records")
+        if args_cli.use_memory:
+            from aiongenos.memory.retriever import MemoryRetriever
+            memory_retriever = MemoryRetriever(
+                buffer=recap_buffer,
+                top_k=args_cli.memory_top_k,
+                success_only=args_cli.memory_success_only,
+                embedder_device="cpu",
+            )
+            logger.info(f"Memory retrieval enabled: top_k={args_cli.memory_top_k} success_only={args_cli.memory_success_only}")
+    elif args_cli.use_memory:
+        logger.warning("--use_memory ignored (no --recap_buffer_root provided)")
+
     try:
         # Run end-to-end collect loop
         stats = run_collect_loop(
@@ -95,6 +137,8 @@ def main():
             max_episodes=args_cli.num_episodes,
             check_advance_every=10,
             dump_images_root=Path(args_cli.dump_images_root) if args_cli.dump_images_root else None,
+            memory_retriever=memory_retriever,
+            recap_buffer=recap_buffer,
         )
         logger.info("Collect loop execution complete.")
         logger.info(f"Stats summary: {stats}")

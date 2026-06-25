@@ -31,3 +31,7 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+
+# Phase 4: per-run recaps + memory buffer (large, regenerable)
+workspace/recaps/
+workspace/recaps_*/

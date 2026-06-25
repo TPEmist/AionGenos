@@ -36,6 +36,8 @@ def run_stage1(
     critic_feedback: Optional[str] = None,
     temperature: float = 0.7,
     max_retries: int = 2,
+    memory_preamble_text: Optional[str] = None,
+    memory_preamble_images_b64: Optional[list[str]] = None,
 ) -> tuple[Optional[Stage1Response], float, Optional[str]]:
     """Execute Stage 1: VLM Reasoning.
 
@@ -48,16 +50,22 @@ def run_stage1(
         critic_feedback: Optional diagnostic text from the critic.
         temperature: VLM sampling temperature.
         max_retries: Max parse failure retries.
+        memory_preamble_text: Optional Phase 4 retrieved-memory text block,
+            prepended to the FIRST user turn only.
+        memory_preamble_images_b64: Optional list of base64 PNGs (one per
+            retrieved past episode) prepended to the FIRST user turn before
+            the current scene image. Ignored if conversation is None or if
+            this is not the first turn.
 
     Returns:
         Tuple of (parsed_response or None, latency_ms, error_message or None).
     """
     system_prompt = get_stage1_system_prompt()
     user_prompt = get_stage1_prompt(level_config, state)
-    
+
     if critic_feedback:
         user_prompt += f"\n\n{CRITIC_FEEDBACK_INJECTION_HEADER}\n{critic_feedback}"
-        
+
     img_b64 = encode_image_bytes_base64(rgb_bytes)
 
     # Determine parser flags from control mode
@@ -69,7 +77,12 @@ def run_stage1(
     has_gripper = level_config.control_mode == ControlMode.POSITION_RPY_GRIPPER
 
     if conversation is not None:
-        conversation.append_user_turn(user_prompt, img_b64)
+        conversation.append_user_turn(
+            user_prompt,
+            img_b64,
+            preamble_text=memory_preamble_text,
+            preamble_image_base64_list=memory_preamble_images_b64,
+        )
 
     for attempt in range(max_retries + 1):
         t0 = time.time()
