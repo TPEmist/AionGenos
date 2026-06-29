@@ -51,28 +51,58 @@ class MemoryPreamble:
 
 
 class MemoryRetriever:
-    """High-level memory retriever for collect-loop use."""
+    """High-level memory retriever for collect-loop use.
+
+    Phase 4-rev2 retrieval parameters (set at construction, surface to
+    paper as hyperparameters):
+      - image_weight       : α in score = α*img_cos + (1-α)*state_sim
+      - state_scale_cm     : exp(-d/scale) state similarity decay
+      - success_floor_frac : minimum success ratio in top-K (Q12)
+
+    Runtime mode override:
+      - success_only_flag_path : if this file exists and contains "success_only",
+            retrieval temporarily filters to success ep only (Phase 4 R4 / L2).
+    """
 
     def __init__(
         self,
         buffer: RecapBuffer,
         top_k: int = 3,
-        coarse_k: int = 20,
         success_only: bool = False,
         embedder_device: str = "cpu",
+        image_weight: float = 0.4,
+        state_scale_cm: float = 30.0,
+        success_floor_frac: float = 2.0 / 3.0,
+        success_only_flag_path: Optional[Path | str] = None,
     ) -> None:
         self.buffer = buffer
         self.top_k = top_k
-        self.coarse_k = coarse_k
-        self.success_only = success_only
+        self.success_only_default = success_only
         self.embedder_device = embedder_device
+        self.image_weight = image_weight
+        self.state_scale_cm = state_scale_cm
+        self.success_floor_frac = success_floor_frac
+        self.success_only_flag_path = Path(success_only_flag_path) if success_only_flag_path else None
         # Lazy: only load buffer/embedder when first used
         if not buffer._loaded:
             buffer.load()
         logger.info(
             f"MemoryRetriever ready: {len(buffer)} recaps in buffer, "
-            f"top_k={top_k}, success_only={success_only}"
+            f"top_k={top_k}, image_weight={image_weight}, "
+            f"state_scale_cm={state_scale_cm}, success_floor={success_floor_frac:.2f}"
         )
+
+    def _resolve_success_only(self) -> bool:
+        """Check the optional file flag for L2 mode override."""
+        if self.success_only_default:
+            return True
+        if self.success_only_flag_path and self.success_only_flag_path.exists():
+            try:
+                val = self.success_only_flag_path.read_text().strip()
+                return val == "success_only"
+            except OSError:
+                return False
+        return False
 
     def retrieve_for_episode(
         self,
@@ -89,13 +119,16 @@ class MemoryRetriever:
         q_image = Image.open(io.BytesIO(init_rgb_bytes)).convert("RGB")
         q_vec = emb.embed(q_image)
 
+        success_only = self._resolve_success_only()
         hits = self.buffer.retrieve(
             query_init_L_EE=init_L_EE,
             query_image_embedding=q_vec,
-            coarse_k=self.coarse_k,
             fine_k=self.top_k,
-            success_only=self.success_only,
+            success_only=success_only,
             exclude_run_ids=exclude_run_ids,
+            image_weight=self.image_weight,
+            state_scale_cm=self.state_scale_cm,
+            success_floor_frac=self.success_floor_frac,
         )
         if not hits:
             return _empty_preamble()

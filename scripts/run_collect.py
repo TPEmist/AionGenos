@@ -61,6 +61,23 @@ parser.add_argument(
     "--memory_success_only", action="store_true",
     help="Filter retrieval to is_success=True recaps only (default: include both).",
 )
+parser.add_argument(
+    "--memory_image_weight", type=float, default=0.4,
+    help="Weight on image cosine in retrieval score (Phase 4 R2). 0.4 = state-leaning.",
+)
+parser.add_argument(
+    "--memory_state_scale_cm", type=float, default=30.0,
+    help="State similarity decay scale: state_sim = exp(-d_cm/scale).",
+)
+parser.add_argument(
+    "--memory_success_floor", type=float, default=2.0/3.0,
+    help="Minimum fraction of top-K that must be from success episodes (Q12).",
+)
+parser.add_argument(
+    "--memory_mode_flag_path", type=str, default=None,
+    help="Optional path to a file the watcher (R4/L2) toggles to flip retrieval "
+         "to success-only during SR-dip recovery.",
+)
 # Append AppLauncher CLI args
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
@@ -122,8 +139,17 @@ def main():
                 top_k=args_cli.memory_top_k,
                 success_only=args_cli.memory_success_only,
                 embedder_device="cpu",
+                image_weight=args_cli.memory_image_weight,
+                state_scale_cm=args_cli.memory_state_scale_cm,
+                success_floor_frac=args_cli.memory_success_floor,
+                success_only_flag_path=args_cli.memory_mode_flag_path,
             )
-            logger.info(f"Memory retrieval enabled: top_k={args_cli.memory_top_k} success_only={args_cli.memory_success_only}")
+            logger.info(
+                f"Memory retrieval enabled: top_k={args_cli.memory_top_k} "
+                f"img_w={args_cli.memory_image_weight} state_scale={args_cli.memory_state_scale_cm}cm "
+                f"success_floor={args_cli.memory_success_floor:.2f} "
+                f"mode_flag={args_cli.memory_mode_flag_path or '(none)'}"
+            )
     elif args_cli.use_memory:
         logger.warning("--use_memory ignored (no --recap_buffer_root provided)")
 

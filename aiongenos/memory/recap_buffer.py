@@ -92,7 +92,9 @@ class RecapBuffer:
     def _rebuild_index(self) -> None:
         if not self._records:
             self._init_pos = np.zeros((0, 3), dtype=np.float32)
-            self._embeddings = np.zeros((0, 576), dtype=np.float32)
+            # Dim inferred at retrieval time from the query — empty index has
+            # no records to rank against, so the empty shape doesn't matter.
+            self._embeddings = np.zeros((0, 0), dtype=np.float32)
             return
         positions: list[list[float]] = []
         embeddings: list[list[float]] = []
@@ -129,21 +131,48 @@ class RecapBuffer:
         self,
         query_init_L_EE: tuple[float, float, float],
         query_image_embedding: np.ndarray,
-        coarse_k: int = 20,
         fine_k: int = 3,
         success_only: bool = False,
         exclude_run_ids: Optional[set[str]] = None,
+        image_weight: float = 0.4,
+        state_scale_cm: float = 30.0,
+        success_floor_frac: float = 2.0 / 3.0,
+        coarse_k: Optional[int] = None,  # kept for back-compat, ignored
     ) -> list[tuple[RecapRecord, float]]:
-        """Two-stage retrieval. Returns up to ``fine_k`` (record, cosine_sim) pairs.
+        """Combined-score retrieval. Returns up to ``fine_k`` (record, score) pairs.
+
+        Phase 4-rev2 (post-D10) — instead of state-KNN coarse + image cosine
+        fine, we now compute one combined score for every candidate and
+        rank globally:
+
+            score = image_weight * image_cos_sim
+                  + (1 - image_weight) * state_sim
+
+            state_sim = exp(-state_distance_cm / state_scale_cm)
+
+        Rationale: D10 showed image cosine collapsed (all sims >0.94) on
+        the low-diversity L0a scene. State distance is a physical
+        ground-truth signal that doesn't depend on pretrained-feature
+        quality. Combining them is more robust than two-stage filtering
+        (which would still inherit image collapse if it dominated
+        ranking).
 
         Args:
-            query_init_L_EE: 3D init pose to KNN against.
-            query_image_embedding: 576-d unit vector for cosine fine-rank.
-            coarse_k: number of state-KNN candidates before image rerank.
+            query_init_L_EE: 3D init pose to compute state similarity against.
+            query_image_embedding: unit vector for image cosine.
             fine_k: final top-K returned.
-            success_only: filter to is_success=True only.
-            exclude_run_ids: skip recaps from these runs (used to avoid
-                retrieving from the run currently being collected).
+            success_only: if True, filter to is_success=True records only.
+            exclude_run_ids: skip recaps from these runs.
+            image_weight: weight for image cosine in [0,1]. 0.4 default —
+                state is treated as the more reliable signal.
+            state_scale_cm: state_sim falls to 1/e at this distance. 30cm
+                roughly matches the workspace diameter.
+            success_floor_frac: at least ceil(success_floor_frac * fine_k)
+                of the returned records must be from success episodes
+                (Phase 4 Q12). If the buffer has fewer successes available,
+                returns what it can plus failures to fill to fine_k.
+            coarse_k: deprecated, ignored. Kept in signature so existing
+                callers don't break.
         """
         if not self._loaded:
             self.load()
@@ -165,27 +194,67 @@ class RecapBuffer:
         pool_pos = self._init_pos[keep_idx_arr]
         pool_emb = self._embeddings[keep_idx_arr]
 
-        # Coarse: L2 distance on init pose
+        # State similarity: exp(-d_cm / state_scale_cm), in [0, 1]
         q_pos = np.asarray(query_init_L_EE, dtype=np.float32).reshape(1, 3)
-        dists = np.linalg.norm(pool_pos - q_pos, axis=1)
-        coarse_take = min(coarse_k, len(pool_pos))
-        coarse_idx = np.argpartition(dists, coarse_take - 1)[:coarse_take]
+        dists_cm = np.linalg.norm(pool_pos - q_pos, axis=1)
+        state_sims = np.exp(-dists_cm / float(state_scale_cm))
 
-        # Fine: cosine similarity on image embedding
+        # Image cosine: in [-1, 1] usually [0, 1] for unit-norm features
         q_emb = np.asarray(query_image_embedding, dtype=np.float32)
         q_norm = np.linalg.norm(q_emb)
         if q_norm > 1e-8:
             q_emb = q_emb / q_norm
-        cand_emb = pool_emb[coarse_idx]
-        sims = cand_emb @ q_emb  # already unit-norm rows
-        fine_take = min(fine_k, len(coarse_idx))
-        # argsort descending
-        order = np.argsort(-sims)[:fine_take]
+        # Defensive: if dim mismatch (e.g. mixed old/new buffers), drop image term
+        if pool_emb.ndim == 2 and pool_emb.shape[1] == q_emb.shape[0]:
+            img_sims = pool_emb @ q_emb
+        else:
+            logger.warning(
+                f"retrieve: image dim mismatch (buffer={pool_emb.shape}, "
+                f"query={q_emb.shape}), falling back to pure state ranking"
+            )
+            img_sims = np.zeros_like(state_sims)
+            image_weight = 0.0
+
+        scores = image_weight * img_sims + (1.0 - image_weight) * state_sims
+
+        # Sort all candidates by score descending
+        order = np.argsort(-scores)
+
+        # Success-floor logic (Phase 4 Q12): aim for at least
+        # ceil(success_floor_frac * fine_k) success-class records.
+        min_success = int(np.ceil(success_floor_frac * fine_k))
+        success_picks: list[int] = []
+        failure_picks: list[int] = []
+        for j in order:
+            global_idx = int(keep_idx_arr[int(j)])
+            rec = self._records[global_idx]
+            if rec.is_success:
+                success_picks.append(int(j))
+            else:
+                failure_picks.append(int(j))
+
+        chosen: list[int] = []
+        chosen.extend(success_picks[:min_success])
+        remaining = fine_k - len(chosen)
+        if remaining > 0:
+            # Fill the rest from the highest-scoring remaining candidates,
+            # mixing failures and any extra successes.
+            taken = set(chosen)
+            for j in order:
+                if int(j) in taken:
+                    continue
+                chosen.append(int(j))
+                taken.add(int(j))
+                if len(chosen) >= fine_k:
+                    break
+
+        # Re-sort the final chosen set by score descending
+        chosen.sort(key=lambda j: -scores[j])
 
         results: list[tuple[RecapRecord, float]] = []
-        for j in order:
-            global_idx = int(keep_idx_arr[int(coarse_idx[int(j)])])
-            results.append((self._records[global_idx], float(sims[int(j)])))
+        for j in chosen:
+            global_idx = int(keep_idx_arr[int(j)])
+            results.append((self._records[global_idx], float(scores[int(j)])))
         return results
 
     def stats(self) -> dict[str, Any]:
