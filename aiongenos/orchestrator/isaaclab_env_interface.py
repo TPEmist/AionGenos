@@ -186,6 +186,19 @@ class IsaacLabEnvInterface:
             "target_color": "red" if is_l0a else "green",
         }
 
+        # Phase 4 Fix 3 — surface live distance-to-target into prompt template.
+        # These are observable (RGB-derivable) so the observable-only invariant
+        # is preserved. Used by Stage 1 prompt to disambiguate "stop because
+        # plateau" from "stop because converged" — the teacher previously had
+        # no way to know its absolute distance during a round.
+        try:
+            dists = self.get_current_distances()
+            state["dist_red_cm"] = f"{dists.get('dist_red', 0.0) * 100:.1f}"
+            state["dist_blue_cm"] = f"{dists.get('dist_blue', 0.0) * 100:.1f}"
+        except Exception:
+            state["dist_red_cm"] = "?"
+            state["dist_blue_cm"] = "?"
+
         # For pose-level controls, include RPY
         if level_config.control_mode in (ControlMode.POSITION_RPY_2DOF, ControlMode.POSITION_RPY_GRIPPER):
             left_r, left_p, left_y = quat_to_rpy_rad(*left_quat_w)

@@ -176,7 +176,7 @@ def _format_arm_block(
     elif delta > CRITIC_PROGRESS_DEAD_BAND_CM:
         verdict = CRITIC_FEEDBACK_REGRESS.format(Arm=arm.capitalize(), delta=delta)
     else:
-        verdict = CRITIC_FEEDBACK_FLAT
+        verdict = CRITIC_FEEDBACK_FLAT.format(d_end=d_end_cm)
     return [block, verdict]
 
 

@@ -55,7 +55,9 @@ _S1_POS: Final[str] = (
     "TASK: {instruction}\nCONTROL_MODE: end_effector_position_only\n\n"
     "CURRENT STATE:\n"
     "  LEFT_EE_POS  = (X={left_x}, Y={left_y}, Z={left_z})\n"
-    "  RIGHT_EE_POS = (X={right_x}, Y={right_y}, Z={right_z})\n\n"
+    "  RIGHT_EE_POS = (X={right_x}, Y={right_y}, Z={right_z})\n"
+    "  LEFT_EE_TO_RED_CUBE  = {dist_red_cm} cm\n"
+    "  RIGHT_EE_TO_BLUE_CUBE = {dist_blue_cm} cm\n\n"
     "THOUGHT: <one paragraph physics reasoning>\n"
     "LEFT_TARGET_POS:  X=<int> Y=<int> Z=<int>\n"
     "RIGHT_TARGET_POS: X=<int> Y=<int> Z=<int>\n"
@@ -68,7 +70,9 @@ _S1_RPY2: Final[str] = (
     "  LEFT_EE_POS  = (X={left_x}, Y={left_y}, Z={left_z})\n"
     "  LEFT_EE_RPY  = (P={left_p}, Y={left_yaw})\n"
     "  RIGHT_EE_POS = (X={right_x}, Y={right_y}, Z={right_z})\n"
-    "  RIGHT_EE_RPY = (P={right_p}, Y={right_yaw})\n\n"
+    "  RIGHT_EE_RPY = (P={right_p}, Y={right_yaw})\n"
+    "  LEFT_EE_TO_RED_CUBE  = {dist_red_cm} cm\n"
+    "  RIGHT_EE_TO_BLUE_CUBE = {dist_blue_cm} cm\n\n"
     "THOUGHT: <one paragraph physics reasoning>\n"
     "LEFT_TARGET_POS:  X=<int> Y=<int> Z=<int>\n"
     "LEFT_TARGET_RPY:  P=<int> Y=<int>\n"
@@ -85,7 +89,9 @@ _S1_FULL: Final[str] = (
     "  LEFT_GRIPPER = {left_gripper}\n"
     "  RIGHT_EE_POS = (X={right_x}, Y={right_y}, Z={right_z})\n"
     "  RIGHT_EE_RPY = (R={right_r}, P={right_p}, Y={right_yaw})\n"
-    "  RIGHT_GRIPPER = {right_gripper}\n\n"
+    "  RIGHT_GRIPPER = {right_gripper}\n"
+    "  LEFT_EE_TO_RED_CUBE  = {dist_red_cm} cm\n"
+    "  RIGHT_EE_TO_BLUE_CUBE = {dist_blue_cm} cm\n\n"
     "THOUGHT: <one paragraph physics reasoning>\n"
     "LEFT_TARGET_POS:  X=<int> Y=<int> Z=<int>\n"
     "LEFT_TARGET_RPY:  R=<int> P=<int> Y=<int>\n"
@@ -172,7 +178,10 @@ CRITIC_FEEDBACK_REGRESS: Final[str] = (
     "Adjust prediction direction."
 )
 CRITIC_FEEDBACK_FLAT: Final[str] = (
-    "    Result: No significant progress. Adjust coordinate prediction."
+    "    Result: No significant progress (still {d_end:.1f} cm from target). "
+    "Try a different direction or larger step size. "
+    "STOP only when the task's success criterion is met — do not stop because "
+    "previous rounds showed no progress."
 )
 
 # Threshold (cm) below which we declare the round flat (no progress / no regress).
