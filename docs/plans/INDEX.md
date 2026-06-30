@@ -2,14 +2,27 @@
 
 > Embodied AI 開源研究框架。VLA 物理常識作為 System 2，蒸餾為 LoRA System 1，零示範雙臂任務。
 > 計畫全文：[`docs/plans/01_poc_cognitive_evolution_pipeline.md`](docs/plans/01_poc_cognitive_evolution_pipeline.md)
-> 最後更新：2026-06-10
+> 最後更新：2026-06-30
 
 ---
 
 ## 當前狀態
 
-- **Phase**：🚀 **L0a-Left 首次取得真實 success replay**（D4 run `e227aeaa`，1/5 = 20% SR）。F35（target resampling 鎖定）+ F33（active-arm-only success criteria）+ D1 撤回三合一是關鍵。
-- **Sprint 目標**：擴大 L0a-Left collect（≥10 success）→ 觸發 Stage 4-A 二輪 QLoRA 訓練 → reload student → L0 雙臂 eval。
+- **Phase**：📈 **Phase 4 episodic memory 顯著提升 teacher SR**（D10-ext-2 33% vs D6 baseline 21%，pooled 226 ep n=29.6%，z=1.62 p≈0.10，待 ext-3 / ext-4 clinch p<0.05）。Image-anchored recaps + DINOv2 retrieval + state-aware ranking + success-floor 全部上線。
+- **Sprint 目標**：跑完 D10-ext-3（baseline replicate） + ext-4（含 vlm_stop_premature fix）→ aggregate 4-5 run pooled ≥ 400 ep → 觸發 D11（KTO + memory-conditioned student）。
+- **最新動作與進展（2026-06-25 ~ 06-30）**：
+  1. **Phase 4 memory 落地（6b647d6）**：`aiongenos/memory/` 三檔（image_embedding / recap_buffer / retriever）+ `pipeline/stage4_recap.py` 自動生成 ≤100 字 visual lesson；R1 prompt 注入 top-K image-anchored 記憶。
+  2. **F56/F59 distillation 失敗根因確認** → **KTO trainer 上線（ecc3134）**：`server_side/train_qlora_kto.py` 直接在 HF Trainer 上實作 Kahneman-Tversky loss；reference policy 用 `model.disable_adapter()` context 省 VRAM；`prep_training_data.py` 加 `--include_failures` + `--progress_threshold_cm` 產出 kto_label。Phase 4 lesson：single-step BC 系統性無法蒸餾 multi-round memory-conditioned reasoning。
+  3. **Within-run retrieval fix（e98bb99）**：D10 前 9 ep 全 buffer empty → 撤掉過嚴的 `exclude_run_ids={run_id}` guard；當前 ep 自己的 recap 尚未生成，本來就不會 self-retrieve。
+  4. **R1-R4 retrieval-quality patches（661efa3）**：R1 MobileNet→DINOv2（cosine spread 0.94-0.98 → 0.67-0.89，real signal restored）；R2 retrieval 改 single combined score `α·image_cos + (1-α)·exp(-d/state_scale)`，預設 α=0.4 / state_scale=30cm；R3 success_floor 強制 top-K 至少 ceil(2K/3) success record；R4 `watch_run_adaptive.sh` sliding-10-ep SR <5% 兩窗→寫 success_only flag。
+  5. **D10 (MobileNet+state) 25% SR**、**D10-ext-1 (DINOv2 salvaged 26 ep) 34.6%**、**D10-ext-2 (DINOv2 full) 33% / 100 ep**。Avg rounds 19.7 → 11.1（-44%）；avg best L-dist 16.2 → 7.7 cm（-52%）；R1 ΔX bias 各 quartile -18.6 → -15.8 cm（-32% 跨 100 ep 內單調降）。
+  6. **D10-ext-2 12 個 vlm_stop_premature**（final dist 5-13cm，把 critic FLAT 誤判成「該 STOP」）→ ext-4 將套 (a) critic 加上「Try different direction. STOP only when goal met.」+ (b) Stage 1 surface current dist。ext-3 保留為純 replicate。
+- **下一動作優先序**：
+  - (P0) **D10-ext-3 跑完**（baseline replicate of ext-2 prompt set）
+  - (P0) **D10-ext-4 跑完**（含 premature-stop fix） → pooled SR 推進到 p<0.05
+  - (P0) **D11**：用 D10-ext aggregated trajectories 跑 KTO student，驗 memory-conditioned distillation 是否落地（context-free 但保留 memory 行為）
+  - (P1) Retrieval ablation 表（pure state α=0 vs pure image α=1 vs combined）給 paper Table 1
+  - (P2) Phase 5：multi-view + Domain Randomization + relative-state retrieval（跨 scene / robot 才談得上 transfer）
 - **最新動作與進展（2026-06-15 ~ 06-16）**：
   1. **D4 三合一 fix 跑通**（commit `9274c0c`，run e227aeaa, 5 ep）：F35 target resampling 鎖定 + F33 active-arm-only success criteria + D1 撤回 6→5cm。**SR=1/5 (20%)**；ep `0fb0b1ac` 2 round 直達 final_L=3.9cm（< 5cm 嚴格閾值），thought 用「positive X, Y, Z directions」軸向描述（F29 軸向自學 → F37 真 success）。
   2. **F35 確認生效**：success ep 全 50 step 中 R_dist 全 24.18-24.20cm flat，hold-in-place 右臂的 GT target 確實鎖死（之前 b6783e98 R17 6.5cm 跳變消失）。
@@ -127,6 +140,9 @@
 
 | 日期 | 變更 |
 |---|---|
+| 2026-06-30 | **D10-ext-2 完成（SR=33/100 = 33%）**。Pooled D10 + ext-1 + ext-2 = 67/226 (29.6%) vs D6 21% baseline，z=1.62 p≈0.10（borderline）。Avg rounds 11.1（D6 19.7，-44%）；avg best L-dist 7.7cm（D6 16.2，-52%）。R1 ΔX bias quartile -18.6 → -15.8 cm（單調降，記憶實質改變 teacher reasoning，非單純 outcome 指標）。`docs/paper_notes.md` 建檔為 paper 級事實 single source of truth。ext-2 觀察 12 個 vlm_stop_premature（5-13cm 區間 critic FLAT 誤判 STOP），ext-4 將套 critic 方向化措辭 + Stage 1 surface dist；ext-3 保純 replicate。 |
+| 2026-06-29 | **R1-R4 retrieval-quality patches（commit `661efa3`）**：(R1) `ImageEmbedder` MobileNet-V3-small → **DINOv2-base**（768-d self-supervised）；D10 5 張真實 init image off-diag cosine 從 collapsed 0.94-0.98 變 spread 0.67-0.89，real visual signal restored。(R2) `RecapBuffer.retrieve()` 改 single combined score `α·image_cos + (1-α)·exp(-d_cm/state_scale)`，預設 α=0.4 / state_scale=30cm（state 權重高於 image，因為 state 是 deterministic）。(R3) `success_floor_frac`：top-K 強制 ≥ ceil(2K/3) success record（Phase 4 Q12，防 buffer 變失敗為主時 prompt 被失敗 lesson 主導）。(R4) `watch_run_adaptive.sh`：sliding-10-ep SR <5% 連 2 窗 → 寫 `success_only` flag；collect per-ep 讀 flag 切 retrieval mode 直到 SR ≥10%。`run_collect.py` 加 `--memory_image_weight / --memory_state_scale_cm / --memory_success_floor / --memory_mode_flag_path`。D10 既有 100 recap 用 DINOv2 re-embed 7s 完成 dim 一致化。**D10-ext-1**（server reboot 後 salvage 26 ep）SR=9/26 = 34.6%。 |
+| 2026-06-25 | **Phase 4 memory + KTO trainer 同日落地**。<br>**(A) Image-anchored episodic memory（commit `6b647d6`）**：`aiongenos/memory/{image_embedding, recap_buffer, retriever}.py` + `aiongenos/pipeline/stage4_recap.py`。每 ep 結束 VLM 看 init/final/key-round 三張圖 + 物理結果 → ≤100 字 visual lesson（不含 GT cube 座標，符合 observable-only 原則）。Retrieval 兩段式（state KNN → image cos）→ top-K 注入 R1 prompt。`run_collect.py` 加 `--recap_buffer_root --use_memory --memory_top_k --memory_success_only`。Smoke-tested on D6 既有 replays（8 recap，exclude_run_ids 驗證）。**(B) Within-run retrieval fix（commit `e98bb99`）**：撤掉 `exclude_run_ids={run_id}` guard——當前 ep 自己的 recap 還沒生成，本來就無 self-retrieve 風險；不撤 D10 9 ep 全 empty。**(C) Option C+ progress filter + KTO trainer（commit `ecc3134`）**：`prep_training_data.py` `--include_failures` + `--progress_threshold_cm`，每 round Δd gate；產出 `kto_label`（success∧progress→desirable / failure∧progress→undesirable）。`server_side/train_qlora_kto.py` 新檔——HF Trainer 上實作 Kahneman-Tversky loss（Ethayarajh 2024），reference policy 用 `model.disable_adapter()` context 省 VRAM；`--auto-balance` 用 class count 算 λ_d/λ_u；可 `--warm-start` 從 SFT adapter 接續。<br>**(D) D6 baseline**（無 memory）100 ep SR=21/100 = 21%；**D10**（MobileNet+state memory）100 ep SR=25/100 = 25%（首跑 memory）；但發現 MobileNet cosine collapse → 接 R1-R4 patches。<br>**(E) F56/F59 distillation 失敗痕跡**：D7 v3 LoRA (episode-level distill from FIRST stage1) SR 4/100；D8 v3.1 (LAST stage1) SR 4/100；D9 v3.2 (per-round + dist filter) SR 2/72。Phase 4 lesson：single-step BC 系統性無法蒸餾 multi-round memory-conditioned reasoning，必須走 memory-then-distill 路徑。 |
 | 2026-06-16 | **🚀 D4 跑通：L0a-Left 首次取得真實 success replay**（run `e227aeaa`, 5 ep, SR=1/5 = 20%）。三合一 commit `9274c0c`：(a) F35 base config 加 `commands.{left,right}_ee_pose.resampling_time_range = (1e6, 1e6)` 鎖定 target；(b) F33 collect/eval success criteria 改 active-arm-aware（L0a-L 只看 dist_red, L0a-R 只看 dist_blue, bimanual 維持兩臂）；(c) D1 撤回 0.06→0.05m。**首個真 success：ep `0fb0b1ac` 跑 2 round → final_L=3.9cm**，VLM thought 已切換到 X/Y/Z 軸向描述（F29 → F37 落地）。F35 verified flat（R_dist 全 24.18-24.20cm）。F38 avg rounds 19.2→11.6（target 不變 → 收斂更快）。F39 新副作用：3/5 ep `near_singularity` flag（D3 是 1/10），F35 鎖定後 VLM 持續同方向推使 IK 進近奇異點，待 D5 觀察是否需 MoveIt / action chunking。 |
 | 2026-06-11 | **🚀 V4+C3 首跑（run `0602e905`，5 ep on L0a-Left）三大突破 + 兩個決定**：(a) **EE randomization 第一次 HEALTHY**（Z std 1-2 → 8-18 grid，F15/F18 真正修好）；(b) **F28 接近 success**：ep 0eda8269 R10 final_L=5.9cm / R12=5.4cm，差 5cm 閾值 0.4cm 但被 plateau 殺；(c) **F29 軸向自學湧現**：thought 中 X+/Y+/Z+ token 從 V4 base 0/14 round → 26 round 內 30+ 命中（VLM 開始用 X/Y/Z 而非 forward/left）。Avg best_combined 47.5 → **31.8 cm** 大幅下降。SR 仍 0/5 但 2/5 vlm_parse_fail（context 累積長 round 後 teacher CoT 出格式錯）+ 1/5 near_singularity。**並行決定 D1+D3**：D1 success threshold 0.05→0.06 m（commit `61cd1b1`，task-agnostic 微調，給 5.4-5.9cm 邊界 ep 變 success）；D3 跑 10 ep L0a-Left（PID 1237148, run id 待落盤）拿 baseline。 |
 | 2026-06-10 | **C3 pre-reach reset arm pose 落地**（commit `ee2de8a`）：新模組 `aiongenos/mdp/reset.py` 提供 `reset_joints_to_target_with_offset(target_joint_pos: dict, position_range, ...)`；base config target = `{openarm_left/right_joint2: 0.5, joint4: 0.8}`，jitter ±0.2 rad。view_sanity script (12 張 × 3 camera × 4 pose) 取樣選定。Camera 不動。**正在跑 5 ep L0a-Left + C3 + dump（PID 2793645，run id 待落盤）**。 |
@@ -167,13 +183,26 @@
 | T-D13 | F33 active-arm-only success criteria | collect.py / eval.py 加 active_arm 偵測 | 2026-06-15 |
 | T-D14 | F35 lock target resampling | base config `resampling_time_range=(1e6,1e6)` | 2026-06-15 |
 | T-D15 | D4 三合一 fix 跑 5 ep 驗證 | **🚀 SR=1/5, ep `0fb0b1ac` final_L=3.9cm 真 success** | 2026-06-16 |
+| T-D16 | D5 100 ep L0a-Left baseline → D6 cold-start teacher baseline | SR=21/100 = 21%（無 memory），avg rounds 19.7, avg best L-dist 16.2cm；作為 Phase 4 比較基準 | 2026-06-22 |
+| T-D17 | F56 fix：trainer 取 LAST stage1（init→final 映射）`ed604a7` | D7 v3 LoRA episode-level distillation 取 FIRST stage1 → R1 wrong-direction bias 寫死進 LoRA，SR 4/100 | 2026-06-22 |
+| T-D18 | F58/F59 fix：per-round JSONL pipeline `cad9050` | D8 v3.1 (LAST) init image 和 final-round target state-space 差 25cm → over-shoot；改 per-round + dist filter（v3.2）仍 SR 2.8%，揭示 single-step BC 系統失敗 | 2026-06-23 |
+| T-D19 | Phase 4 image-anchored episodic memory（commit `6b647d6`）| `aiongenos/memory/{image_embedding,recap_buffer,retriever}.py` + `pipeline/stage4_recap.py`；R1 prompt 注入 top-K 記憶；post-ep auto-generate recap | 2026-06-25 |
+| T-D20 | Phase 4 within-run retrieval fix（commit `e98bb99`）| 撤 `exclude_run_ids={run_id}` guard；D10 9 ep buffer empty 解 | 2026-06-25 |
+| T-D21 | Phase 4 Option C+ progress filter + KTO trainer（commit `ecc3134`）| `prep_training_data.py --include_failures --progress_threshold_cm` 產 kto_label；`server_side/train_qlora_kto.py`（Kahneman-Tversky loss + `disable_adapter()` ref policy + auto-balance） | 2026-06-25 |
+| T-D22 | D10 100 ep（MobileNet+state memory） | SR=25/100 = 25%；發現 MobileNet cosine collapse 0.94-0.98 → 觸發 R1-R4 | 2026-06-28 |
+| T-D23 | R1-R4 retrieval-quality patches（commit `661efa3`）| R1 DINOv2 swap / R2 combined score / R3 success_floor / R4 adaptive watcher；既有 buffer DINOv2 re-embed | 2026-06-29 |
+| T-D24 | D10-ext-1 salvage 26 ep + D10-ext-2 full 100 ep | ext-1 SR=9/26 = 34.6%（server reboot mid-run salvage）；ext-2 SR=33/100 = 33%（單跑 best）。Pooled 226 ep n=29.6% vs D6 21%，p≈0.10 | 2026-06-30 |
 
 **進行中 / 高優先（active）**
 
 | # | 任務 | 緣由 | 細節 | 狀態 |
 |---|---|---|---|---|
-| **D5** | **跑 100 ep L0a-Left**（D4 設定，TAG=d5） | 拿真實 SR 分布、累積 ≥10 success replay、驗 EE std warning | 100 ep × ~14 min = ~23 hr；可背景跑、隨時停 | **P0 / 待啟動** |
-| **T-7** | collect ≥10 success → `04_sync_and_train.sh` 訓 v3 LoRA | M5 後續；用 D5 收到的 success replay | incremental from 410e0f79；reload student；L0 雙臂 eval 比較 SR | blocked by D5 |
+| **D10-ext-3** | Baseline replicate of ext-2（無 premature-stop fix） | 確認 33% SR 可重現 / 還是 ext-2 落在分布上緣 | 100 ep，prompt set 與 ext-2 相同 | **P0 / running** |
+| **D10-ext-4** | 含 Fix 1（critic 方向化）+ Fix 3（surface dist）| 解 vlm_stop_premature 12/100；目標 38-42% | 100 ep；不改 system prompt（zero-demo 紅線） | **P0 / 待啟動** |
+| **D11** | Memory-conditioned student distillation | Phase 4 paper one-liner：把記憶 baked into LoRA | 用 D10-ext aggregated trajectories 跑 KTO；驗 context-free student 是否保留 memory 行為 | blocked by ext-3 / ext-4 |
+| **Phase 5** | Multi-view + Domain Randomization + relative-state retrieval | 當前 retrieval key 是 absolute world coord，跨 scene/robot 不 transfer（paper §4.3 limitation）| 拆 `dist_red / dist_blue / ee_to_cube_vector` 等 invariant feature；DR 增 lighting/texture 多樣性 | open / Phase 4 paper 後 |
+| Retr-Abl | Retrieval ablation（α=0 pure state vs α=1 pure image vs combined）| Paper Table 1 必需 | 三組對照 each 30-50 ep | open / 並行 |
+| **T-7** | collect ≥10 success → `04_sync_and_train.sh` 訓 v3 LoRA | M5 後續；用 D5 收到的 success replay | incremental from 410e0f79；reload student；L0 雙臂 eval 比較 SR | superseded by D11 |
 | **T-13** | reasoning analyser 跨 ep 統計（軸向 token 成長）| H2：F29 軸向湧現是否在多 ep 後變主流 | 加 `--cross_ep` 模式，掃 run 目錄產 ep×round 大表 | open / blocked by D5 |
 | **F36** | 縮 WorkspaceBounds 對齊 cube range | F32 大量 clamped 部分源於此 | 等 D5 看 clamped 比例再決定 | open / 觀察 |
 | **F39** | near_singularity 3/5 副作用對策 | MoveIt / action chunking / 純 prompt 警示 | 等 D5 100 ep 數據看是 edge case 還是系統性 | open / 待 D5 |
@@ -241,6 +270,13 @@
 |F38| **F35 後 avg rounds 19.2 → 11.6** | target 不再跳位 → VLM 不需重新適應 → 收斂更快或 plateau 更早觸發 | 副效益：VLM call 數減少 ≈ 40% wall-clock 加速 | — | 2026-06-16 | 2026-06-16 | active / nice |
 |F39| **F35 副作用 — `near_singularity` 3/5 ep**（之前 1/10） | F35 鎖定 target 後 VLM 連續往同方向推 → IK 解進入近奇異點。不阻塞（IK 仍出解），但 RPY 任務後可能加重 | 候選對策：MoveIt path planning（user 提）/ action chunking / 簡單加 VLM prompt 警示 | 等 D5 100 ep 數據（user 決策） | 2026-06-16 | 2026-06-16 | active / 待 D5 |
 |F40| **D1 撤回後仍偶發 `vlm_stop_premature` 1/5** | D4 ep b78fac2e R16 best_L=21cm 但 VLM 出 STOP=True；F19 fix 仍救了它 | 比例已從 D3 30% 降到 20%；可接受 | — | 2026-06-16 | 2026-06-16 | active / minor |
+|F56| **🐛 Trainer 取 FIRST stage1（init→final 映射錯）** | D7 v3 LoRA 100 ep SR=4%；F8 「VLM episode 內 X 從負翻正」的 reasoning 在 FIRST stage1 還是 X 負；trainer 拿 FIRST stage1 等於把 R1 wrong-direction bias 寫死進 LoRA | `train_qlora_gemma4.py` 改取 LAST stage1（成功 episode 的 final round 才是「對」的預測） | commit `ed604a7` | 2026-06-22 | 2026-06-22 | **fixed → 仍 SR 4%（F59 接力）** |
+|F58/F59| **🐛 Init image 和 final-round target state-space 差 25cm → LoRA over-shoot** | D8 v3.1 (LAST stage1 + init image) 100 ep SR=4%；geometric mismatch：trainer 把 home pose RGB 配對到 final round 的 target 預測，LoRA 學成「從 home pose 直射 25cm 外」 | `cad9050` per-round JSONL pipeline，每 round (image_pre_t, vlm_pred_t) 配對；後續再加 `--progress_threshold_cm` filter（D9 v3.2） | commit `cad9050` | 2026-06-23 | 2026-06-23 | **fixed at pipeline 層 / SR 仍 2.8%** |
+|F60| **Single-step BC 系統性無法蒸餾 multi-round memory-conditioned reasoning** | D9 v3.2 (per-round + progress filter) 仍 SR 2.8%；LoRA 學到的是 *symptom*（單 step action）而非 *process*（記憶條件下的逐輪 correction loop） | 必須走 memory-then-distill 路徑：(a) Phase 4 memory 把 reasoning trace 蒸給 teacher → (b) D11 distill *memory-conditioned* trajectory 而非 raw single-step | Phase 4 architecture 正解 | 2026-06-23 | 2026-06-30 | **resolved by architecture pivot** |
+|F61| **MobileNet image embedding cosine collapse**（0.94-0.98）| D10 100 ep 觀察所有 retrieval cosine 落在 0.94-0.98 → retrieval 退化成 noise（「所有圖看起來都一樣」對 ImageNet classifier feature 而言）| swap DINOv2-base（768-d self-supervised on 142M raw image）；5 張真實 init image off-diag spread 變 0.67-0.89 | commit `661efa3` R1 | 2026-06-29 | 2026-06-29 | **fixed** |
+|F62| **Buffer 失敗為主時 prompt 被失敗 lesson 主導**（Phase 4 Q12）| D10 ended 25 succ / 75 fail；naive top-K 大概率全失敗 | `success_floor_frac`：top-K 強制 ≥ ceil(2K/3) success record；fallback to mixed if insufficient | commit `661efa3` R3 | 2026-06-29 | 2026-06-29 | **fixed** |
+|F63| **vlm_stop_premature 12/100 in D10-ext-2**（5-13cm 區間誤判 STOP）| Teacher 看到「No significant progress. Adjust coordinate prediction.」連 2-3 round → 解讀為「該停了」；final dist 5-13cm 全沒過 5cm 閾值 | (a) critic 措辭改方向化：「Try a different direction or larger step. STOP only when goal is met.」(b) Stage 1 surface current dist（已是 observable，非新 sensor）。拒絕方案：硬寫 5cm 在 system prompt（違反 task-agnostic）/ engine-level STOP veto（defeat 學習目的）| D10-ext-4 套用；ext-3 保 replicate | 2026-06-30 | 2026-06-30 | **fix-spec ready** |
+|F64| **🚀 Phase 4 memory 改變 teacher reasoning（不只 outcome 指標）**| D10 R1 ΔX bias quartile：ep 1-25 = -18.6 / 26-50 = -18.2 / 51-75 = -17.2 / 76-100 = -15.8 cm（vs D6 baseline mean -23.5 cm）。memory 注入隨 ep 累積使 R1 perception bias 單調收斂 | Paper-worthy 行為證據：not just SR up，而是 R1（記憶生效的唯一 round）系統性更準 | — | 2026-06-30 | 2026-06-30 | **active / paper claim** |
 
 
 ---

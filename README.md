@@ -33,10 +33,41 @@ trajectories in simulation with **zero demonstrations**, then distills them into
 
 | Stage | Name | Description |
 |-------|------|-------------|
-| **1** | Reasoning | VLM sees RGB + state → CoT → integer sub-goals |
+| **1** | Reasoning | VLM sees RGB + state (+ retrieved memories in Phase 4) → CoT → integer sub-goals |
 | **2** | Attempt | IK servo executes sub-goals in sim |
 | **3** | Learning | On failure: critic diagnoses using observable-only data (RGB + EE pose + distance, **no hidden sensors**) |
-| **4** | Intuition | Success trajectories → QLoRA distillation → O(1) student |
+| **4** | Intuition | Success trajectories + image-anchored recaps → KTO / QLoRA distillation → O(1) student |
+
+### Phase 4: Episodic Memory + Memory-Then-Distill
+
+Phase 4 augments the cognitive loop with **image-anchored episodic memory** and pivots
+distillation from naive single-step BC (which systematically fails — see F56/F59/F60) to a
+**memory-then-distill** pipeline.
+
+| Component | File | Role |
+|---|---|---|
+| Recap generator | `aiongenos/pipeline/stage4_recap.py` | Post-ep VLM sees init / final / key-round images + physical outcomes → emits ≤100-word visual lesson (no GT coords; observable-only) |
+| Image embedder | `aiongenos/memory/image_embedding.py` | DINOv2-base 768-d (self-supervised); MobileNet was tried first and collapsed at cos 0.94-0.98 on low-diversity scenes (F61) |
+| Recap buffer | `aiongenos/memory/recap_buffer.py` | File-backed store; retrieval score `α·image_cos + (1-α)·exp(-d_cm/state_scale)`, α=0.4, state_scale=30cm |
+| Retriever | `aiongenos/memory/retriever.py` | Top-K with `success_floor_frac` (≥ ⌈2K/3⌉ success records, F62) + adaptive `success_only` mode flag |
+| KTO trainer | `server_side/train_qlora_kto.py` | Kahneman-Tversky loss (Ethayarajh 2024) on HF Trainer; ref policy via `model.disable_adapter()` (no extra VRAM); `--auto-balance` and `--warm-start` |
+| Adaptive watcher | `watch_run_adaptive.sh` | Sliding-10-ep SR <5% × 2 windows → flips retrieval to success-only until SR ≥10% |
+
+**Results so far** (L0a-Left, teacher = Gemma-4-31B):
+
+| Run | Memory | N | SR | Avg rounds | Avg best L-dist |
+|---|---|---|---|---|---|
+| D6 (baseline) | none | 100 | 21% | 19.7 | 16.2 cm |
+| D10 | MobileNet+state | 100 | 25% | 14.1 | 9.1 cm |
+| D10-ext-2 | DINOv2+state+floor | 100 | **33%** | **11.1** | **7.7 cm** |
+| Pooled D10+ext-1+ext-2 | — | 226 | 29.6% | — | — |
+
+R1 ΔX perception bias decays monotonically within a single 100-ep run (-18.6 → -15.8 cm
+across quartiles vs D6 baseline -23.5 cm) — *behavioural* evidence that memory injection
+changes teacher reasoning, not just the outcome metric.
+
+See [`docs/paper_notes.md`](docs/paper_notes.md) for the full paper-level fact log, ablations,
+caveats and limitations.
 
 ## Curriculum (5 Levels)
 
@@ -273,15 +304,23 @@ python3 scripts/04_sync_and_train.sh --base-model google/gemma-4-E4B-it
 
 ---
 
-## 🧪 當前狀態速覽（2026-06-04）
+## 🧪 當前狀態速覽（2026-06-30）
 
-- **跑通**：multi-round eval (Q5 Option A)、E4B+LoRA student 熱重載、L0-L3 環境
-- **Open question**：L0 SR=0/5 — 已用 image dump + thought 分析發現根因是
-  **VLM 把螢幕座標當成 robot base frame**（紅 cube 在畫面左 → VLM 估 X=-30，
-  但 base frame 中該 cube 真實 X=+25）
-- **方向（user 哲學澄清）**：禁止 prompt 注入軸向（違反 task-agnostic 原則），改用
-  **拉高 round 上限 + Stage 3 critic 給 observable feedback** 讓 VLM 自學。詳見
-  [`docs/plans/INDEX.md`](docs/plans/INDEX.md) TODO `T-1`。
+- **Phase 4 episodic memory 落地**：image-anchored recap + DINOv2 retrieval + state-aware
+  combined score + success-floor + adaptive mode-switching watcher 全部上線。
+- **D10-ext-2 完成**：100 ep L0a-Left, SR = **33%**（vs D6 baseline 21%, +12pt absolute,
+  +57% relative）。Pooled D10 + ext-1 + ext-2 = 67/226 (29.6%)，z=1.62 p≈0.10，需 ext-3 /
+  ext-4 clinch p<0.05。
+- **效率大幅改善**：avg rounds 19.7 → 11.1（-44%）；avg best L-dist 16.2 → 7.7 cm（-52%）。
+- **R1 perception bias 單調收斂**（quartile -18.6 → -15.8 cm）— *behavioural* paper claim。
+- **進行中**：D10-ext-3（baseline replicate）跑 / D10-ext-4 待跑（含 `vlm_stop_premature`
+  fix：critic 措辭方向化 + Stage 1 surface dist）。
+- **下一里程碑**：D11 — KTO + memory-conditioned student LoRA，驗 "memory baked into
+  parameters" 假說。
+- **舊歷史**：早期 L0 grounding bug（VLM 把螢幕座標當 base frame）→ V4 sub-stage + C3 +
+  F35/F33 修復 → D4 首次 success。F56/F59 揭示 single-step BC 系統性無法蒸餾
+  multi-round reasoning（Phase 4 architectural pivot 主因）。完整時序見
+  [`docs/plans/INDEX.md`](docs/plans/INDEX.md)。
 
 ---
 
@@ -305,8 +344,9 @@ AionGenos/
 │   ├── control/               # Rotation (RPY↔quat), command_converter
 │   ├── replay/                # Episode schema, buffer, rsync
 │   ├── curriculum/            # ladder, manager, arena_adapter
-│   ├── pipeline/              # stage1_reasoning, stage2_attempt, stage3_critic, stage4_distill_remote_trigger
-│   ├── orchestrator/          # collect, eval (multi-round), isaaclab_env_interface
+│   ├── memory/                # Phase 4: image_embedding (DINOv2), recap_buffer, retriever
+│   ├── pipeline/              # stage1_reasoning, stage2_attempt, stage3_critic, stage4_distill_remote_trigger, stage4_recap (Phase 4)
+│   ├── orchestrator/          # collect (memory-aware), eval (multi-round), isaaclab_env_interface
 │   ├── eval/                  # metrics (SR, latency, distillation gap)
 │   └── tasks/                 # IsaacLab env configs L0-L3
 ├── scripts/
@@ -316,7 +356,7 @@ AionGenos/
 │   ├── 05_eval.py             # multi-round eval (含 --dump_images)
 │   └── run_collect.py         # 4-stage collect loop
 ├── server/                    # llama-server 啟動腳本（teacher / student）
-├── server_side/               # 遠端訓練腳本（train_qlora / export_lora_gguf / reload_student）
+├── server_side/               # 遠端訓練腳本（train_qlora_gemma4 SFT / train_qlora_kto Phase 4 / export_lora_gguf / reload_student）
 ├── docs/plans/                # POC 計畫全文 + INDEX 進度追蹤
 └── data/
     ├── replays/{run_id}/...   # collect 輸出
