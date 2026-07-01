@@ -69,6 +69,7 @@ class AionGenosCurriculumManager:
         replay_buffer: ReplayBuffer,
         start_level: int = 0,
         max_level: Optional[int] = None,
+        freeze_level: bool = False,
     ):
         self.config = config
         self.replay = replay_buffer
@@ -82,6 +83,13 @@ class AionGenosCurriculumManager:
             )
         self.max_level = self._order[-1] if max_level is None else max_level
         self.current_level = start_level
+        # Phase 4: when freeze_level is True, check_advance() never returns
+        # an advance decision. Used for single-task paper-quality collects
+        # where we want a fixed level regardless of SR hitting the advance
+        # threshold. Discovered necessary after D10-ext-5 ep 1-10 hit SR=60%
+        # on L0a-Left and auto-advanced to L0a-Right mid-run, contaminating
+        # the buffer with a different task's episodes.
+        self.freeze_level = freeze_level
 
         # Initialize level states for every level in LEVEL_ORDER.
         self.levels: dict[int, LevelState] = {}
@@ -111,6 +119,15 @@ class AionGenosCurriculumManager:
             (should_advance, reason_message)
         """
         state = self.levels[self.current_level]
+
+        # Phase 4 freeze — never advance regardless of SR. Still reports the
+        # standard HOLD line so the log format stays uniform for parsers.
+        if self.freeze_level:
+            msg = (
+                f"HOLD L{self.current_level} (frozen): SR={state.success_rate:.1%}, "
+                f"n={state.total_count}, elapsed={state.elapsed_hours:.1f}h"
+            )
+            return False, msg
 
         # Check blocked condition
         if (

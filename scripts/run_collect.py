@@ -78,6 +78,13 @@ parser.add_argument(
     help="Optional path to a file the watcher (R4/L2) toggles to flip retrieval "
          "to success-only during SR-dip recovery.",
 )
+parser.add_argument(
+    "--freeze_level", action="store_true",
+    help="When set, curriculum never auto-advances even if SR ≥ threshold. "
+         "Required for single-task paper-quality collects: ext-5 auto-advanced "
+         "from L0a-Left to L0a-Right at ep 11 (SR hit 60%), contaminating the "
+         "run with a different task.",
+)
 # Append AppLauncher CLI args
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
@@ -114,8 +121,11 @@ def main():
     curriculum = AionGenosCurriculumManager(
         config=config.curriculum,
         replay_buffer=replay,
-        start_level=args_cli.level
+        start_level=args_cli.level,
+        freeze_level=args_cli.freeze_level,
     )
+    if args_cli.freeze_level:
+        logger.info(f"Curriculum FROZEN at level {args_cli.level} — no auto-advance")
     
     # Build environment using Arena/IsaacLab builder
     logger.info(f"Building environment for Level {args_cli.level}...")
