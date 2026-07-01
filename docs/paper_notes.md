@@ -447,6 +447,19 @@ Rank 1 proposal (which had student emit rationale at inference).
   L1 head (orthogonal), 6D rotation (premature — L0a is position-only),
   Diffusion Policy / π₀ / GRPO (infra). D10-ext-5 running (100 ep) to
   push teacher pool to n≈500 before D11 training.
+- 2026-07-01 evening: **D6b — factorial 2×2 gap identified as pre-submission
+  blocker.** Reviewer objection: "How do you know memory contributes
+  anything on top of Fix 1/3?" Current data covers 3 of 4 arms:
+    memory=N, fix=N: D6 (21/100)
+    memory=Y, fix=N: pooled pre-fix (67/226 = 29.6%)
+    memory=Y, fix=Y: pooled post-fix (109/221 = 49.3%)
+    memory=N, fix=Y: **empty — D6b must fill**
+  Auto-launcher armed (scripts/training/launch_d6b_after_ext5b.sh)
+  to start D6b immediately after ext-5b finishes, sharing the teacher
+  slot serially. Predictions per arm:
+    30% → memory adds ~20pp on top of scaffolding (headline hard)
+    40% → scaffolding drives most of gain, memory is ~10pp (honest reframe)
+    45%+ → memory contribution collapses (would rewrite paper)
 - 2026-07-01 evening: **F65 discovered — curriculum auto-advance leaks into
   memory-run buffer.** D10-ext-5 sliding SR hit 60% at ep 10 → auto-advanced
   L0a-Left → L0a-Right at ep 11 (advance_threshold check). Buffer had only
