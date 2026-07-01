@@ -10,7 +10,25 @@ Sources:
   data/replays/{run_id}/success/*.json     — replay schema (truth)
   data/collect_dumps/{run_id}/{ep_id}/     — per-round PNGs + meta.json
 
-For each success episode, every round emits one sample:
+Phase 4 D11 additions:
+  --rationale_map <jsonl>    from extract_historical_retrievals.py — attaches
+                             the historically-consistent retrieved-lessons text
+                             to each sample. This lets the trainer emit target
+                             responses that PREPEND a "PAST_LESSONS: ..."
+                             preamble to the teacher's original THOUGHT block,
+                             so the student LoRA internalises the memory-derived
+                             reasoning rather than the raw action alone.
+
+  --dataset_mode {sft,kto,whole_ep_sft}
+                             sft         : per-round success rounds only (BC).
+                             kto         : per-round with kto_label (KTO desirable/undesirable).
+                             whole_ep_sft: one sample per success ep, using R1's image
+                                           and the LAST successful round's action — for
+                                           C.3-B stage 4-A. (F59 was avoided in Phase 4
+                                           by memory-retrieval scaffolding; still a
+                                           lossy pairing so use with care.)
+
+For each per-round sample:
   {
     "image_path"        : "data/collect_dumps/<run>/<ep>/round_NN_pre.png",
     "level"             : -2,
@@ -18,8 +36,8 @@ For each success episode, every round emits one sample:
     "active_arm"        : "left" | "right" | null,
     "state"             : {"left_ee": [...], "right_ee": [...], ...},
     "critic_feedback"   : str | null,
-    "target_response"   : "<vlm_full_response from that round>",
-    "parsed_left_pos"   : [x,y,z],   # convenience, easier filtering
+    "target_response"   : "<optional PAST_LESSONS: ...\\n\\n><vlm_full_response>",
+    "parsed_left_pos"   : [x,y,z],
     "parsed_right_pos"  : [x,y,z],
     "final_dist_l_cm"   : float,
     "final_dist_r_cm"   : float,
@@ -27,15 +45,13 @@ For each success episode, every round emits one sample:
     "run_id"            : str,
     "round_idx"         : int,
     "round_count_in_ep" : int,
+    "outcome"           : "success" | "failure",
+    "is_progress"       : bool | null,
+    "d_start_cm"        : float | null,
+    "d_end_cm"          : float | null,
+    "kto_label"         : "desirable" | "undesirable" | null,
+    "has_rationale"     : bool,
   }
-
-Filters supported via CLI:
-  --min_round                  drop early-exploration samples (e.g. 5 keeps R5+)
-  --max_active_dist_cm         drop samples where active arm is > this cm from target
-  --skip_first_round           shorthand for --min_round 2
-  --only_progress_round        keep only rounds where end_dist decreased vs round start
-
-Stats printed at end: total samples, per-round histogram, dist histogram.
 """
 
 from __future__ import annotations
@@ -49,6 +65,75 @@ from pathlib import Path
 from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+
+# ─────────────────────────── Rationale helpers ───────────────────────────
+
+# Max words we keep from each past lesson when building the gist. 100 words
+# per recap × 3 recaps ≈ 300 words worst case; we cap at 40 each to keep
+# the total under ~120 words (student rationale learning cost).
+_LESSON_WORD_CAP = 40
+
+
+def load_rationale_map(path: Optional[Path]) -> dict[tuple[str, str], list[dict]]:
+    """Load the JSONL emitted by extract_historical_retrievals.py.
+
+    Key = (log_file, ep_id) is unique because a single collect run's log
+    contains that run's episodes exactly once. But we also allow lookup by
+    (run_id, ep_id) since callers typically know run_id, not log filename.
+    So we store TWO indices with the same value.
+    """
+    idx: dict[tuple[str, str], list[dict]] = {}
+    if path is None:
+        return idx
+    with path.open() as fp:
+        for line in fp:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                d = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            lessons = d.get("retrieved_lessons") or []
+            log_file = d.get("log_file", "")
+            ep_id = d.get("ep_id", "")
+            if ep_id:
+                # Key by ep_id alone (ep_ids are uuid-like enough to be unique
+                # across all runs so far — we assert this on collision).
+                if ep_id in idx and idx[ep_id] != lessons:
+                    logger.debug(f"  rationale_map: ep_id collision {ep_id} — keeping first")
+                else:
+                    idx[ep_id] = lessons
+    return idx
+
+
+def format_rationale_gist(lessons: list[dict], max_lessons: int = 3) -> str:
+    """Compress up to ``max_lessons`` retrieved-recap lessons into a single
+    PAST_LESSONS preamble that fits comfortably in a training target."""
+    if not lessons:
+        return ""
+    parts: list[str] = ["PAST_LESSONS (from similar past attempts):"]
+    for i, l in enumerate(lessons[:max_lessons], 1):
+        text = (l.get("text_lesson") or "").strip()
+        if not text:
+            continue
+        words = text.split()
+        if len(words) > _LESSON_WORD_CAP:
+            words = words[:_LESSON_WORD_CAP]
+            text = " ".join(words) + " …"
+        outcome_marker = "✓" if l.get("is_success") else "✗"
+        parts.append(f"  ({i}) [{outcome_marker}] {text}")
+    parts.append("")  # blank line before teacher's THOUGHT
+    return "\n".join(parts)
+
+
+def wrap_target_with_rationale(rationale_gist: str, original_response: str) -> str:
+    """Prepend rationale gist to teacher's original response. If rationale
+    is empty (early ep with no retrieval), returns original response unchanged."""
+    if not rationale_gist:
+        return original_response
+    return f"{rationale_gist}\n{original_response}"
 
 
 def _resolve_active_arm(level_name: str) -> str | None:
@@ -102,6 +187,7 @@ def build_samples(
     only_progress_round: bool = False,
     include_failures: bool = False,
     progress_threshold_cm: float = 0.5,
+    rationale_map: Optional[dict[str, list[dict]]] = None,
 ) -> list[dict]:
     """Build per-round samples from replay episodes (Phase 4 Option C+).
 
@@ -179,6 +265,16 @@ def build_samples(
                         skipped["empty_response"] += 1
                         continue
 
+                    # Phase 4 D11: prepend historical retrieved lessons.
+                    has_rationale = False
+                    if rationale_map is not None:
+                        lessons = rationale_map.get(ep_id) or []
+                        if lessons:
+                            gist = format_rationale_gist(lessons)
+                            if gist:
+                                response = wrap_target_with_rationale(gist, response)
+                                has_rationale = True
+
                     state = _state_at_round(replay, meta_round, round_idx, sim_steps_per_round)
                     dist_l = meta_round.get("final_dist_l_cm")
                     dist_r = meta_round.get("final_dist_r_cm")
@@ -234,6 +330,7 @@ def build_samples(
                         "state": state,
                         "critic_feedback": meta_round.get("critic_feedback"),
                         "target_response": response,
+                        "has_rationale": has_rationale,
                         "parsed_left_pos": interaction.get("parsed_left_pos"),
                         "parsed_right_pos": interaction.get("parsed_right_pos"),
                         "final_dist_l_cm": dist_l,
@@ -291,9 +388,11 @@ def _print_stats(samples: list[dict]) -> None:
     outcome_hist = Counter(s.get("outcome") for s in samples)
     kto_hist = Counter(s.get("kto_label") for s in samples)
     progress_hist = Counter(s.get("is_progress") for s in samples)
+    rationale_hist = Counter(s.get("has_rationale") for s in samples)
     logger.info(f"  outcome split  : {dict(outcome_hist)}")
     logger.info(f"  is_progress    : {dict(progress_hist)}")
     logger.info(f"  kto_label      : {dict(kto_hist)}")
+    logger.info(f"  has_rationale  : {dict(rationale_hist)}")
 
 
 def main() -> None:
@@ -321,10 +420,16 @@ def main() -> None:
     parser.add_argument("--include_failures", action="store_true",
                         help="Also pull samples from failure/*.json (Q9.2). Each sample is tagged with "
                              "outcome=success|failure and kto_label=desirable|undesirable.")
+    parser.add_argument("--rationale_map", type=Path, default=None,
+                        help="Phase 4 D11: JSONL produced by extract_historical_retrievals.py. "
+                             "For each ep with retrieval history, prepend a PAST_LESSONS block "
+                             "to the training target so student LoRA learns memory-derived reasoning.")
     args = parser.parse_args()
 
     if args.skip_first_round and args.min_round == 1:
         args.min_round = 2
+
+    rationale_map = load_rationale_map(args.rationale_map) if args.rationale_map else None
 
     logger.info(f"Replay root: {args.replay_root}")
     logger.info(f"Dump root  : {args.dump_root}")
@@ -332,6 +437,8 @@ def main() -> None:
     logger.info(f"Filters    : min_round={args.min_round}  max_dist={args.max_active_dist_cm}  "
                 f"only_progress={args.only_progress_round}  progress_thr={args.progress_threshold_cm}cm  "
                 f"include_failures={args.include_failures}")
+    if rationale_map is not None:
+        logger.info(f"Rationale  : {len(rationale_map)} eps have retrieved-lessons context")
     logger.info("")
 
     samples = build_samples(
@@ -344,6 +451,7 @@ def main() -> None:
         only_progress_round=args.only_progress_round,
         include_failures=args.include_failures,
         progress_threshold_cm=args.progress_threshold_cm,
+        rationale_map=rationale_map,
     )
 
     args.out.parent.mkdir(parents=True, exist_ok=True)

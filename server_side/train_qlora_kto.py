@@ -4,25 +4,38 @@ Adapts ``train_qlora_gemma4.py`` to use KTO loss instead of vanilla SFT:
   - sample-level binary label (desirable | undesirable) read from the JSONL
     field ``kto_label`` produced by prep_training_data.py with --include_failures
     --only_progress_round.
-  - reference policy = same base 4-bit Gemma-4 with the LoRA adapter
-    disabled (PEFT's ``disable_adapter`` context).
   - desirable / undesirable losses are weighted independently to compensate
     for the natural class imbalance in collect data
     (Phase 4 D6: 158 desirable vs 548 undesirable).
+
+Reference policy:
+  - Default: base 4-bit Gemma-4 with the LoRA adapter disabled.
+  - With --frozen-adapter (C.3-B composable mode): base + frozen SFT adapter,
+    KTO trains a SECOND LoRA on top. π_ref = π_SFT, π_θ = π_SFT + π_KTO.
 
 KTO ref:
     Ethayarajh et al. 2024, "Model Alignment as Prospect Theoretic Optimization"
     arxiv.org/abs/2402.01306
 
-Single-stage usage (KTO from base — fast iteration):
+Three modes (Phase 4 D11 C.3-B is the third):
+
+1. KTO from base (fast iteration):
     python3 train_qlora_kto.py \\
         --jsonl-path data/training_sets/v33_d6_optC_plus.jsonl \\
         --output-dir checkpoints/v4_kto/
 
-Two-stage usage (SFT warm-start → KTO):
-    1. python3 train_qlora_gemma4.py --jsonl-path ... --output-dir checkpoints/v4_sft/
-    2. python3 train_qlora_kto.py --warm-start checkpoints/v4_sft/final_adapter \\
+2. Single-adapter SFT→KTO (C.1, sequential same-adapter):
+    python3 train_qlora_gemma4.py --jsonl-path ... --output-dir checkpoints/v4_sft/
+    python3 train_qlora_kto.py --warm-start checkpoints/v4_sft/final_adapter \\
             --jsonl-path ... --output-dir checkpoints/v4_kto/
+
+3. Composable dual-adapter (C.3-B, Phase 4 D11 chosen approach):
+    python3 train_qlora_gemma4.py --jsonl-path <sft.jsonl> \\
+            --output-dir checkpoints/v4_sft_A/
+    python3 train_qlora_kto.py --frozen-adapter checkpoints/v4_sft_A/final_adapter \\
+            --jsonl-path <kto.jsonl> \\
+            --output-dir checkpoints/v4_kto_B/
+    Deploy:  llama-server --lora v4_sft_A.gguf --lora v4_kto_B.gguf
 """
 
 import argparse
@@ -298,26 +311,61 @@ class KTOTrainer(Trainer):
         beta: float = 0.1,
         lambda_d: float = 1.0,
         lambda_u: float = 1.0,
+        ref_mode: str = "disable",   # "disable" | "frozen_only"
+        trainable_adapter_name: str = "kto",
+        frozen_adapter_name: str = "sft_frozen",
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.beta = beta
         self.lambda_d = lambda_d
         self.lambda_u = lambda_u
+        self.ref_mode = ref_mode
+        self.trainable_adapter_name = trainable_adapter_name
+        self.frozen_adapter_name = frozen_adapter_name
+        if ref_mode not in ("disable", "frozen_only"):
+            raise ValueError(f"ref_mode must be 'disable' or 'frozen_only', got {ref_mode!r}")
 
     def _ref_logits(self, inputs: dict) -> torch.Tensor:
-        """Forward pass with LoRA disabled — gives reference-policy logits."""
-        # PEFT exposes ``disable_adapter`` for this purpose.
+        """Reference-policy forward pass.
+
+        Two modes:
+          - "disable": drop ALL PEFT adapters — π_ref = base model.
+            Used in single-adapter mode (--warm-start or from-base).
+          - "frozen_only": switch active-adapter set to {frozen SFT} only —
+            π_ref = base + frozen SFT adapter. Used in C.3-B composable mode.
+            Requires the model to have BOTH adapters loaded (frozen + trainable);
+            after ref pass we restore both to active so π_θ = base + both.
+        """
         with torch.no_grad():
-            with self.model.disable_adapter():
-                out = self.model(
-                    input_ids=inputs["input_ids"],
-                    attention_mask=inputs["attention_mask"],
-                    pixel_values=inputs.get("pixel_values"),
-                    image_position_ids=inputs.get("image_position_ids"),
-                    mm_token_type_ids=inputs.get("mm_token_type_ids"),
-                )
+            if self.ref_mode == "disable":
+                with self.model.disable_adapter():
+                    out = self._forward_no_grad(inputs)
+            else:  # "frozen_only"
+                # In C.3-B mode both adapters were loaded via
+                # PeftModel.load_adapter, giving them named entries.
+                # For the policy pass we want [frozen + trainable] active;
+                # for the ref pass we want [frozen] only.
+                try:
+                    self.model.set_adapter(self.frozen_adapter_name)
+                    out = self._forward_no_grad(inputs)
+                finally:
+                    # Restore both adapters as active so the subsequent
+                    # policy forward pass (which runs AFTER this ref pass
+                    # returned) uses π_θ = base + both. PEFT >=0.10 supports
+                    # set_adapter with a list.
+                    self.model.set_adapter([self.frozen_adapter_name, self.trainable_adapter_name])
         return out.logits
+
+    def _forward_no_grad(self, inputs: dict):
+        """Shared forward-only helper."""
+        return self.model(
+            input_ids=inputs["input_ids"],
+            attention_mask=inputs["attention_mask"],
+            pixel_values=inputs.get("pixel_values"),
+            image_position_ids=inputs.get("image_position_ids"),
+            mm_token_type_ids=inputs.get("mm_token_type_ids"),
+        )
 
     def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
         is_desirable = inputs.pop("is_desirable")
@@ -376,11 +424,19 @@ def main():
     parser.add_argument("--output-dir", type=str, required=True)
     parser.add_argument("--base-model", type=str, default="google/gemma-4-31b-it")
     parser.add_argument("--warm-start", type=str, default=None,
-                        help="Optional path to a previously-trained LoRA adapter "
-                             "(e.g. checkpoints/v4_sft/final_adapter). When set, "
-                             "we load that adapter on top of the base model and "
-                             "continue training it with KTO loss instead of "
-                             "creating a fresh LoRA from scratch.")
+                        help="Optional path to a previously-trained LoRA adapter. "
+                             "When set (single-adapter mode / C.1), the adapter is "
+                             "loaded ON TOP OF the base and continues training under "
+                             "KTO loss (in-place). π_ref = base with adapter disabled. "
+                             "Mutually exclusive with --frozen-adapter.")
+    parser.add_argument("--frozen-adapter", type=str, default=None,
+                        help="Phase 4 C.3-B composable mode. Path to a previously-"
+                             "trained SFT adapter. That adapter is loaded as FROZEN "
+                             "with name 'sft_frozen'. A SECOND adapter named 'kto' "
+                             "is added trainable. π_ref = base + sft_frozen, "
+                             "π_θ = base + sft_frozen + kto. Output saves the 'kto' "
+                             "adapter only. Deploy uses both at inference. Mutually "
+                             "exclusive with --warm-start.")
     parser.add_argument("--epochs", type=int, default=1)
     parser.add_argument("--batch-size", type=int, default=2)
     parser.add_argument("--lr", type=float, default=5e-5)
@@ -397,6 +453,10 @@ def main():
                         help="Auto-compute (lambda_d, lambda_u) from class counts "
                              "(overrides --lambda-d / --lambda-u).")
     args = parser.parse_args()
+
+    if args.warm_start and args.frozen_adapter:
+        print("Error: --warm-start and --frozen-adapter are mutually exclusive.")
+        sys.exit(1)
 
     print(f"Loading processor for base model: {args.base_model}")
     processor = AutoProcessor.from_pretrained(args.base_model)
@@ -417,20 +477,53 @@ def main():
 
     model = prepare_model_for_kbit_training(model)
 
-    if args.warm_start:
+    # LoRA config used for any fresh trainable adapter.
+    fresh_lora_cfg = LoraConfig(
+        r=16,
+        lora_alpha=32,
+        target_modules=".*language_model\\.layers\\.\\d+\\.(self_attn\\.(q|k|v|o)_proj|mlp\\.(gate|up|down)_proj)",
+        lora_dropout=0.05,
+        bias="none",
+        task_type="CAUSAL_LM",
+    )
+
+    ref_mode = "disable"  # default: single-adapter mode
+    if args.frozen_adapter:
+        # ── C.3-B composable mode ─────────────────────────────────────────
+        # Load SFT adapter as frozen (adapter_name="sft_frozen"), then add
+        # a fresh trainable "kto" adapter on top. π_ref = base + sft_frozen,
+        # π_θ = base + sft_frozen + kto.
+        print(f"C.3-B mode: loading SFT adapter as FROZEN from {args.frozen_adapter}")
+        model = PeftModel.from_pretrained(
+            model, args.frozen_adapter,
+            adapter_name="sft_frozen", is_trainable=False,
+        )
+        print("Adding fresh trainable 'kto' adapter...")
+        model.add_adapter("kto", fresh_lora_cfg)
+        # Activate both: π_θ pass uses both, ref pass switches to sft_frozen only.
+        model.set_adapter(["sft_frozen", "kto"])
+        # Freeze parameters that belong to sft_frozen (paranoid — PEFT should
+        # already handle this via is_trainable=False, but ensure at param level).
+        n_kto_trainable = n_frozen = 0
+        for name, p in model.named_parameters():
+            if "lora_" in name and "sft_frozen" in name:
+                p.requires_grad = False
+                n_frozen += 1
+            elif "lora_" in name and "kto" in name:
+                p.requires_grad = True
+                n_kto_trainable += 1
+        print(f"  frozen sft params: {n_frozen}  trainable kto params: {n_kto_trainable}")
+        assert n_kto_trainable > 0, "no trainable KTO adapter params — check target_modules"
+        ref_mode = "frozen_only"
+    elif args.warm_start:
+        # ── C.1 single-adapter mode (in-place continue-training) ──────────
         print(f"Warm-starting from SFT adapter: {args.warm_start}")
         model = PeftModel.from_pretrained(model, args.warm_start, is_trainable=True)
     else:
-        peft_config = LoraConfig(
-            r=16,
-            lora_alpha=32,
-            target_modules=".*language_model\\.layers\\.\\d+\\.(self_attn\\.(q|k|v|o)_proj|mlp\\.(gate|up|down)_proj)",
-            lora_dropout=0.05,
-            bias="none",
-            task_type="CAUSAL_LM",
-        )
-        print("Creating fresh PEFT model wrapper...")
-        model = get_peft_model(model, peft_config)
+        # ── KTO-from-base mode ────────────────────────────────────────────
+        print("Creating fresh PEFT model wrapper (KTO from base, no warm-start)...")
+        model = get_peft_model(model, fresh_lora_cfg)
+
     model.print_trainable_parameters()
 
     dataset = KtoJsonlDataset(args.jsonl_path, processor)
@@ -473,6 +566,7 @@ def main():
         beta=args.beta,
         lambda_d=args.lambda_d,
         lambda_u=args.lambda_u,
+        ref_mode=ref_mode,
     )
 
     print(
@@ -482,8 +576,18 @@ def main():
     trainer.train()
 
     final_output_path = os.path.join(args.output_dir, "final_adapter")
-    print(f"Saving final LoRA adapter to {final_output_path}")
-    trainer.model.save_pretrained(final_output_path)
+    print(f"Saving final LoRA adapter(s) to {final_output_path}")
+    if ref_mode == "frozen_only":
+        # C.3-B: save ONLY the trainable kto adapter. The frozen sft_frozen
+        # adapter should be re-loaded from its original path at inference time
+        # via llama-server --lora, not duplicated here.
+        trainer.model.save_pretrained(final_output_path, selected_adapters=["kto"])
+        print(f"  saved adapter: kto")
+        print(f"  frozen sft adapter left at its input path: {args.frozen_adapter}")
+        print(f"  inference: base + {args.frozen_adapter}/*.gguf + {final_output_path}/*.gguf (both --lora)")
+    else:
+        # C.1 / from-base: single default adapter.
+        trainer.model.save_pretrained(final_output_path)
     print("KTO training complete!")
 
 
