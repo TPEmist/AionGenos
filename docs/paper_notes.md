@@ -447,3 +447,13 @@ Rank 1 proposal (which had student emit rationale at inference).
   L1 head (orthogonal), 6D rotation (premature — L0a is position-only),
   Diffusion Policy / π₀ / GRPO (infra). D10-ext-5 running (100 ep) to
   push teacher pool to n≈500 before D11 training.
+- 2026-07-01 evening: **F65 discovered — curriculum auto-advance leaks into
+  memory-run buffer.** D10-ext-5 sliding SR hit 60% at ep 10 → auto-advanced
+  L0a-Left → L0a-Right at ep 11 (advance_threshold check). Buffer had only
+  LEFT-arm recaps, so RIGHT-arm eps retrieved cross-task lessons and produced
+  4 confused vlm_stop_premature failures ("right end-effector touches red
+  cube" when init_dist == final_dist). Fix: --freeze_level CLI + curriculum
+  manager gate (commit 90501fb). All Phase 4 collects henceforth MUST use
+  --freeze_level. Curriculum auto-advance re-enabled only in Phase 5 when
+  buffer partitioning by task_name is added. Ext-5 quarantined; ext-5b
+  launched with freeze active (run aa08bb4c).
