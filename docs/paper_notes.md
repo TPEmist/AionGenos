@@ -367,6 +367,66 @@ but empirical validation across L0b/L1/L2 is future work.
 
 ---
 
+## 8.5 D11 Distillation Plan (chosen 2026-07-01)
+
+**Approach**: **Rationale-augmented KTO distillation with inference-time
+action-only decoding** (Distilling Step-by-Step, arXiv:2305.02301 +
+KTO, arXiv:2402.01306).
+
+### Training (Stage 4-A → 4-B)
+
+- Target format per sample:
+  ```
+  THOUGHT: <recap_gist derived from teacher's retrieved memory>
+  LEFT_TARGET_POS: X=<int> Y=<int> Z=<int>
+  RIGHT_TARGET_POS: X=<int> Y=<int> Z=<int>
+  STOP: <true|false>
+  ```
+- Stage 4-A: SFT on success ep progress rounds (~1,300 samples projected
+  after D10-ext-5).
+- Stage 4-B: KTO refinement — desirable = success ep progress rounds,
+  undesirable = failure ep progress rounds (~2,700 undesirable projected).
+  LoRA weights learn "this rationale-shaped reasoning + these coords is
+  good; that rationale-shape + those coords is bad."
+
+### Inference — critical distinction
+
+- **Constrained decoding**: sampling terminates at `LEFT_TARGET_POS:` token
+  (or beyond, but rationale phase is bypassed via generation control).
+- Student **never emits** the THOUGHT text at test time. Rationale is
+  purely a training-time auxiliary supervision channel.
+- Expected latency: ~200 ms/round (vs teacher's ~10-15 s), giving the
+  target high-Hz operating regime.
+
+### Why this satisfies the paper claim
+
+The paper claim is:
+> "Valuable episodic memory can be baked into LoRA parameters, enabling a
+> high-frequency, context-window-free student that retains the teacher's
+> memory-derived behavior."
+
+This approach delivers *literally* what the claim says — rationale (memory
+content) is used as auxiliary training-time loss, weights absorb it,
+inference-time output is coord-only. Sharper claim than the original
+Rank 1 proposal (which had student emit rationale at inference).
+
+### Rejected alternatives
+
+- **Rank 1 original** (emit rationale at inference): 5-10× slower than
+  200 ms target — violates "high-frequency" claim. Superseded by 1-B.
+- **On-policy GKD** (Rank 2): correct theoretical antidote to F56/F59
+  compounding error, but needs new online rollout infrastructure
+  (~2-3 weeks). Deferred to Phase 5 or paper follow-up.
+- **OpenVLA-OFT L1 regression on action head** (Rank 3): +20.6% SR on
+  LIBERO reported, but requires touching Gemma-4 output head — complements
+  our claim rather than replaces it. Deferred to Phase 5.
+- **6D rotation representation** (Zhou et al. CVPR 2019): SOTA for
+  rotation but our current task (L0a-Left) is position-only. Premature
+  optimization. Deferred to Phase 5 when curriculum reaches L2+.
+- **Diffusion Policy, π₀ flow-matching, GRPO online RL**: orthogonal or
+  too infra-heavy. All deferred.
+
+
 ## 9. Append-only changelog
 
 - 2026-06-29: D10-ext-2 finished, SR=33%. R1-R4 retrieval patches validated.
@@ -380,4 +440,10 @@ but empirical validation across L0b/L1/L2 is future work.
   pool now n=221, SR=49.3% [42.8, 55.9] with p<10⁻⁵ vs D6. Fix 1/3 ablation
   hardened to p=2.1×10⁻⁵ (n=447 pooled). Phase 4 teacher-side results
   **frozen**. Canonical result sentences added to §1.1 for verbatim
-  paper use. Next: D11 distillation OR extend teacher runs to N=500.
+  paper use.
+- 2026-07-01 later: **D11 approach chosen** — Rationale-augmented KTO with
+  inference-time action-only decoding (§8.5). Rejected: original Rank 1
+  (inference rationale = too slow), on-policy GKD (infra), OpenVLA-OFT
+  L1 head (orthogonal), 6D rotation (premature — L0a is position-only),
+  Diffusion Policy / π₀ / GRPO (infra). D10-ext-5 running (100 ep) to
+  push teacher pool to n≈500 before D11 training.
