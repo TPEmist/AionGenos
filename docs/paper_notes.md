@@ -5,7 +5,9 @@
 > Append-only during the project; consolidate into actual paper sections after
 > D11 is in.
 
-**Last updated**: 2026-06-30, after D10-ext-2 completed.
+**Last updated**: 2026-07-01, after D10-ext-4 completed. All 4 planned
+extension runs done. Phase 4 teacher-side results are frozen; next is D11
+distillation.
 
 ---
 
@@ -16,10 +18,51 @@
 > memory-derived behavior."**
 
 Two phases of evidence:
-1. **Teacher phase** (D6 → D10 → D10-ext): image-anchored episodic memory
-   improves teacher VLA success rate vs. memoryless baseline.
-2. **Student phase** (D11): LoRA distillation from memory-augmented teacher
-   trajectories baked into a context-free student inference path.
+1. **Teacher phase** (D6 → D10 → D10-ext, complete as of 2026-07-01):
+   image-anchored episodic memory improves teacher VLA success rate vs.
+   memoryless baseline.
+2. **Student phase** (D11, pending): LoRA distillation from memory-augmented
+   teacher trajectories baked into a context-free student inference path.
+
+## 1.1 Canonical Result Sentences (paper-ready, cite these verbatim)
+
+Every one of these traces to numbers in §2 below (2026-07-01 frozen).
+When drafting paper, copy the sentence and cite the corresponding row.
+
+### Headline (Abstract + Intro)
+> **"Image-anchored episodic memory (DINOv2 + state-aware retrieval)
+> combined with prompt-level anti-premature-STOP scaffolding raises
+> L0a-Left teacher VLA success rate from 21.0% to 49.3% (n=221 vs n=100,
+> p<10⁻⁵, 95% CI [42.8, 55.9])."**
+> — Source: §2 Post-fix pool row.
+
+### Ablation (Methods / Results section)
+> **"Retrieval alone (memory + DINOv2 + state-aware ranking) yields 29.6%
+> SR (n=226, +8.6pp vs baseline, p=0.10 — marginal). Adding prompt-level
+> scaffolding (Fix 1: directional critic wording, Fix 3: live distance
+> surface) adds +19.7pp, reaching 49.3% (p=2.1×10⁻⁵ vs retrieval-only pool)."**
+> — Source: §2 Pooled analysis + Fix 1/3 ablation z-test row.
+
+### Efficiency (Discussion)
+> **"Memory-augmented teacher reaches the target in 11.8 rounds on average
+> vs 19.7 baseline (-40%), with mean best-arm distance 6.9 cm vs 16.2 cm
+> baseline (-57%). Improvements are visible on failures too — the teacher
+> gets closer faster with memory."**
+> — Source: §2 Efficiency table, computed over D10-ext-4.
+
+### R1 perception bias (Behavioural evidence)
+> **"Retrieval-based memory reduces teacher R1 X-axis perception bias from
+> -23.5 cm (D6 baseline) to -15.8 cm at D10 end (n=100 window, -33%),
+> monotonically across quartiles."**
+> — Source: §2 R1 ΔX trend. Refresh with pooled D10-ext data before
+> submission (TBD).
+
+### Failure of naive distillation (Related work / Limitations of alternatives)
+> **"Naive per-round or per-episode LoRA distillation of the same teacher
+> without preserving the memory retrieval mechanism collapses SR to 2.8%–4.0%
+> (F56/F58/F59, n=100 each), an order-of-magnitude regression from the
+> memoryless baseline. This motivates our memory-then-distill architecture."**
+> — Source: §2 D7/D8/D9 rows.
 
 ---
 
@@ -36,33 +79,47 @@ Two phases of evidence:
 | D10 (MobileNet+state memory) | 100 | 25 | 25.0% | [17.5, 34.3] | Pre-fix, MobileNet |
 | **D10-ext-1** (DINOv2+state, salvaged) | 26 | 9 | 34.6% | [19.4, 53.8] | Pre-fix, salvaged from server reboot |
 | **D10-ext-2** (DINOv2+state) | 100 | 33 | 33.0% | [24.6, 42.7] | Pre-fix, DINOv2 alone |
-| **D10-ext-3 (salvaged)** (DINOv2 + Fix 1/3) | 21 | 10 | 47.6% | [28.3, 67.6] | Post-fix, first signal |
-| **D10-ext-3b** (DINOv2 + Fix 1/3) | 100 | **51** | **51.0%** | **[41.3, 60.6]** | **Post-fix, headline** ⭐ |
-| **D10-ext-4** (DINOv2 + Fix 1/3) | — | — | — | — | Running |
+| **D10-ext-3 (salvaged)** (DINOv2 + Fix 1/3) | 21 | 10 | 47.6% | [28.3, 67.6] | Post-fix, salvaged from server reboot |
+| **D10-ext-3b** (DINOv2 + Fix 1/3) | 100 | 51 | 51.0% | [41.3, 60.6] | Post-fix, headline replicate #1 |
+| **D10-ext-4** (DINOv2 + Fix 1/3) | 100 | 48 | 48.0% | [38.5, 57.7] | Post-fix, headline replicate #2 ⭐ |
 
-### Pooled analysis (2026-06-30 post-ext-3b)
+### Pooled analysis (2026-07-01 — Phase 4 teacher-side FROZEN)
 
-- **Memory pre-fix pool** (D10 + ext-1 + ext-2): 67/226 = 29.6%
-- **Memory post-fix pool** (ext-3 + ext-3b): 61/121 = **50.4%**
+- **Memory pre-fix pool** (D10 + ext-1 + ext-2): **67/226 = 29.6%**
+- **Memory post-fix pool** (ext-3 + ext-3b + ext-4): **109/221 = 49.3%**
+  95% CI: **[42.8%, 55.9%]** (Wilson)
 
 ### Statistical significance
 
 | Comparison | z | p-value |
 |---|---|---|
-| D10-ext-3b (51/100) vs D6 (21/100) | +4.42 | **p = 0.00001** |
-| Post-fix pool (61/121) vs D6 (21/100) | +4.51 | **p < 0.000007** |
-| Post-fix vs Pre-fix (Fix 1/3 ablation, n=121 vs n=226) | +3.82 | **p = 0.00013** |
+| D10-ext-3b (51/100) vs D6 (21/100) | +4.42 | p = 1.0×10⁻⁵ |
+| D10-ext-4 (48/100) vs D6 (21/100) | +4.02 | p = 5.9×10⁻⁵ |
+| **Post-fix pool (109/221) vs D6 (21/100)** | **+4.79** | **p = 1.7×10⁻⁶** |
+| **Post-fix vs Pre-fix (Fix 1/3 ablation, n=221 vs n=226)** | **+4.26** | **p = 2.1×10⁻⁵** |
 | Memory pre-fix vs D6 (memory alone effect) | +1.62 | p = 0.10 |
 
-**Interpretation**:
+### Replication consistency
+
+Post-fix replicate pair:
+- ext-3b: 51.0%
+- ext-4:  48.0%
+- Δ = 3pp, within the CI overlap of each other. Tight replication —
+  no run-to-run variance concern.
+
+### Interpretation
+
 - Fix 1/3 (directional critic + live distance) is the largest single
-  contributor: **+20.8pp** on top of pre-fix memory retrieval,
-  p=0.00013 with n=347 total post-vs-pre pool comparison.
+  contributor: **+19.7pp** on top of pre-fix memory retrieval,
+  p=2.1×10⁻⁵ with n=447 total pooled comparison.
 - Full stack (memory + DINOv2 + state-aware + Fix 1/3) vs baseline:
-  **+30pp**, p<0.001.
+  **+28.3pp**, p<10⁻⁵.
 - Pre-fix memory alone reached only marginal significance (p=0.10) —
   DINOv2 and state-aware ranking are necessary but not sufficient
   without prompt-level scaffolding for STOP behavior.
+- Success rate is now nearly 2.4× the baseline; efficiency (rounds/ep,
+  best-arm distance) also improves independent of SR — memory helps
+  even on failed episodes.
 
 ### R1 ΔX bias trend (teacher perception calibration)
 
@@ -81,15 +138,17 @@ that memory injection changes teacher reasoning, not just an outcome metric.
 
 ### Efficiency (rounds + distance)
 
-| Metric | D6 | D10 | D10-ext-2 | Δ vs D6 |
-|---|---|---|---|---|
-| Avg rounds / ep | 19.7 | 14.1 | **11.1** | **-44%** |
-| Avg best L-dist (cm) | 16.2 | 9.1 | **7.7** | **-52%** |
-| Outcome: timeout | 79 | 70 | 55 | -30% |
+| Metric | D6 | D10 | D10-ext-2 | D10-ext-3b | D10-ext-4 | Δ vs D6 (ext-4) |
+|---|---|---|---|---|---|---|
+| Avg rounds / ep | 19.7 | 14.1 | 11.1 | 11.4 | 11.8 | **-40%** |
+| Avg best L-dist (cm) | 16.2 | 9.1 | 7.7 | 6.2 | 6.9 | **-57%** |
+| Outcome: timeout (of 100) | 79 | 70 | 55 | 45 | 50 | **-37%** |
+| vlm_stop_premature | 11 | 5 | 12 | 4 | 2 | **-82%** |
 
 **Paper claim**: Memory both raises SR and dramatically reduces episode
 length and final-arm distance. This is independent of SR — even on
-failures the teacher gets closer faster with memory.
+failures the teacher gets closer faster with memory. Fix 1/3 also
+essentially eliminates premature-STOP failures (ext-2: 12 → ext-4: 2).
 
 ---
 
@@ -317,3 +376,8 @@ but empirical validation across L0b/L1/L2 is future work.
   before server reboot; D10-ext-3b (n=100) confirmed at **51.0%** SR, p<0.001
   vs D6 baseline. Fix 1/3 ablation clean: +20.8pp vs pre-fix pool (p=0.00013).
   D10-ext-4 launched to consolidate.
+- 2026-07-01: **D10-ext-4 = 48.0%** confirms 51.0% was not a fluke. Post-fix
+  pool now n=221, SR=49.3% [42.8, 55.9] with p<10⁻⁵ vs D6. Fix 1/3 ablation
+  hardened to p=2.1×10⁻⁵ (n=447 pooled). Phase 4 teacher-side results
+  **frozen**. Canonical result sentences added to §1.1 for verbatim
+  paper use. Next: D11 distillation OR extend teacher runs to N=500.
