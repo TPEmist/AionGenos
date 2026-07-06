@@ -271,4 +271,4 @@ plus one extra 50-ep collect for B_matched. Total D11 budget still
 
 **Frozen by**: TPEmist (chat) — signed 2026-07-06 before any adapter
 training dispatches.
-- Amendment commit SHA: **[filled after commit]**
+- Amendment commit SHA: **`fe935e0`**
