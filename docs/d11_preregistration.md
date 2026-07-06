@@ -230,7 +230,7 @@ reasoning-action coherence and eventual outcome. Two-line note for
 Discussion; not a claim in the abstract.
 
 **Frozen by**: TPEmist (chat), 2026-07-06.
-- Amendment 3 commit SHA: **[filled after commit]**
+- Amendment 3 commit SHA: **`2ba693c`**
 
 ---
 
