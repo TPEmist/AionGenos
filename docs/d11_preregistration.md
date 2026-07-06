@@ -169,7 +169,7 @@ prompts, rather than train on noise.
 
 Pre-registration frozen at:
 - File: `docs/d11_preregistration.md`
-- Commit SHA: **[filled after commit]**
+- Commit SHA: **`069586b`**
 - Any subsequent modification requires a signed amendment section
   appended below (never overwrite section 1-10).
 
