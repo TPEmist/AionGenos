@@ -175,6 +175,65 @@ Pre-registration frozen at:
 
 ## 12. Amendment log
 
+### Amendment 3 — 2026-07-06 (still before any adapter trains)
+
+**Asymmetric drop policy on KTO desirable vs undesirable + auto-balance invariant.**
+
+Rationale: Amendment 2's original phrasing was "apply filter symmetrically
+to every rationale-bearing arm". That is wrong for KTO because KTO's
+desirable and undesirable sides teach opposite things:
+
+- **KTO desirable side (SFT-like)**: bad rationale + good outcome is
+  the classic "correct result, wrong reason" leakage — must filter, all
+  three rules apply. `drop_policy=strict`.
+- **KTO undesirable side**: KTO pushes down `(rationale, action)` joint
+  probability. Splitting the 2×2:
+    - good_rat + bad_action → keep ("said right, did wrong — bad pair")
+    - bad_rat + bad_action → keep ("hallucinated + fumbled — bad pair")
+    - **direction-inconsistent rat + bad_action → keep**: these are the
+      most instructive negatives (the model learns "say −X then do +X
+      then fail = don't do this"). Dropping them removes the highest-
+      value negative examples from KTO's reference distribution.
+    - Only vacuous rationale + bad_action → drop, because boilerplate
+      negative teaches nothing specific and occupies KTO reference mass.
+  `drop_policy=vacuity_only`.
+
+Implementation: `--drop_policy asymmetric_kto` on the full mixed KTO
+JSONL applies per-sample policy based on `kto_label` field. Runs in
+30 seconds for the full 2802-sample file.
+
+**Empirical result of running filter on v4_kto_B.jsonl**:
+- Kept 2532 / 2802 = 90.4% overall
+- Desirable side: 722 / 992 = 72.8% kept
+- Undesirable side: 1810 / 1810 = 100.0% kept (no vacuous rationale
+  found in any undesirable sample — all had at least one spatial token)
+- Class ratio (undesirable : desirable) drifted 1.82 → 2.51
+
+**Auto-balance invariant** (must be verified before training):
+`server_side/train_qlora_kto.py` lines 534-543 compute
+`lambda_d = max(n_d, n_u) / n_d` and `lambda_u = max(n_d, n_u) / n_u`
+from `dataset.examples` AFTER JSONL load. Since we pass the
+post-filter JSONL to the trainer, auto-balance will use the drifted
+1:2.51 counts automatically. No manual adjustment needed. This
+invariant is now pinned; any change to when auto-balance is computed
+would break the pre-registered guarantee that filter drift feeds into
+the KTO weighting correctly.
+
+**Free by-product observation** (for Discussion, not a primary test):
+Rule-1 consistency × episode outcome 2×2 on the full KTO pool:
+  - P(inconsistent rationale | success episode) = 25.7%
+  - P(inconsistent rationale | failure episode) = 30.4%
+  - χ² = 6.35, p = 0.012, RR = 1.18
+This says direction-inconsistent rationales are 18% more common in
+failure episodes than success episodes — moderate correlation between
+reasoning-action coherence and eventual outcome. Two-line note for
+Discussion; not a claim in the abstract.
+
+**Frozen by**: TPEmist (chat), 2026-07-06.
+- Amendment 3 commit SHA: **[filled after commit]**
+
+---
+
 ### Amendment 2 — 2026-07-06 (still before any adapter trains)
 
 **Rationale-quality filter downgraded from 12h LLM audit to deterministic
