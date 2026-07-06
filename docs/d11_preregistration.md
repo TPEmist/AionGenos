@@ -275,7 +275,7 @@ Sample presentation:
 statistical test.
 
 **Frozen by**: TPEmist (chat), 2026-07-06.
-- Amendment 2 commit SHA: **[filled after commit]**
+- Amendment 2 commit SHA: **`037e2c8`**
 
 ---
 
