@@ -175,6 +175,110 @@ Pre-registration frozen at:
 
 ## 12. Amendment log
 
+### Amendment 2 — 2026-07-06 (still before any adapter trains)
+
+**Rationale-quality filter downgraded from 12h LLM audit to deterministic
+3-rule filter + blinded human audit for validation.**
+
+Reasons for change:
+- LLM self-audit has known **self-preference bias** — same model grading
+  its own output systematically over-rates.
+- External LLM judge introduces its own validity defense as a paper
+  liability, not just cost.
+- Deterministic rules are pre-registerable in a way LLM prompts aren't
+  (grading-prompt wording sensitivity + threshold arbitrariness both
+  vanish under deterministic rules).
+
+**Three deterministic filter rules** (applied symmetrically to every arm
+with rationale — B_main gist, A_ctrl_rat's D6 native thought, and B_matched):
+
+**Rule 1 — Direction consistency**
+For each of X, Y, Z axes:
+  1. Parse spatial claim from rationale text: extract phrases like
+     "move in negative X", "increase Y", "shift left", "closer forward",
+     etc. Map to sign of intended ΔEE on that axis.
+  2. Compute observed ΔEE on that axis (predicted target − init pose).
+  3. Apply **dead-band** = `CRITIC_PROGRESS_DEAD_BAND_CM = 1.0 cm`
+     (reused from stage3_critic — no new hyperparam). Axes with
+     |ΔEE| < dead-band produce no direction judgment (noise floor).
+  4. If any axis has a stated direction AND |ΔEE| ≥ dead-band on that
+     axis AND signs disagree → sample rejected as "direction inconsistent".
+
+**Rule 2 — GT geometric consistency**
+The replay schema stores ground-truth cube positions (available in
+trajectory[t].distances plus the goal_pose extractable from the scene).
+Using GT for offline curation is legal — the observable-only invariant
+governs model inputs, not data-curation oracles. Student never sees GT.
+  1. For every parseable directional claim about the cube ("cube is to
+     the left of EE", "cube is further forward"), compute the same
+     claim from GT.
+  2. If the rationale's claimed sign disagrees with the GT-derived sign
+     on any axis where the claim was parseable → sample rejected as
+     "spatial claim contradicts geometry".
+
+**Rule 3 — Vacuity check**
+The rationale MUST contain at least one parseable spatial token from
+one of these categories:
+  - An axis name mentioned with sign or direction: `X`, `Y`, `Z`,
+    `left`, `right`, `forward`, `back`, `up`, `down`
+  - A distance value with a unit: e.g. `5 cm`, `10cm`, `20 grid units`
+  - A named landmark with a directional preposition: `left of the
+    cube`, `above the target`
+
+If a rationale contains none of these, it's boilerplate ("be careful
+and precise", "trust the visual cues") → rejected as "vacuous".
+
+**Reporting requirements** (mandatory in paper):
+  - Drop rate per rule per arm, side-by-side.
+  - If B_main and A_ctrl_rat differ substantially in drop rate, that
+    itself is an observation worth reporting (memory-derived rationale
+    might be higher-quality on average — informative regardless of
+    which direction).
+
+**Scope narrowing**: Rule filter applied to the ~992 desirable (SFT)
+samples first. KTO undesirable samples (~1810) are directionally
+harmless if noisy — they teach the model what "bad" looks like, and
+noise in that pool degrades gracefully. Filter them second if time
+permits, but they are not blocking.
+
+**Blinded human audit (50-100 samples, stratified)**:
+Purpose: **validate the deterministic filter itself** — not audit rationale
+directly. Produces a paper-defensible number ("deterministic filter and
+human agreement rate = X%") which either:
+  - ≥85% agreement → skip LLM judge, filter is validated as method
+  - <85% → run LLM judge only on the human-vs-filter disagreement
+    subset (a few hundred samples, not 3794)
+
+Stratification: sampled evenly across
+  - success ep vs failure ep (2 strata)
+  - early ep vs late ep in each collect run (2 strata)
+So 4 buckets × 12-25 samples each = 50-100 total.
+
+Sample presentation:
+  - Shuffled order, arm labels stripped
+  - Human sees: (image_path, state, rationale text, chosen action)
+  - Human labels: {clearly good, clearly bad, borderline}
+  - Compare against filter's {pass, drop} decision
+  - Agreement rate = fraction where human "clearly good" ↔ filter "pass"
+    (borderline is excluded from denominator; also reported separately)
+
+**Deliverables**:
+1. `scripts/training/filter_rationale_deterministic.py` — the 3 rules,
+   parses each sample, emits `{keep: bool, reject_reason: str|None}`.
+2. `scripts/training/audit_gui.py` — a minimal CLI GUI (or Streamlit)
+   for the 50-100-sample blinded audit. Prints image + rationale + action,
+   accepts 1/2/3 keypress for good/bad/borderline, saves to CSV.
+3. Post-audit report emitted from raw CSV: filter-vs-human confusion matrix
+   + agreement rate + per-stratum breakdown.
+
+**α allocation unchanged** — filter is a data-curation step, not a
+statistical test.
+
+**Frozen by**: TPEmist (chat), 2026-07-06.
+- Amendment 2 commit SHA: **[filled after commit]**
+
+---
+
 ### Amendment 1 — 2026-07-06 (before any adapter trains, still pre-hoc)
 
 Two changes forced by adversarial review, both tighten the claim:
