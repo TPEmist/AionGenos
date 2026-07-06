@@ -175,4 +175,100 @@ Pre-registration frozen at:
 
 ## 12. Amendment log
 
-*(none yet)*
+### Amendment 1 — 2026-07-06 (before any adapter trains, still pre-hoc)
+
+Two changes forced by adversarial review, both tighten the claim:
+
+**Change 1: A_ctrl_rat rationale source**
+
+Original v1 §2 specified A_ctrl_rat as "D6 trajectory + fresh-retrieval
+rationale synthesized from current buffer". That design has a fatal
+counterfactual problem:
+
+- The D6 actions were produced by a teacher that had NEVER seen the
+  retrieved lessons.
+- Pairing those actions with post-hoc-generated rationales trains the
+  student on a `(rationale R, action A)` pairing where A was not caused
+  by R.
+- The comparison then measures neither "rationale presence" nor
+  "rationale content" — it measures noise from an impossible causal
+  configuration.
+
+Amended source: **use D6's own native Stage-1 THOUGHT block**, which
+the replay schema already stores per interaction. That THOUGHT was
+what the D6 teacher actually reasoned to produce that action — the
+causal chain is intact. Truncate to ≤100 words to match the length
+distribution of B_main's recap-gist prefix, so token-budget cannot
+become the confounder.
+
+New arm definitions (replacing §2 table for these two rows):
+
+| Arm | Adapter | Training data | Purpose |
+|---|---|---|---|
+| A_ctrl     | v4-ctrl     | D6 success progress rounds, **action-only target** (no THOUGHT block) | Baseline distillation on memoryless teacher, no rationale slot |
+| A_ctrl_rat | v4-ctrl-rat | D6 success progress rounds, **THOUGHT = D6's own native Stage-1 reasoning, ≤100 words** | Pure "Distilling Step-by-Step" effect — rationale exists, but it's memory-free rationale from memory-free teacher |
+
+Interpretation ladder now clean:
+- `A_ctrl_rat − A_ctrl` = pure rationale-as-auxiliary-supervision effect
+  (isolates the arXiv:2305.02301 mechanism from memory content)
+- `B_main − A_ctrl_rat` = memory-derived content + memory-shaped trajectory
+  quality effect
+
+This closes the reviewer objection: "your gain is just rationale-augmented
+distillation, not memory." Without A_ctrl_rat in this form, T1 passing
+does not defend that objection.
+
+**Change 2: Sample-count confounder — add B_matched arm**
+
+Original v1 had A_ctrl (n=158) vs B_main (n=992). If T1 passes, the
+predictable second objection is "you trained on 6× more data, of course
+the student is better."
+
+New secondary arm: **B_matched** — random-sampled 158 rounds from
+B_main's success-progress pool, same target format (rationale prefix +
+action). Trained with same recipe as A_ctrl / A_ctrl_rat. Evaluated
+at 50 ep (compressed budget to stay under wall-clock cap) as a
+secondary comparison against A_ctrl_rat.
+
+Claim upgrade path:
+- If B_matched > A_ctrl_rat at similar n: "memory-augmented trajectories
+  give more effective supervision per sample, independent of sample count"
+  — a stronger claim than "more data helps."
+- If B_matched ≈ A_ctrl_rat but B_main > A_ctrl_rat: "the gain is in the
+  volume of memory-derived samples; per-sample effect is modest" —
+  weaker but honest.
+
+**α reallocation** (non-uniform Bonferroni):
+Instead of 4 tests at α=0.0125 each, reallocate to preserve power on T1:
+- T1 (B_main vs A_ctrl):          α = 0.020
+- T1a (B_main vs A_ctrl_rat):     α = 0.010
+- T3 (B_main ≥ 0.7 × mem-teacher): α = 0.010
+- T4 (C_retrieval vs B_main):      α = 0.010
+- Secondary (B_matched vs A_ctrl_rat, 50 ep): α = 0.010
+
+Family-wise α = 0.06 (was 0.05); we accept the slight over-spend for
+extra secondary evidence rather than power-loss on T1.
+
+**R1 ΔX probe prediction updated (three-way fingerprint)**:
+
+- A_ctrl:      predicted R1 ΔX ≈ −24 cm (D6-like, no memory content)
+- A_ctrl_rat:  predicted R1 ΔX ≈ −24 cm (D6-like — rationale format
+                without memory content should not shift bias)
+- B_main:      predicted R1 ΔX ≈ −16 cm (memory-shifted, matches D10-ext
+                terminal quartile)
+- B_matched:   predicted R1 ΔX ≈ −18 to −20 cm (partial shift, small n)
+
+If A_ctrl_rat's R1 ΔX also moves toward −16, the interpretation flips:
+"the bias correction comes from the rationale format itself, not from
+memory content." That would be a legitimate scientific outcome, not a
+failure — a well-designed control gives interpretable results in both
+directions.
+
+**Cost delta**: −16h (removed fresh-retrieval generation for old
+A_ctrl_rat) + 6.5h (B_matched training + 50 ep collect) = net −9.5 hr,
+plus one extra 50-ep collect for B_matched. Total D11 budget still
+~45h.
+
+**Frozen by**: TPEmist (chat) — signed 2026-07-06 before any adapter
+training dispatches.
+- Amendment commit SHA: **[filled after commit]**
