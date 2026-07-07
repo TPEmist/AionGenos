@@ -175,6 +175,192 @@ Pre-registration frozen at:
 
 ## 12. Amendment log
 
+### Amendment 5 — 2026-07-07 (still before any adapter trains)
+
+Amendment 5 lands three items, all responses to the targeted 13-sample
+re-audit that Amendment 4 requested. That audit produced two clean
+signals and exposed one methodological hole; Amendment 5 addresses
+each in isolation and pins the resulting v4 filter.
+
+#### 5.1 Rule 2 — demoted from drop-rule to advisory flag
+
+The 8-sample Rule-2-drop cell of the targeted re-audit produced 0/8
+agreement (all human labels: clearly good). Two independent causes
+combine:
+
+**Cause 1**: Rule 2 checks whether the rationale's spatial claim
+about the cube matches ground-truth cube position. This is a
+**correctness** check. Amendment 3 pinned the filter's audit
+dimension as **coherence** (rationale ↔ action consistency).
+Applying a correctness-based rule under a coherence-labeled audit
+guarantees near-zero agreement — the criteria measure orthogonal
+axes. The disagreement is definitional, not a Rule-2 failure.
+
+**Cause 2**: Even by its own criterion, Rule 2's precision is
+unknown post-audit. The 45 "GT contradict" desirable drops include
+samples where the teacher used axis-name confusion ("Y is height")
+in the natural-language description but generated a mostly-correct
+action. Dropping those samples throws away instances that may
+carry the linguistic signature of the R1-ΔX bias mechanism itself
+— a diagnostic asset, not a training-time contaminant.
+
+**Decision**: Rule 2 is **demoted to advisory flag**. Samples with
+`rule_2_gt == "contradicts_gt"` are retained in the training set
+but tagged with a `rule2_flag` field for post-hoc analysis. Rule 2
+is not the drop authority.
+
+**Follow-up analysis (planned, not blocking training)**:
+The 45 flagged desirable samples will be analyzed for:
+  (a) Which axis's spatial claim contradicts GT (x/y/z distribution)
+  (b) Whether the axis-error sign is consistent (e.g. "always claims
+      Y direction wrong" vs "randomly wrong across axes")
+  (c) Whether Rule-2-flagged samples cluster with success or failure
+      episodes (implicating rationale-vs-execution decoupling)
+
+If (a) and (b) show a consistent bias — e.g. "the teacher's
+natural-language X-axis semantics are systematically inverted"
+— this becomes a mechanistic finding attachable to the R1-ΔX
+bias probe (§5 of pre-registration §5). "A failed filter rule
+became a diagnostic tool for teacher's language–action decoupling"
+is a stronger paper contribution than "the filter dropped 45
+samples." Analysis script skeleton at
+`scripts/training/analyze_rule2_flags.py` — will run after
+Amendment 5 lands.
+
+#### 5.2 Composite agreement rate — rejected as circular
+
+The temptation to combine v2's 74.5% with amendment-4's 100%
+flip-to-keep and 100% (post-Rule-2-demotion) Rule-2-drop cells to
+report "composite 80% agreement" fails on two grounds:
+
+**Ground 1 (circularity)**: The 8 Rule-2 drops from the
+amendment-4 audit were what *motivated* the demotion of Rule 2.
+Using them again as agreement-rate evidence for the modified
+filter is textbook circular validation.
+
+**Ground 2 (sampling probability mismatch)**: The v2 sample is
+stratified-random from 2802 rows across four cells. The
+amendment-4 sample is targeted uniform from ~200 rows split
+across two cells. Concatenating them and dividing by 60 is
+combining two incompatible sampling schemes. The result has no
+frequentist interpretation.
+
+**Decision**: Do NOT report a composite agreement rate. Report
+each audit stratum separately:
+  - v2 audit (stratified, n=60, coherence definition):
+      Overall: 74.5%
+      Per-stratum breakdown reported in audit_report.md
+  - Amendment 4 targeted audit (n=13):
+      Flip-to-keep cell: 5/5 = 100% (validates Rule 1 fix)
+      Rule-2-drops cell: 0/8 (motivates Rule 2 demotion — do not
+      count toward filter validation)
+  - Amendment 5 residual audit (n=15, planned): validates the
+      v4 filter's actual drop surface (66 R1-only drops on
+      desirable side).
+
+Each audit answers a scoped question. There is no single-number
+"filter validation score."
+
+#### 5.3 LLM-judge escalation — closed via risk-asymmetry argument
+
+Amendment 2 set a rule: agreement <85% → escalate to LLM judge.
+v2 came in at 74.5%, mechanically triggering it. Amendment 4
+tabled the escalation pending targeted re-audit. Amendment 5
+closes escalation entirely on the following principled ground:
+
+**The two error types have asymmetric cost.**
+
+- **False negative** (filter dropped a clearly-good sample):
+  cost = one training row lost. On the desirable side, worst-case
+  = 66/992 = 6.7% desirable data loss. The upper bound is small
+  and computable; the actual bound is what Amendment 5's residual
+  audit measures.
+- **False positive** (filter kept a clearly-bad sample):
+  cost = training on `(bad rationale, action)` corrupts the
+  student's rationale channel. The v2 keep-precision was 35/37
+  = 94.6% (2 FPs of 37 clearly-labeled keeps). Post-Amendment-4
+  R1 fix strictly reduces the keep set (Amendment-4 flipped
+  drops→keeps, not keeps→drops), so keep-precision is bounded
+  BELOW by 94.6% and likely higher.
+
+LLM judge can at most recover the ≤66 R1-only drops. Even if all
+66 were false negatives (extreme upper bound), the recovered
+gain is 6.7% of desirable rows. The cost — 12h teacher-hours,
+LLM-judge validity as a new methodology defense — exceeds this
+capped upside.
+
+**Formal closure**: The Amendment-2 LLM-judge escalation is
+closed *conditional on Amendment 5's residual audit not
+revealing a disaster case* (defined below). If the audit shows
+Rule 1 fixed drops are majority-clearly-good, filter is
+declared "conservative but not corrupting" in the paper
+limitations. If the audit shows Rule 1 drops are majority-
+clearly-bad, no action required — filter is doing its job.
+
+**Disaster case (would trigger LLM judge revival)**: If
+Amendment 5's residual audit shows the R1-drop cell has
+agreement 20-45% (like the v2 success×inconsistent stratum),
+this indicates the Rule 1 fix left another systematic error
+in place. In that event, LLM-judge escalation on the residual
+disagreements is triggered — this is the same principle as
+Amendment 4's targeted fix (localize the bug, then re-audit).
+
+#### 5.4 Amendment 5 residual audit — 15 samples from the v4 drop surface
+
+The single unaudited region: the 66 desirable samples that the
+Rule-1-fixed filter drops. Amendment-5's residual audit samples
+15 uniformly at random (seed=44, distinct from earlier audits),
+excluding any samples already in previous manifests.
+
+**Manifest**: `workspace/d11_audit/manifest_amendment5_residual.json`
+**Output**: `workspace/d11_audit/human_labels_amendment5.csv`
+
+This closes the coverage gap.
+
+#### 5.5 Rule 3 (vacuity) — restraint on paper narrative
+
+Rule 3 fired 0/2802 times. Amendment-5 draft narrative had
+"teacher rationales are always spatially specific" — this is
+overclaimed. The Stage-1 output format enforces a `LEFT_TARGET_POS
+: X=... Y=... Z=...` line, and the recap-gist prefix format
+guarantees per-lesson metadata lines. Both introduce spatial
+tokens by structural requirement. Rule 3 tests a boilerplate
+class that our output format makes structurally impossible.
+
+**Paper-safe wording**: "The output format guarantees at least one
+spatial token per sample; Rule 3 therefore fires zero times.
+This is a property of the schema, not evidence that teacher
+rationales are semantically grounded."
+
+Before that sentence lands in paper, 10 rationale spot-checks
+will verify the spatial tokens carry semantic content (not just
+schema fill). Deferred to paper-drafting phase, not blocking
+training.
+
+#### 5.6 Final v4 filter — pinned counts for training
+
+Applying Rule 1 (fixed, Amendment 4) + Rule 3 (vacuity) as
+drop-rules, with Rule 2 as flag:
+
+- Total kept: **2736 / 2802 = 97.6%**
+- Desirable kept: **926 / 992 = 93.3%**
+- Undesirable kept: **1810 / 1810 = 100.0%**
+- KTO ratio drift: 1.82 → 1.95
+
+`train_qlora_kto.py --auto-balance` reads lambdas from post-load
+`dataset.examples` counts; the final n=926/1810 feed in
+automatically. Amendment-3's auto-balance invariant remains.
+
+**These counts are locked**. No further filter iteration before
+training. Amendment 5's residual audit (§5.4) is data-collection,
+not filter-modification — its outcome informs paper limitations
+wording, not the training set.
+
+**Frozen by**: TPEmist (chat), 2026-07-07.
+- Amendment 5 commit SHA: **[filled after commit]**
+
+---
+
 ### Amendment 4 — 2026-07-07 (still before any adapter trains)
 
 **Rule 1 past-tense-reference fix + audit interpretation correction +

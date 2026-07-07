@@ -444,13 +444,16 @@ def apply_filter(
     r2_out, r2_debug = rule_2_gt_geometry(own, init_left, gt_cube)
     r3_out, r3_debug = rule_3_vacuity(own)
 
+    # Amendment 5 (2026-07-07): Rule 2 (GT contradict) demoted from
+    # drop-authority to advisory flag. The 8-sample audit of Rule 2
+    # drops showed 0/8 agreement because Rule 2 checks correctness while
+    # the pinned audit dimension is coherence. Samples flagged by
+    # Rule 2 are retained in training data with rule2_flag=True.
     reject_reason = None
     if r3_out == "vacuous_no_spatial_token":
         reject_reason = "vacuous"
     elif drop_policy == "strict":
-        if r2_out == "contradicts_gt":
-            reject_reason = f"gt_contradiction:{r2_debug.get('axis','?')}"
-        elif r1_out == "inconsistent":
+        if r1_out == "inconsistent":
             axes = r1_debug.get("axes") or [r1_debug.get("axis", "?")]
             reject_reason = f"direction_inconsistent:{','.join(axes)}"
 
@@ -649,7 +652,13 @@ def main() -> None:
 
             if v.keep:
                 n_pass += 1
-                out_fp.write(json.dumps(s) + "\n")
+                # Amendment 5: attach rule2_flag so Rule-2-flagged samples
+                # remain identifiable in the training set for the
+                # planned post-hoc "GT-contradict analysis" tied to the
+                # R1-ΔX bias probe.
+                s_out = dict(s)
+                s_out["rule2_flag"] = (v.rule_2_gt == "contradicts_gt")
+                out_fp.write(json.dumps(s_out) + "\n")
             else:
                 reason_counter[v.reject_reason or "unknown"] += 1
             writer.writerow([
