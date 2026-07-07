@@ -291,7 +291,7 @@ Numbers to cite in paper (corrected from Amendment 3):
   the tightening happens on 890/992 = 89.7% of desirable.
 
 **Frozen by**: TPEmist (chat), 2026-07-07.
-- Amendment 4 commit SHA: **[filled after commit]**
+- Amendment 4 commit SHA: **`e2d7c41`**
 
 ---
 
