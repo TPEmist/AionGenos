@@ -357,7 +357,7 @@ not filter-modification — its outcome informs paper limitations
 wording, not the training set.
 
 **Frozen by**: TPEmist (chat), 2026-07-07.
-- Amendment 5 commit SHA: **[filled after commit]**
+- Amendment 5 commit SHA: **`6a29103`**
 
 ---
 
