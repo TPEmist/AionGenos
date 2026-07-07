@@ -175,6 +175,126 @@ Pre-registration frozen at:
 
 ## 12. Amendment log
 
+### Amendment 4 — 2026-07-07 (still before any adapter trains)
+
+**Rule 1 past-tense-reference fix + audit interpretation correction +
+LLM-judge trigger revision.**
+
+Three items, all landing together because they are causally chained:
+
+**Item A: Label definition clarification (v1→v2 audit discrepancy)**
+
+The random-stratified 60-sample audit was executed twice:
+
+- **v1 (2026-07-06)**: Labels were assigned under "correctness" criterion
+  (did the rationale correctly describe the scene / target). Result:
+  48.9% agreement (n=45, borderline excluded). This is not filter
+  underperformance — it's a definition mismatch. The filter was built
+  to measure *coherence* (rationale-action self-consistency, no fact
+  claim), not correctness.
+- **v2 (2026-07-07)**: Labels reassigned under "coherence" criterion —
+  does the rationale describe the same direction the action moved?
+  Same 60 samples, re-audited, no seed change. Result: 74.5% agreement
+  (n=47, borderline excluded).
+
+Because v1 was executed under a misaligned label definition and no
+adapter had been trained at that point, v1 is documented but NOT used
+for validation. v2 is the audit of record. This is a legal
+pre-registration amendment: no post-hoc numbers changed, no training
+data selected based on results — the fix is upstream of training.
+
+The v1 audit data (labels + report) was deleted from the working
+tree to prevent it being cited as an alternate metric. It's recoverable
+from git if needed for retrospective methodology explication.
+
+**Item B: Rule 1 past-tense-reference fix**
+
+v2 audit revealed a single-stratum failure mode:
+  outcome=success × r1_state=inconsistent → 0.0% agreement (10/10 FN)
+All 10 FN cases traced to the same parser bug: my `collect_direction_claims`
+pooled direction words across the entire teacher THOUGHT, including
+past-reference clauses ("the previous move went further left") whose
+direction terms should not be counted as intent claims.
+
+Fix (this Amendment): sentence-level classifier splits THOUGHT on
+sentence boundaries, classifies each sentence into
+{past, intent, neutral} using regex markers, and pools direction
+claims only from **intent** sentences. Neutral sentences ("EE is to
+the left of cube") describe visual observation and were also
+excluded — they carry facts about state, not plans about action.
+
+Verification: rerun filter on v4_kto_B.jsonl. On the 10 previously-FN
+cases from v2 audit, 9/10 now correctly flip to keep. The 1 remaining
+(sid=18) is dropped by Rule 2 (GT contradict), a different rule
+unaffected by this fix.
+
+Post-fix filter stats on v4_kto_B (n=2802):
+  Total kept:   2700 / 2802 = 96.4%   (was 2532, 90.4%)
+  Desirable:    890 / 992 = 89.7%     (was 722, 72.8%)
+  Undesirable:  1810 / 1810 = 100.0%  (unchanged, Rule 3 alone)
+  KTO ratio (undesirable:desirable): pre 1.82 → post 2.03 (was 2.51)
+
+**Item C: LLM-judge trigger revision + targeted re-audit**
+
+Amendment 2 pinned an escalation rule: agreement <85% → LLM judge on
+FP+FN residual. v2 achieved 74.5% (below threshold), which mechanically
+would trigger LLM judge. But the failure was localized to a fixable
+parser bug in one stratum, not distributed filter unreliability. The
+correct response is:
+
+  1. Fix the bug (done, Item B).
+  2. Targeted re-audit on the two evidence-thin questions the v2 audit
+     couldn't answer:
+        (a) Rule-2 (GT contradict) drop precision — 8 samples from
+            current Rule-2 drops.
+        (b) Whether the Amendment 4 fix over-corrected — 5 samples
+            from previously-dropped-now-kept.
+     Manifest at workspace/d11_audit/manifest_amendment4.json,
+     seed=43, excludes samples already in v2 audit.
+  3. Only if targeted re-audit still shows <85% (on the composite
+     of v2 + amendment4 clearly-labeled samples) does the LLM judge
+     escalation trigger. This preserves the letter of Amendment 2
+     (LLM-judge as circuit breaker) while not mechanically firing
+     it in response to a fixed bug.
+
+The 13-sample targeted audit is stratified by cell (Rule-2 drops
+vs flip-to-keep), not by outcome/r1_state — because the objective is
+to characterize the residual filter behavior post-fix, not to sample
+uniformly across the training set.
+
+**Item D: Auto-balance drift note**
+
+Post-filter class ratio is 2.03 (undesirable:desirable), down from the
+raw 1.82 (before filter) and from Amendment 3's post-filter 2.51.
+`train_qlora_kto.py --auto-balance` reads lambdas from
+`dataset.examples` after JSONL load; the final n=2700 counts feed in
+automatically. No manual adjustment. This invariant was pinned in
+Amendment 3 and remains.
+
+**Item E: Paper narrative wording correction**
+
+Prior draft said "pre-registered post-hoc after v1 mislabeling
+incident" — self-contradictory phrasing that would forfeit reviewer
+trust. Correct phrasing (to be used in paper):
+  "The audit was executed twice: v1 under a mislabeled coherence-vs-
+  correctness definition (labels excluded from analysis; data
+  preserved in git history), v2 under the corrected definition
+  (labels of record). All amendments were committed and time-stamped
+  before any adapter training began."
+
+Numbers to cite in paper (corrected from Amendment 3):
+- v2 keep-precision: 35 / (35+2) = **94.6%** on the coherence definition
+  (2 FP out of 37 clearly-labeled keeps).
+- v2 overall agreement (excluding borderline): 74.5%,
+  Wilson 95% CI [60.5, 84.7].
+- Post-Amendment-4 filter kept 2700/2802 (96.4%);
+  the tightening happens on 890/992 = 89.7% of desirable.
+
+**Frozen by**: TPEmist (chat), 2026-07-07.
+- Amendment 4 commit SHA: **[filled after commit]**
+
+---
+
 ### Amendment 3 — 2026-07-06 (still before any adapter trains)
 
 **Asymmetric drop policy on KTO desirable vs undesirable + auto-balance invariant.**

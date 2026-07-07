@@ -157,21 +157,97 @@ def parse_action_target(own_thought: str) -> Optional[dict]:
     return {"left": left, "right": right}
 
 
+# Sentence classifier — past reference vs current intent vs neutral.
+#
+# Rationale: Rule 1 v1 pooled all direction words across the whole thought,
+# causing false positives when the teacher references past actions
+# ("The previous move went further left — I need to shift right"). The
+# audit v2 exposed this: success × inconsistent stratum agreement = 0%,
+# all 10 FN cases traced to past-reference direction words polluting the
+# claimed-signs set. Amendment 4 (2026-07-07): only extract direction
+# claims from sentences classified as current-intent OR neutral. Past-
+# reference sentences are excluded from the sign pool.
+_PAST_REF_MARKERS = re.compile(
+    r"\b("
+    r"previous(?:ly)?|last (?:round|move|step)|"
+    r"regression|resulted (?:in|from)|caused a regression|"
+    r"moved too|overshot|landed at|had moved|had been|"
+    r"went (?:too|further)|used to be|was (?:too )?(?:far|close)|"
+    r"trend(?:s|ed)? (?:show|toward)|indicate[ds]?|suggest(?:ed|s)? (?:that )?"
+    r")\b",
+    re.IGNORECASE,
+)
+
+_INTENT_MARKERS = re.compile(
+    r"\b("
+    r"I (?:will|need to|should|must|plan to|intend to|would|am going to)|"
+    r"(?:will|to) (?:target|move|adjust|shift|pull|nudge|push|lift|lower|raise|"
+    r"decrease|increase|reduce|maintain|keep|correct|close|reach|align|"
+    r"try|attempt|reposition|approach|continue|reverse|change|apply|make|"
+    r"place|drive|command|set|update|hold|steer|guide)|"
+    r"(?:in order|so as) to|to (?:correct|close|reach|fix|address|avoid)|"
+    r"the (?:next|proposed|new) (?:target|move|position|action)|"
+    r"my (?:new|next|proposed) (?:target|action|move|plan)"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
+def classify_sentence(sent: str) -> str:
+    """Return 'past', 'intent', or 'neutral'.
+
+    A sentence is 'past' if it matches _PAST_REF_MARKERS AND does NOT
+    match _INTENT_MARKERS. This handles compound sentences like
+    "the previous move regressed, so I will shift right" — those get
+    classified as intent (they carry current plan info even if they
+    also reference the past).
+    """
+    has_intent = bool(_INTENT_MARKERS.search(sent))
+    if has_intent:
+        return "intent"
+    if _PAST_REF_MARKERS.search(sent):
+        return "past"
+    return "neutral"
+
+
+def _split_sentences(text: str) -> list[str]:
+    """Split thought text into sentences. Naive but adequate — the model's
+    output is bounded, structured English."""
+    # Split on sentence-ending punctuation followed by space/newline.
+    parts = re.split(r"(?<=[.!?])\s+", text)
+    return [p.strip() for p in parts if p.strip()]
+
+
 def collect_direction_claims(own_thought: str) -> list[tuple[str, int, str]]:
-    """Return list of (axis, sign, matched_phrase) from the thought text."""
-    text_lower = own_thought.lower()
+    """Return list of (axis, sign, matched_phrase) from current-intent
+    sentences only. Past-reference and neutral sentences are excluded.
+
+    Amendment 4 v2 (2026-07-07): neutral sentences also excluded.
+    Rationale: neutral sentences typically describe visual observation
+    ("EE is to the left of cube") which is a fact about the current
+    state, not a claim about which direction the action will move.
+    Pooling those direction words with intent-declared directions
+    caused Rule 1 to see "both signs claimed" and mis-flag as
+    inconsistent. Intent-only extraction fixes 4 of 10 audit FN cases
+    directly and further audit will show whether it's enough.
+    """
     hits: list[tuple[str, int, str]] = []
-    for phrase, (axis, sign) in _DIRECTION_TERMS.items():
-        # naive substring but word-boundary at the ends
-        # (e.g. "left" shouldn't fire inside "leftmost")
-        # Only apply word-boundary to alphabetic terms.
-        if phrase.replace(" ", "").isalpha() and len(phrase) < 15:
-            pat = re.compile(r"\b" + re.escape(phrase) + r"\b", re.IGNORECASE)
-            if pat.search(text_lower):
-                hits.append((axis, sign, phrase))
-        else:
-            if phrase in text_lower:
-                hits.append((axis, sign, phrase))
+    for sent in _split_sentences(own_thought):
+        cls = classify_sentence(sent)
+        if cls != "intent":
+            continue
+        text_lower = sent.lower()
+        for phrase, (axis, sign) in _DIRECTION_TERMS.items():
+            # naive substring but word-boundary at the ends
+            # (e.g. "left" shouldn't fire inside "leftmost")
+            # Only apply word-boundary to alphabetic terms.
+            if phrase.replace(" ", "").isalpha() and len(phrase) < 15:
+                pat = re.compile(r"\b" + re.escape(phrase) + r"\b", re.IGNORECASE)
+                if pat.search(text_lower):
+                    hits.append((axis, sign, phrase))
+            else:
+                if phrase in text_lower:
+                    hits.append((axis, sign, phrase))
     return hits
 
 
