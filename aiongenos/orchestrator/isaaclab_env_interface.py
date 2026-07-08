@@ -80,8 +80,13 @@ class IsaacLabEnvInterface:
         """Reset environment, return initial state dict.
 
         Amendment 7 §7.7 / Amendment 10 §10.4 (item 7): when ``seed`` is
-        provided, forward it to ``env.reset(seed=...)`` so all D11 eval
-        arms replay the same initial pose sequence.
+        provided, forward it to ``env.reset(seed=...)`` **and** also seed
+        torch / numpy / Python-random. Gymnasium's ``reset(seed=)`` is
+        supposed to be sufficient, but IsaacLab's randomization event
+        terms sometimes draw from torch's global RNG rather than the
+        env's private one — belt-and-braces here is cheap and closes the
+        smoke-test hole preemptively. Determinism is verified by
+        ``scripts/diagnostics/check_env_seed_determinism.py``.
 
         After ``env.reset()`` Isaac Lab's CommandManager has not yet resampled
         a new target — querying it returns the (0, 0, 0) sentinel. We need to
@@ -97,7 +102,16 @@ class IsaacLabEnvInterface:
         Fix: feed the *current* EE pose as the action so the IK target equals
         the current state, leaving joints undisturbed.
         """
-        obs, info = self.env.reset(seed=seed) if seed is not None else self.env.reset()
+        if seed is not None:
+            import random as _random
+            _random.seed(seed)
+            np.random.seed(seed)
+            torch.manual_seed(seed)
+            if torch.cuda.is_available():
+                torch.cuda.manual_seed_all(seed)
+            obs, info = self.env.reset(seed=seed)
+        else:
+            obs, info = self.env.reset()
 
         try:
             action_shape = self.env.action_space.shape
