@@ -175,6 +175,131 @@ Pre-registration frozen at:
 
 ## 12. Amendment log
 
+### Amendment 12 — 2026-07-08 (still before any adapter trains) — Canonical training-set naming, D_gist eval-slot fix, SHA gate timing, driver robustness
+
+**Status**: LOCKED — filed before any D11 arm training was launched.
+**Date**: 2026-07-08
+**Supersedes**: file-name mentions in §8.6 (`v_final_kto_A_ctrl`,
+`v_final_kto_B_v2`, `v_final_sft_A_v2`) — see §12.1 for canonical
+successors. Also supersedes Amendment 11 §11.3's SHA gate wiring
+(inline in `check_prereq`) — moved to a post-Step-2 gate per §12.1.
+**Iron rule check**: no adapter training has consumed any of the four
+2×2 target files at time of filing. ✅
+
+Motivation. Dry-run review of `run_d11_pipeline.sh` after Amendment
+11 surfaced four latent hazards that would have wasted 30 hours of
+D11 compute:
+
+- Filename convention drifted between `check_prereq` (verified
+  `v_final_kto_${arm}`) and `Step 2` (generated
+  `v_final_kto_B_${arm}` with a redundant "B_" prefix). Result: the
+  SHA gate validated a stale fallback file and the actual training
+  input passed through ungated.
+- D_gist's `--eval_template_variant` was set to `rationale_with_gist`,
+  but its training targets contained no `INTRINSIC_RATIONALE:` slot.
+  The eval prompt would have asked the model to emit a slot it had
+  never learned — a third-generation instance of the train/eval
+  format mismatch class the whole D11 rewrite exists to prevent.
+- Step labels changed from integers to `"2.A_ctrl_rat.sft"` strings
+  for per-arm nesting, but `--skip N` still integer-compared against
+  the string, breaking mid-pipeline resume — which the server-reboot
+  history means we WILL need.
+- Readonly gate on the C_retrieval buffer counted files; a same-count
+  overwrite (recap of a new episode replacing a byte-identical name)
+  would slip through undetected.
+
+#### 12.1 Canonical filenames + post-Step-2 SHA gate
+
+All training-set files use the pattern
+
+```
+${TRAINING_SETS_DIR}/v_final_{sft,kto}_${arm}.jsonl
+```
+
+with `arm ∈ {A_action_only, A_ctrl_rat, B_main, D_gist}`. No `_v2`,
+`_A_`, `_B_`, `A_ctrl` legacy prefixes remain. Files are post-filter
+(deterministic 3-rule filter with `--drop_policy asymmetric_kto`),
+which adds `rule{1,2,3}_flag` fields but drops 0 rows.
+
+New Amendment-12 SHA pins (first 24 hex of SHA-256):
+
+| file (data/training_sets/) | n | sha (first-24) |
+|---|---|---|
+| v_final_sft_A_action_only.jsonl | 992  | `e2572d16071519ca4f984f7c` |
+| v_final_kto_A_action_only.jsonl | 2791 | `f30a3c3011bcb4b9208754ee` |
+| v_final_sft_A_ctrl_rat.jsonl    | 992  | `39adb1640cec9eb831e028a3` |
+| v_final_kto_A_ctrl_rat.jsonl    | 2791 | `870df21da5c64a9cbfb7678f` |
+| v_final_sft_B_main.jsonl        | 992  | `ce7434ed7b227a31a032a765` |
+| v_final_kto_B_main.jsonl        | 2791 | `98c4ffca1715f20c7a3191a1` |
+| v_final_sft_D_gist.jsonl        | 992  | `6a2436a056752513ec389e9e` |
+| v_final_kto_D_gist.jsonl        | 2791 | `4091ebc175c2c1b712d489d1` |
+
+Cross-check: `v_final_sft_B_main.jsonl` (this pin `ce7434ed…`) and
+`v_final_kto_B_main.jsonl` (`98c4ffca…`) match the Amendment 8 §8.6
+`v_final_sft_A_v2.jsonl` / `v_final_kto_B_v2.jsonl` pins byte-for-byte
+under the new name — same content, canonical name.
+
+SHA gate timing: moved from `check_prereq` (pre-Step-2) to a new
+`verify_training_shas` function invoked AFTER Step 2's generate+filter
+pipeline has run. Non-zero exit halts the pipeline. Runs whenever
+`SKIP_TO < 5`, so `--skip 3` (jump to smoke test) also verifies the
+canonical files that must be on disk for later steps.
+
+#### 12.2 D_gist gets its own eval variant `gist_only`
+
+`aiongenos/vlm/prompts.py::STAGE1_TEMPLATES_BY_VARIANT` gains a
+`gist_only` variant:
+
+```
+PAST_LESSONS: <top-3 retrieved lessons as bullets>
+LEFT_TARGET_POS:  X=<int> Y=<int> Z=<int>
+RIGHT_TARGET_POS: X=<int> Y=<int> Z=<int>
+STOP: <true|false>
+```
+
+which matches D_gist's training target (`--rationale_source
+gist_only`: gist + canonical, no INTRINSIC_RATIONALE). `run_collect.py`
+CLI `choices` updated. Driver's `ARM_TO_VARIANT` and
+`PROTOCOL_TO_VARIANT` both map `D_gist → gist_only`.
+
+#### 12.3 Readonly gate upgraded to tree hash
+
+`run_d11_pipeline.sh` step `8.frozen_buffer_unpack` records
+
+```
+sha256sum( sorted( per-file sha256sum ) )
+```
+
+into `/tmp/d11_c_retrieval_buffer_tree.sha256`. The C_retrieval
+post-collect gate re-computes and compares byte-for-byte; any
+mismatch triggers `exit 3` with message "READONLY GATE FAILED —
+buffer tree hash changed during C_retrieval eval". Catches same-count
+overwrites that the file-count gate missed.
+
+#### 12.4 Driver robustness — `--skip` string-safe + hard-exit on missing buffer
+
+- The `run` helper now extracts the leading integer of the step label
+  before comparing to `SKIP_TO` (`step_num=${step%%.*}`). Labels like
+  `"2.A_ctrl_rat.sft"` now compare as 2, restoring `--skip N` resume
+  after a mid-pipeline crash.
+- `check_prereq` now hard-exits (exit 2) if the frozen buffer tar is
+  missing, matching the severity of a SHA mismatch. Previously
+  missing-file merely printed a warning — inconsistent with the same
+  gate's mismatch behavior.
+
+#### 12.5 Anchors
+
+- Amendment 12 commit SHA: **_TBD (backfill after commit)_**
+- Depends on: Amendment 11 (`bfa7cc6`), Amendment 8 code (`1a44d61`),
+  Amendment 8 pre-reg (`a7bada2`).
+- Companion code commit (prompts.py + run_collect + driver rewrite):
+  **`ae196b5`**.
+
+**Frozen by**: TPEmist (chat) — signed 2026-07-08 before any adapter
+training dispatches.
+
+---
+
 ### Amendment 11 — 2026-07-08 (still before any adapter trains) — Paired design → McNemar; env_seed_base pin; SHA gate
 
 **Status**: LOCKED — filed before any D11 arm training was launched.
