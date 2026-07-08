@@ -289,7 +289,7 @@ overwrites that the file-count gate missed.
 
 #### 12.5 Anchors
 
-- Amendment 12 commit SHA: **_TBD (backfill after commit)_**
+- Amendment 12 commit SHA: **`0e26443`**
 - Depends on: Amendment 11 (`bfa7cc6`), Amendment 8 code (`1a44d61`),
   Amendment 8 pre-reg (`a7bada2`).
 - Companion code commit (prompts.py + run_collect + driver rewrite):
