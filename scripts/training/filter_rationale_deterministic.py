@@ -617,13 +617,17 @@ def main() -> None:
     parser.add_argument(
         "--drop_policy",
         default="strict",
-        choices=("strict", "vacuity_only", "asymmetric_kto"),
+        choices=("strict", "vacuity_only", "asymmetric_kto", "flags_only_a6"),
         help="How to decide drop. "
              "strict = any rule violation drops (use for SFT + KTO desirable-only files); "
              "vacuity_only = only Rule 3 drops (use for KTO undesirable-only files); "
              "asymmetric_kto = per-sample: kto_label=desirable → strict, "
-             "kto_label=undesirable → vacuity_only. Used when passing the "
-             "full mixed KTO JSONL in one call.",
+             "kto_label=undesirable → vacuity_only. "
+             "flags_only_a6 = Amendment-6 alias: functionally identical to "
+             "asymmetric_kto on Amendment-8+ data (all rules already flag-only "
+             "at the rule level, only Rule 3 vacuity retains drop authority "
+             "and empirically fires 0/N times). Prefer this name in new "
+             "pipelines so intent is self-documenting.",
     )
     args = parser.parse_args()
 
@@ -672,8 +676,19 @@ def main() -> None:
         for s in samples:
             kto_label = s.get("kto_label")
             outcome = s.get("outcome", "?")
-            # Decide per-sample policy under asymmetric_kto.
-            if args.drop_policy == "asymmetric_kto":
+            # Decide per-sample policy. flags_only_a6 is a STRUCTURAL flag-
+            # only policy (Amendment 13 §13.2): even Rule 3 vacuity is
+            # demoted to flag-only under this name. The name is a contract:
+            # zero drops guaranteed by code, not by empirical 0/N fire rate.
+            # asymmetric_kto keeps original semantics (Rule 3 retains drop
+            # authority) for backwards compat.
+            force_keep = False
+            if args.drop_policy == "flags_only_a6":
+                # Classify rule outcomes as usual; override the keep decision
+                # unconditionally so Rule 3 fire cannot silently drop rows.
+                policy = "strict"
+                force_keep = True
+            elif args.drop_policy == "asymmetric_kto":
                 if kto_label == "desirable":
                     policy = "strict"
                 elif kto_label == "undesirable":
@@ -686,6 +701,17 @@ def main() -> None:
                 policy = args.drop_policy
 
             v = apply_filter(s, gt_lookup, drop_policy=policy)
+            if force_keep:
+                # Amendment 13 §13.2 structural contract — even a vacuous
+                # rationale is kept, tagged rule3_flag=True. Never drops.
+                v = FilterVerdict(
+                    keep=True,
+                    rule_1_direction=v.rule_1_direction,
+                    rule_2_gt=v.rule_2_gt,
+                    rule_3_vacuity=v.rule_3_vacuity,
+                    reject_reason=None,
+                    debug=v.debug,
+                )
             rule_stats["r1"][v.rule_1_direction] += 1
             rule_stats["r2"][v.rule_2_gt] += 1
             rule_stats["r3"][v.rule_3_vacuity] += 1

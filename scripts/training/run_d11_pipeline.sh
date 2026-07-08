@@ -157,12 +157,19 @@ check_prereq() {
   fi
 }
 
-# Amendment 12 §12.1 SHA gate — verifies every training-set JSONL that
-# Step 2 just produced against the pinned SHA-24 in ARM_TO_SHA_{SFT,KTO}.
-# Called between Step 2 and Step 4. Non-zero exit = pipeline halt.
+# Amendment 12 §12.1 / 13 §13.1 gate — two-stage validation of every
+# training-set JSONL Step 2 produced:
+#   (a) row count sentinel: sft = SFT_EXPECTED_ROWS (992),
+#                            kto = KTO_EXPECTED_ROWS (2791).
+#       Cheap, and gives a readable error if filter drops rows silently.
+#   (b) sha256 pin verification (first 24 hex).
+# Called between Step 2 and Step 3. Non-zero exit = pipeline halt.
+SFT_EXPECTED_ROWS=992
+KTO_EXPECTED_ROWS=2791
+
 verify_training_shas() {
   echo
-  echo "════════ SHA verify (post-Step-2) ════════"
+  echo "════════ Step 2.verify — row count + SHA (post-filter) ════════"
   local fail=0
   for arm in "${ARMS[@]}"; do
     [ "$SKIP_D_GIST" = "1" ] && [ "$arm" = "D_gist" ] && continue
@@ -170,25 +177,38 @@ verify_training_shas() {
     local sft_f="${TRAINING_SETS_DIR}/v_final_sft_${arm}.jsonl"
     local kto_f="${TRAINING_SETS_DIR}/v_final_kto_${arm}.jsonl"
 
-    for pair in "sft:$sft_f:${ARM_TO_SHA_SFT[$arm]}" \
-                "kto:$kto_f:${ARM_TO_SHA_KTO[$arm]}"; do
-      IFS=: read kind f want <<< "$pair"
+    for pair in "sft:$sft_f:${ARM_TO_SHA_SFT[$arm]}:$SFT_EXPECTED_ROWS" \
+                "kto:$kto_f:${ARM_TO_SHA_KTO[$arm]}:$KTO_EXPECTED_ROWS"; do
+      IFS=: read kind f want want_n <<< "$pair"
       if [ ! -f "$f" ]; then
         echo "  ${arm}.${kind}: MISSING $f — pipeline aborts"; fail=1; continue
       fi
+      # (a) Row-count sentinel — human-readable early failure. Amendment 8
+      # §8.6 invariant: every arm × split has the same fixed row count.
+      # If this fails, filter is dropping rows (drop_policy semantic drift?)
+      # or prep skipped rows (rationale_map miss?) — either way the four
+      # arms no longer share the same 2791-row pool.
+      local got_n=$(wc -l < "$f")
+      if [ "$got_n" != "$want_n" ]; then
+        echo "  ${arm}.${kind}: rows=$got_n EXPECTED=$want_n ✗ — "\
+"row count drifted, filter or prep is dropping rows silently"
+        fail=1
+        continue
+      fi
+      # (b) SHA pin — final byte-level check.
       local got=$(sha256sum "$f" | awk '{print $1}' | cut -c 1-24)
       if [ "$got" = "$want" ]; then
-        echo "  ${arm}.${kind}: sha=$got ✓"
+        echo "  ${arm}.${kind}: rows=$got_n ✓  sha=$got ✓"
       else
-        echo "  ${arm}.${kind}: sha=$got EXPECTED=$want ✗"; fail=1
+        echo "  ${arm}.${kind}: rows=$got_n ✓  sha=$got EXPECTED=$want ✗"; fail=1
       fi
     done
   done
   if [ "$fail" -eq 1 ]; then
-    echo "SHA gate FAILED — pinned files drifted. Aborting."
+    echo "Step 2.verify FAILED — pinned files drifted. Aborting before Step 3."
     exit 2
   fi
-  echo "  All training-set SHA pins verified ✓"
+  echo "  All training-set row-count + SHA pins verified ✓"
 }
 
 echo "═══════════════════════════════════════════════════════════"
@@ -226,7 +246,7 @@ run 1 "python3 scripts/training/extract_historical_retrievals.py \
 #
 # Two-stage pipeline per arm × per split:
 #   prep_training_data → *.raw.jsonl   (fresh from replay + rationale_map)
-#   filter_rationale   → *.jsonl       (advisory flags added; drop_policy=asymmetric_kto)
+#   filter_rationale   → *.jsonl       (advisory flags added; drop_policy=flags_only_a6)
 
 for arm in "${ARMS[@]}"; do
   [ "$SKIP_D_GIST" = "1" ] && [ "$arm" = "D_gist" ] && continue
@@ -247,7 +267,7 @@ for arm in "${ARMS[@]}"; do
     --rationale_source $src \
     --restrict_to_retrievable"
   run "2.${arm}.sft.filter" "python3 scripts/training/filter_rationale_deterministic.py \
-    --in $SFT_RAW --out $SFT_JSONL --drop_policy asymmetric_kto \
+    --in $SFT_RAW --out $SFT_JSONL --drop_policy flags_only_a6 \
     && rm -f $SFT_RAW"
 
   # KTO-B (992 desirable + 1799 undesirable)
@@ -259,16 +279,24 @@ for arm in "${ARMS[@]}"; do
     --rationale_source $src \
     --restrict_to_retrievable"
   run "2.${arm}.kto.filter" "python3 scripts/training/filter_rationale_deterministic.py \
-    --in $KTO_RAW --out $KTO_JSONL --drop_policy asymmetric_kto \
+    --in $KTO_RAW --out $KTO_JSONL --drop_policy flags_only_a6 \
     && rm -f $KTO_RAW"
 done
 
 # ─────────────────── Step 2b: SHA gate against Amendment 12 pin ───────────────────
-# SHA verify runs unless the user explicitly requested to jump past
-# training itself (--skip 5 or later). Files must exist on disk regardless
-# of whether Step 2 was re-run this invocation or previously cached.
-if [ "$DRY_RUN" -eq 0 ] && [ "$SKIP_TO" -lt 5 ]; then
-  verify_training_shas
+# Amendment 12 §12.1 / 13 §13.1 gate placement — between Step 2 and Step 3.
+# Runs unless the user explicitly requested to jump past training itself
+# (--skip 5+). Dry-run shows the gate placement + verifies against files
+# on disk so that the failure surface is discoverable pre-flight, not at
+# midnight when the pipeline crashes at hour 12.
+if [ "$SKIP_TO" -lt 5 ]; then
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo
+    echo "════════ Step 2.verify (would run here in real invocation) ════════"
+    echo "  (dry-run: skipping actual sha256 hashing)"
+  else
+    verify_training_shas
+  fi
 fi
 
 # ─────────────────── Step 3: Blocker 2 — seed determinism smoke test ───────────────────
