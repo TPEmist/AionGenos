@@ -175,6 +175,138 @@ Pre-registration frozen at:
 
 ## 12. Amendment log
 
+### Amendment 10 — 2026-07-08 (still before any adapter trains) — B_matched removed (confounder dissolved), α reallocated to T1a
+
+**Status**: LOCKED — filed before any D11 arm training was launched.
+**Date**: 2026-07-08
+**Supersedes**: Amendment 1's "Change 2: Sample-count confounder"
+(paragraph text at pre-reg lines 1176+), the "Secondary" α row in
+Amendment 1's Bonferroni allocation, all Amendment 8 references to
+`B_matched`, and the `B_matched` row in Amendment 9 §9.3's per-arm
+R1 ΔX prediction table.
+**Iron rule check**: no adapter training has consumed any of the four
+2×2 target files at time of filing. ✅
+
+#### 10.1 Motivation — the confounder B_matched was designed to control has been dissolved
+
+Amendment 1 introduced B_matched to control a 6× sample-count
+imbalance between the then-158-row A_ctrl arm and the 992-row B_main
+arm. Amendment 8 §8.6 pinned all four training arms to the SAME 2791-
+row pool (992 desirable + 1799 undesirable, identical `(run, ep,
+round)` ID set across arms). Once samples are equalized, the
+6×-imbalance confounder does not exist and B_matched has no residual
+job:
+
+- `B_main − A_action_only` (the T1 headline) is already at matched
+  sample count.
+- `B_main − A_ctrl_rat` (T1a) is already at matched sample count.
+
+An "n=158 vs n=992 same-format" side experiment could be defined
+post-hoc, but it does not test a claim this paper makes (the thesis
+is weights vs context memory, not data-efficiency), and one point
+does not define a scaling curve. If a future rebuttal requires
+data-efficiency evidence, B_matched can be run then as a post-hoc
+supplement — a side question needs no confirmatory pre-registration.
+
+#### 10.2 α reallocation — the 0.010 goes entirely to T1a
+
+Amendment 1's non-uniform Bonferroni allocation was:
+
+- T1 (B_main − A_action_only):       α = 0.020
+- T1a (B_main − A_ctrl_rat):         α = 0.010
+- T3 (B_main ≥ 0.7 × mem-teacher):   α = 0.010
+- T4 (C_retrieval − B_main):         α = 0.010
+- Secondary (B_matched − A_ctrl_rat, 50 ep): α = 0.010
+
+Family-wise α: 0.060.
+
+With B_matched removed, the freed 0.010 is reallocated **entirely to
+T1a** (not split, not returned to headline). Rationale: Amendment 9
+§9.2 narrowed T1's semantics (pure target-content effect after
+teacher-side memory was factored out into D6b). Under the narrower
+semantics the +10-pp headline threshold is deliberately kept, which
+raises the exposure of the "true effect, modest size" scenario in
+which T1-strong fails but T1-weak / T1a should still catch the signal.
+T1a is that safety net; more α on T1a = more power against precisely
+that scenario.
+
+New allocation:
+
+- T1 (B_main − A_action_only):       α = 0.020
+- **T1a (B_main − A_ctrl_rat):       α = 0.020** (was 0.010)
+- T3 (B_main ≥ 0.7 × mem-teacher):   α = 0.010
+- T4 (C_retrieval − B_main):         α = 0.010
+
+Family-wise α: 0.060 (unchanged — dropped test, redistributed
+allocation).
+
+Note on Amendment 9 §9.2's two-tier T1: T1-strong (+10 pp at α=0.020)
+and T1-weak (z > 1.96 at α=0.010) continue as pre-registered.
+Amendment 10 does not alter the T1 tier structure; the reallocated
+0.010 lands on T1a, a separate contrast (B_main vs A_ctrl_rat).
+
+#### 10.3 Arm table — final form
+
+Training adapters (four):
+
+|                       | no retrieved gist         | with retrieved gist    |
+|-----------------------|---------------------------|------------------------|
+| no native thought     | **A_action_only**         | **D_gist** (secondary; drop-first if budget slips) |
+| with native thought   | **A_ctrl_rat**            | **B_main**             |
+
+Eval protocols (five, sharing the four adapters):
+
+- A_action_only     — no retrieval, --eval_template_variant=action_only
+- A_ctrl_rat        — no retrieval, --eval_template_variant=rationale
+- B_main            — no retrieval, --eval_template_variant=rationale_with_gist
+- D_gist            — no retrieval, --eval_template_variant=rationale_with_gist (secondary)
+- C_retrieval       — A_ctrl_rat adapter + frozen D10-ext buffer
+                       retrieval preamble,
+                       --eval_template_variant=rationale_with_retrieval,
+                       --recap_buffer_readonly
+
+`B_matched` no longer appears in either list.
+
+#### 10.4 Downstream text tombstoning
+
+The following pre-reg passages are now tombstones — read-only
+historical record, no operational force:
+
+- Amendment 1 "Change 2: Sample-count confounder — add B_matched
+  arm" (pre-reg lines ~1176 onward).
+- Amendment 1 "α reallocation" bullet: "Secondary (B_matched vs
+  A_ctrl_rat, 50 ep): α = 0.010".
+- Amendment 1 "R1 ΔX probe prediction updated (three-way
+  fingerprint)": the `B_matched` bullet is retired.
+- Amendment 8 §8.3 sentence "plus **B_matched** as SFT-only
+  sample-count control (Amendment 7 §7.4)": retired.
+- Amendment 8 §8.8 open-item mention of "B_matched fixed seed,
+  SFT-only positioning": retired.
+- Amendment 9 §9.3 R1 prediction table: the `B_matched` row is retired.
+
+Amendment 7 items 4–5 (B_matched fixed seed, SFT-only positioning) are
+withdrawn as no-op. Items 6–7 (cross-arm hyperparam sharing +
+effective-step logging; env `reset(seed=...)` plumbing) remain OPEN.
+
+#### 10.5 Cost delta
+
+- −7 hr training (B_matched adapter no longer built)
+- −8 hr eval (50-ep collect deleted)
+- 0 α net-spent (0.010 moved, not added)
+- 0 forfeited claim scope (the memory-in-weights thesis does not route
+  through a sample-count arm)
+
+#### 10.6 Anchors
+
+- Amendment 10 commit SHA: **_TBD (backfill after commit)_**
+- Depends on Amendment 9 (`503496b`) and Amendment 8 code (`1a44d61`),
+  pre-reg (`a7bada2`).
+
+**Frozen by**: TPEmist (chat) — signed 2026-07-08 before any adapter
+training dispatches.
+
+---
+
 ### Amendment 9 — 2026-07-08 (still before any adapter trains) — Semantic consequences of Amendment 8: T1 threshold, R1 probe rewrite, thought-leak quantification, arm rename
 
 **Status**: LOCKED — filed before any D11 arm training was launched.
