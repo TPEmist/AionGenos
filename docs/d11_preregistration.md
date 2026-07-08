@@ -175,6 +175,186 @@ Pre-registration frozen at:
 
 ## 12. Amendment log
 
+### Amendment 9 — 2026-07-08 (still before any adapter trains) — Semantic consequences of Amendment 8: T1 threshold, R1 probe rewrite, thought-leak quantification, arm rename
+
+**Status**: LOCKED — filed before any D11 arm training was launched.
+**Date**: 2026-07-08
+**Supersedes**: §1–§10 wording that referred to `A_ctrl` under its old
+"D6-only, memoryless teacher" semantics. Also revises T1 threshold
+interpretation and the R1 ΔX per-arm prediction table.
+**Iron rule check**: no adapter training has consumed any of the four
+2×2 target files at time of filing. ✅
+
+Motivation. Amendment 8 §8.6 pinned all four 2×2 training arms to the
+same 2791-row pool drawn from seven memory-augmented D10-ext runs.
+That silently rewrote what `A_ctrl` falsifies: originally
+"memoryless-teacher distillation gives no gain" (D6-only source);
+now "target-content ablation gives no gain within the same
+memory-teacher trajectory pool". The two are legitimate but distinct
+falsifiers, and D11 can only test the second. This addendum makes the
+consequences explicit before any adapter starts training.
+
+#### 9.1 Division of labour: D6b covers the teacher-side falsifier
+
+The "memoryless-teacher distillation" falsifier is retired from D11
+scope. It is already answered by the D6b factorial (paper_notes.md,
+committed pre-Amendment 8): **memory main effect +19.2 pp**, memory
+teacher's trajectories are strictly better source material than the
+no-memory teacher's. That result stands on its own commit chain and
+does not need re-litigation inside D11.
+
+D11 therefore inherits a narrower question: **holding teacher-side
+constant (all four arms drink from the same memory-teacher pool),
+which target-content ingredients transfer under distillation?**
+
+#### 9.2 T1 threshold — deliberate retention at +10 pp, plus a graded fallback
+
+Original §7 pre-registered `T1: B_main − A_ctrl > +10 pp` as headline
+falsification. Under §2's old semantics this Δ pooled two effects
+(teacher-side memory + target-side rationale/gist); under Amendment 8's
+new semantics only the target-content effect remains. The +10 pp
+threshold was set for the pooled quantity.
+
+**Decision** (locked here, before any results): keep +10 pp for the
+headline claim. Rationale: (i) only large per-sample-format effects
+deserve the "memory ingredient bakes into weights" claim; (ii)
+adjusting downward now, after redefining the LHS but before seeing
+data, would look like moving the goalposts even if intended
+conservatively.
+
+**Add a graded secondary** (also pre-registered here, to prevent
+post-hoc softening if the headline just barely misses):
+
+- **T1-strong** (headline): `B_main − A_action_only ≥ +10 pp` at α=0.020
+  → publishable claim: "memory content bakes into student weights with
+  substantial effect size, independent of teacher-side memory
+  presence."
+- **T1-weak** (secondary): `B_main − A_action_only > 0 with z > 1.96`
+  at α=0.010 → publishable weaker claim: "memory content transfers
+  directionally under distillation; effect size within this 2×2
+  ablation is modest (< 10 pp) and warrants larger-n confirmation."
+
+If neither passes, the memory-in-weights claim is withdrawn. If only
+T1-weak passes, the paper writes the weaker version — no post-hoc
+climb from "directional" to "substantial".
+
+#### 9.3 R1 ΔX probe — from sanity check to mechanism probe
+
+Amendment 8 upgraded this probe by accident. Because A_action_only's
+teacher is a memory teacher (its behavior is already bias-corrected to
+≈ −16 cm on average), the R1 ΔX outcome now discriminates
+mechanistically between two hypotheses:
+
+- **H_behavior**: memory corrects bias at the action-layer; the
+  bias-corrected coordinates in the target are sufficient supervision;
+  no language carrier needed. Prediction: A_action_only ≈ B_main
+  ≈ −16 cm; probe fails to differentiate.
+- **H_language**: memory correction requires a language-layer carrier
+  (rationale text encoding the corrected spatial frame); dropping the
+  rationale block loses the correction. Prediction: A_action_only
+  reverts toward −24 cm; B_main stays ≈ −16 cm; probe becomes direct
+  evidence of language-mediated bake-in.
+
+**Per-arm predictions** (locked, before D11):
+
+| arm | R1 ΔX (H_behavior) | R1 ΔX (H_language) | interpretation on convergence |
+|---|---|---|---|
+| A_action_only | ≈ −16 cm | ≈ −24 cm | which end wins IS the finding |
+| A_ctrl_rat    | ≈ −16 to −20 cm | ≈ −18 to −22 cm | intermediate under either (has ~32% implicit leak) |
+| B_main        | ≈ −16 cm | ≈ −16 cm | matches D10-ext terminal quartile under either |
+| D_gist        | ≈ −16 cm | ≈ −18 to −22 cm | gist without native thought stresses H_language |
+| B_matched     | ≈ −18 to −20 cm | ≈ −18 to −22 cm | small-n partial shift under either |
+| C_retrieval   | ≈ −16 cm | ≈ −16 cm | context-injected retrieval bypasses target-content axis |
+
+Report the observed R1 ΔX per arm on the same table; the H_behavior /
+H_language shading becomes the mechanism finding.
+
+#### 9.4 A_ctrl_rat native-thought memory leak — quantified, direction-declared, not cleaned
+
+Because all four arms draw from memory-teacher (D10-ext) trajectories,
+A_ctrl_rat's `INTRINSIC_RATIONALE` block is the teacher's own thought
+generated AFTER seeing PAST_LESSONS retrieval — it can echo the
+retrieved lessons in language even without an explicit gist header.
+
+Grep audit on `data/training_sets/v_final_kto_A_ctrl_rat.jsonl`
+(2791 native thoughts total, produced by
+`docs/d11_preregistration/thought_leak_audit.md`):
+
+| pattern | matches | % of thoughts |
+|---|---|---|
+| any cross-episode reference | 884 | **31.7%** |
+| `past episodes/attempts/scenes` | 591 | 21.2% |
+| `past` (excluding prev round) | 670 | 24.0% |
+| `lesson`  | 384 | 13.8% |
+| `previous episode` | 86 | 3.1% |
+| `similar past` | 37 | 1.3% |
+| `history / prior experience` | 26 | 0.9% |
+| `recall` | 62 | 2.2% |
+| episode-internal only (`previous move/round`) | 759 | 27.2% (not counted as leak) |
+
+**Sanity**: A_ctrl_rat and B_main share **100% identical thought text**
+(2791/2791 (run, ep, round) tuples map to byte-identical thought
+strings). Both arms carry the same 31.7% implicit leak; the two-arm
+contrast is therefore symmetric on leak.
+
+**Direction declaration** (pre-registered here):
+
+- A_action_only vs A_ctrl_rat: A_ctrl_rat has +31.7% implicit memory
+  language + +121-token rationale format. This overstates the
+  "rationale format" factor (any observed Δ is a mixture of format and
+  implicit leak).
+- A_ctrl_rat vs B_main: B_main adds an explicit PAST_LESSONS gist on
+  top of the same 31.7%-leaked thought. This understates the "explicit
+  retrieval content" factor (A_ctrl_rat already ate some retrieval
+  content in language form). If B_main − A_ctrl_rat is still
+  significant under this dilution, the conclusion is strictly stronger.
+
+**No thought-cleaning intervention.** Rewriting native thoughts to
+strip past-reference language would add a curation-freedom axis and
+break the pre-registration hygiene the whole D11 rewrite exists to
+protect. The dilution is accepted, declared, and interpreted in the
+conservative direction.
+
+#### 9.5 Arm rename: A_ctrl → A_action_only
+
+Amendment 8's A_ctrl semantics ("target = canonical action lines
+only") deserves a name that says what the arm actually is. Rename in
+all pre-registration text going forward:
+
+- `A_ctrl` → `A_action_only`
+- CLI `--rationale_source none` unchanged (already accurate).
+- Training-set filename `v_final_kto_A_ctrl.jsonl` retained (no data
+  rewrite, only conceptual rename); an alias symlink
+  `v_final_kto_A_action_only.jsonl` may be added if convenient but is
+  not required.
+- 2×2 table updates:
+
+|                       | no retrieved gist    | with retrieved gist |
+|-----------------------|----------------------|---------------------|
+| no native thought     | **A_action_only**    | **D_gist** (secondary) |
+| with native thought   | **A_ctrl_rat**       | **B_main**          |
+
+- Primary hypothesis tests referenced by A_ctrl in §7 are rewritten in
+  §9.2 as `B_main − A_action_only`.
+
+The name `A_ctrl` in Amendment 8 §8.2 / §8.6 tables remains in place
+for immutable-record purposes; readers should treat it as an alias for
+A_action_only per §9.5.
+
+#### 9.6 Anchors
+
+- Grep audit reproducible via
+  `docs/d11_preregistration/thought_leak_audit.md`
+  (patterns + counts + representative examples).
+- Depends on Amendment 8 commit SHA **`a7bada2`** (pre-reg doc) and
+  **`1a44d61`** (code).
+- Amendment 9 commit SHA: **_TBD (backfill after commit)_**
+
+**Frozen by**: TPEmist (chat) — signed 2026-07-08 before any adapter
+training dispatches.
+
+---
+
 ### Amendment 8 — 2026-07-08 (still before any adapter trains) — Cross-arm target-format hygiene + 2×2 factorial + C_retrieval as inference protocol
 
 **Status**: LOCKED — filed before any D11 arm training was launched.
