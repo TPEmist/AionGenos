@@ -175,6 +175,211 @@ Pre-registration frozen at:
 
 ## 12. Amendment log
 
+### Amendment 8 — 2026-07-08 (still before any adapter trains) — Cross-arm target-format hygiene + 2×2 factorial + C_retrieval as inference protocol
+
+**Status**: LOCKED — filed before any D11 arm training was launched.
+**Date**: 2026-07-08
+**Supersedes**: §6.4 pin (files + counts) — see §8.6 for new pin. All
+other Amendment 6 clauses (Rule 1/2/3 as advisory flags) retained.
+**Iron rule check**: no adapter training has consumed any of the four
+2×2 target files at time of filing. ✅
+
+Motivation. A bug found during D11 prep: the B_main training targets
+were "PAST_LESSONS gist + teacher prose", where the prose contained
+coord numbers embedded in text (e.g. "X=-12, Y=30, Z=-45") but not
+canonical `LEFT_TARGET_POS: X=.. Y=.. Z=..` lines — because D6/D10-ext
+teacher `full_response` is prose only, and the coordinate parser lifts
+numbers from prose. Meanwhile the newly added A_ctrl / A_ctrl_rat arms
+emitted canonical action lines synthesized from the parsed coord fields.
+Result: A_ctrl / A_ctrl_rat students learn canonical output, B_main
+student learns prose output. The B_main − A_ctrl_rat comparison was no
+longer a pure rationale ablation — output format also differed, which
+(a) contaminates arm attribution and (b) puts B_main at inference-time
+disadvantage under constrained decoding (which stops at `LEFT_TARGET_POS`
+and expects the canonical form). The R1 ΔX probe is only well-defined
+when every arm emits the canonical coordinate line, so the fix is
+architectural, not cosmetic.
+
+#### 8.1 Cross-arm target hygiene — single canonical synthesizer
+
+All training arms now build their target's action tail through the same
+function, `scripts/training/prep_training_data.py :: _build_action_lines`,
+which reads `parsed_left_pos / parsed_right_pos / parsed_stop` directly
+from the interaction record. Format:
+
+```
+LEFT_TARGET_POS:  X=<int> Y=<int> Z=<int>
+RIGHT_TARGET_POS: X=<int> Y=<int> Z=<int>
+STOP: <true|false>
+```
+
+Any target-format drift between arms would now be a bug in this single
+function.
+
+#### 8.2 2×2 factorial training design
+
+Two independent factors → four training-time arms. Every arm terminates
+with the canonical action lines from §8.1.
+
+|                       | no retrieved gist | with retrieved gist |
+|-----------------------|-------------------|---------------------|
+| no native thought     | **A_ctrl**        | **D_gist** (secondary) |
+| with native thought   | **A_ctrl_rat**    | **B_main**          |
+
+- A_ctrl: canonical action lines only.
+- A_ctrl_rat: `INTRINSIC_RATIONALE: <thought>` + canonical.
+- D_gist: `PAST_LESSONS: <top-3 lessons>` + canonical.
+- B_main: `PAST_LESSONS: <top-3 lessons>` + `INTRINSIC_RATIONALE: <thought>` + canonical.
+
+D_gist is **secondary** — it isolates "gist without native thought", but
+none of the primary hypotheses (T1–T4) route through it. If the D11
+budget runs long, D_gist is the first arm to drop.
+
+#### 8.3 C_retrieval is not the 2×2 fourth cell — it is an inference protocol
+
+Original v6 pre-registration listed C_retrieval alongside A/B/D as if it
+were a fourth training arm. This confused two orthogonal dimensions
+(training-time target content vs inference-time protocol). Amendment 8
+separates them:
+
+- **Training** (four adapters, all with constrained decoding, no
+  inference-time retrieval): A_ctrl / A_ctrl_rat / B_main / D_gist,
+  plus **B_matched** as SFT-only sample-count control (Amendment 7 §7.4).
+- **Inference protocol** (five eval collects, sharing the four adapters):
+  A_ctrl / A_ctrl_rat / B_main / B_matched all run **no retrieval**;
+  **C_retrieval** reuses the **A_ctrl_rat** adapter and injects a frozen
+  D10-ext buffer retrieval preamble at inference time.
+
+Why A_ctrl_rat is C_retrieval's base (not A_ctrl):
+
+- A_ctrl_rat's adapter has seen `INTRINSIC_RATIONALE: … + canonical`
+  target structure at training time.
+- At inference, C_retrieval prepends a `PAST_LESSONS: …` preamble to the
+  user prompt; the model's own output slots stay `INTRINSIC_RATIONALE`
+  + canonical — same slot shape it learned.
+- A_ctrl as base would have to interpret both a retrieval preamble AND
+  produce rationale-plus-action tail, without having learned either
+  format contribution — that would confound retrieval effect with
+  format adaptation.
+
+Under this split the three key contrasts become:
+
+- **B_main − A_ctrl_rat**: retrieved memory baked into weights.
+- **C_retrieval − A_ctrl_rat**: retrieved memory injected via context.
+- **B_main − C_retrieval**: parameter memory vs external memory (paper's
+  thesis contrast). Each pairwise contrast now differs in exactly one
+  variable.
+
+#### 8.4 Length confound quantified, not eliminated
+
+By construction B_main's target ≈ A_ctrl_rat's target + gist block, so
+B_main is ~134 tokens longer on average. Full per-arm table in
+`docs/d11_preregistration/target_length_distributions.md`. Median deltas
+across the 2×2 (measured empirically):
+
+- gist adds ≈134 tokens (D_gist − A_ctrl = 134; B_main − A_ctrl_rat = 134)
+- thought adds ≈121 tokens (A_ctrl_rat − A_ctrl = 121; B_main − D_gist = 121)
+
+The two factors are near-perfectly additive on target length; the
+confound reduces to two known constants. Sensitivity analyses on record:
+
+1. Token-count regression: report SR residualized on target-token count
+   across arms (does the effect survive length control?).
+2. D_gist secondary arm serves as an equal-length control for the
+   "retrieved gist" factor (if it trains).
+3. C_retrieval − A_ctrl_rat uses **identical training targets** (same
+   adapter), so is a pure inference-protocol contrast with no
+   training-target length confound.
+
+#### 8.5 Inference-template + buffer-freeze plumbing
+
+`--eval_template_variant` on `scripts/run_collect.py` selects the
+output-slot shape presented to the student (implemented in
+`aiongenos/vlm/prompts.py::STAGE1_TEMPLATES_BY_VARIANT`):
+
+- `action_only` → A_ctrl adapter (no THOUGHT slot, canonical only)
+- `rationale` → A_ctrl_rat adapter (INTRINSIC_RATIONALE + canonical)
+- `rationale_with_gist` → B_main adapter (PAST_LESSONS + INTRINSIC_RATIONALE + canonical)
+- `rationale_with_retrieval` → C_retrieval eval — same prompt as
+  `rationale` (base = A_ctrl_rat adapter + preamble retrieval).
+
+`--recap_buffer_readonly` on `scripts/run_collect.py` disables new
+recap writes during eval. C_retrieval MUST use it; otherwise its
+"external memory" grows during eval and the weights-vs-context
+comparison against B_main (frozen weights) is no longer symmetric.
+
+Frozen buffer snapshot at time of Amendment 8 (D10-ext terminal state):
+
+- Path: `workspace/frozen_buffers/d10ext_final_buffer.tar.gz`
+- SHA256: `a762386b79e18ce50440d1ff3e7045f6f82f32bd7b05092ac332b9217fb0eb9c`
+- Contents: 547 recap records across 7 runs (6b9ef134, 70028c23,
+  18581c81, b74d9f38, 0eb35c80, 54bcc2d4, aa08bb4c).
+
+#### 8.6 Regenerated training-set pin (supersedes §6.4)
+
+Old files (§6.4 pin, retired):
+
+- `data/training_sets/v_final_sft_A.jsonl` — 992 desirable
+- `data/training_sets/v_final_kto_B.jsonl` — 992 desirable + 1810 undesirable
+
+New files:
+
+| file (data/training_sets/) | rows | sha256 (24) |
+|---|---|---|
+| v_final_sft_A_v2.jsonl       | 992  | `ce7434ed7b227a31a032a765` |
+| v_final_kto_B_v2.jsonl       | 2791 | `98c4ffca1715f20c7a3191a1` |
+| v_final_kto_A_ctrl.jsonl     | 2791 | `3386672377abf8bb2899a7e0` |
+| v_final_kto_A_ctrl_rat.jsonl | 2791 | `542eddde69cfada29daf096c` |
+| v_final_kto_D_gist.jsonl     | 2791 | `2eea5c6b7c3f9e7046fa09b4` |
+
+**ID-set diff vs §6.4 pin** (SHA of sorted `(run, ep, round)` tuples, first 16 hex):
+
+- v_final_kto_B desirable:   old 992 == new 992, hash `85a6dbc407b2d278` unchanged (same batch, format only).
+- v_final_kto_B undesirable: old 1810 → new 1799, lost 11 (subset relation
+  gained=0). All 11 lost rows are from the single ep
+  `6b9ef134/0982ca01-144` which has no rationale_map hit; the old prep
+  fell back to keeping the row without a gist prefix (definition
+  pollution), the new prep drops rows without retrieval so
+  {B_main, D_gist} arms are always gist-carrying and
+  {A_ctrl, A_ctrl_rat} arms use the same row set via
+  `--restrict_to_retrievable`.
+- v_final_sft_A desirable: 992 == 992, hash `85a6dbc407b2d278` unchanged.
+
+All four training arms share the SAME 2791 (run, ep, round) tuples —
+cross-arm sample-count is a controlled variable, not a between-arm
+confound.
+
+#### 8.7 STOP-field audit (cross-arm invariant)
+
+`_build_action_lines` reads `parsed_stop` from the same interaction as
+the coord fields, so STOP consistency across arms is enforced by
+construction. Empirical distribution on v_final_kto_B_v2:
+
+- 2788 rows with `STOP: false` (all progress rounds).
+- 3 rows with `STOP: true`, all in `outcome=failure / is_progress=True`
+  (teacher misjudged "arrived" while ep ultimately failed). These land
+  in the undesirable KTO label; the KTO loss will suppress this
+  behavior. No filter action needed.
+
+#### 8.8 Anchors + attribution
+
+- Prep code + template changes commit SHA: **`1a44d61`**
+- Amendment 6 supersession scope: §6.4 pin (files + counts) replaced by
+  §8.6; §6.5 (Rule 1/2/3 as advisory flags) retained in full.
+- Amendment 7 checklist items 1–3 (length alignment / decision-tail
+  truncation / same-round pairing assertion) are implemented in the
+  new prep code (`_A_CTRL_RAT_WORD_CAP=130`, tail-preserving cap in
+  `extract_native_thought`, and `interaction = inter[round_idx - 1]`
+  reused for both action tail and rationale block). Items 4–7
+  (B_matched fixed seed, SFT-only positioning, cross-arm hyperparam
+  sharing with logged effective-step counts, env `reset(seed=...)`
+  plumbing for shared init poses) remain OPEN as pre-training TODOs.
+
+**Frozen by**: TPEmist (chat) — signed 2026-07-08 before any adapter
+training dispatches.
+
+---
+
 ### Amendment 6 — 2026-07-07 (still before any adapter trains) — Coherence Filter Demoted to Advisory Flags (v-final)
 
 **Status**: LOCKED — filed before any D11 arm training was launched.
