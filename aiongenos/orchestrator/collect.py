@@ -56,8 +56,16 @@ class EnvInterface(Protocol):
     - Checking outcomes
     """
 
-    def reset(self) -> dict:
-        """Reset environment, return initial state dict."""
+    def reset(self, seed: Optional[int] = None) -> dict:
+        """Reset environment, return initial state dict.
+
+        Amendment 7 §7.7 / Amendment 10 §10.4 (item 7): when ``seed`` is
+        provided, the environment MUST be reset deterministically to the
+        pose set induced by that seed. Callers use ``seed = env_seed_base
+        + ep_idx`` so that A_action_only / A_ctrl_rat / B_main / D_gist /
+        C_retrieval eval collects all replay the same 100 initial poses
+        — maximizing statistical efficiency of the T1 pairwise contrast.
+        """
         ...
 
     def get_rgb(self) -> bytes:
@@ -119,6 +127,7 @@ def run_collect_loop(
     recap_buffer: "Optional[object]" = None,
     eval_template_variant: Optional[str] = None,
     recap_buffer_readonly: bool = False,
+    env_seed_base: Optional[int] = None,
 ) -> CollectStats:
     """Run the 4-stage cognitive evolution collect loop.
 
@@ -163,8 +172,13 @@ def run_collect_loop(
 
         logger.info(f"Episode {ep_idx + 1}/{max_episodes} | L{level_config.level} | {episode_id}")
 
-        # Reset environment
-        env.reset()
+        # Reset environment. Amendment 7 §7.7 / Amendment 10 §10.4 (item 7):
+        # deterministic seed = env_seed_base + ep_idx so all arms replay
+        # the same initial pose sequence.
+        ep_seed = None if env_seed_base is None else env_seed_base + ep_idx
+        if ep_seed is not None:
+            logger.info(f"  env.reset(seed={ep_seed})")
+        env.reset(seed=ep_seed)
         vlm_interactions: list[VLMInteraction] = []
         trajectory: list[TimeStep] = []
         flags: list[str] = []

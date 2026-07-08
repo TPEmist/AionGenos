@@ -452,6 +452,14 @@ def main():
     parser.add_argument("--auto-balance", action="store_true",
                         help="Auto-compute (lambda_d, lambda_u) from class counts "
                              "(overrides --lambda-d / --lambda-u).")
+    parser.add_argument("--run-tag", type=str, default=None,
+                        help="Amendment 7 §7.6 / Amendment 10 §10.4 (item 6): "
+                             "arm-level identifier for this run "
+                             "(e.g. 'A_action_only', 'A_ctrl_rat', 'B_main', "
+                             "'D_gist'). Written into training_meta.json under "
+                             "output-dir alongside effective-step count and the "
+                             "full hyperparam set so cross-arm equivalence is "
+                             "auditable after the fact.")
     args = parser.parse_args()
 
     if args.warm_start and args.frozen_adapter:
@@ -567,6 +575,49 @@ def main():
         lambda_d=args.lambda_d,
         lambda_u=args.lambda_u,
         ref_mode=ref_mode,
+    )
+
+    # Amendment 7 §7.6 / Amendment 10 §10.4 (item 6): compute + record the
+    # effective step count so all 2×2 arms can be shown to have received
+    # identical optimizer exposure.
+    n_samples = len(dataset)
+    ga = training_args.gradient_accumulation_steps
+    bs = training_args.per_device_train_batch_size
+    world = max(1, int(os.environ.get("WORLD_SIZE", 1)))
+    effective_batch = bs * ga * world
+    steps_per_epoch = max(1, n_samples // effective_batch)
+    effective_steps = steps_per_epoch * int(args.epochs)
+
+    training_meta = {
+        "run_tag": args.run_tag,
+        "jsonl_path": args.jsonl_path,
+        "n_samples": n_samples,
+        "epochs": int(args.epochs),
+        "per_device_batch_size": bs,
+        "gradient_accumulation_steps": ga,
+        "world_size": world,
+        "effective_batch": effective_batch,
+        "steps_per_epoch": steps_per_epoch,
+        "effective_steps": effective_steps,
+        "lr": args.lr,
+        "warmup_ratio": training_args.warmup_ratio,
+        "beta": args.beta,
+        "lambda_d": args.lambda_d,
+        "lambda_u": args.lambda_u,
+        "auto_balance": args.auto_balance,
+        "ref_mode": ref_mode,
+        "frozen_adapter": args.frozen_adapter,
+        "warm_start": args.warm_start,
+        "base_model": args.base_model,
+    }
+    os.makedirs(args.output_dir, exist_ok=True)
+    meta_path = os.path.join(args.output_dir, "training_meta.json")
+    with open(meta_path, "w") as fp:
+        json.dump(training_meta, fp, indent=2)
+    print(f"Wrote training meta → {meta_path}")
+    print(
+        f"Effective steps: {effective_steps} "
+        f"(n={n_samples}, bs={bs}, ga={ga}, world={world}, epochs={args.epochs})"
     )
 
     print(

@@ -79,6 +79,13 @@ parser.add_argument(
          "to success-only during SR-dip recovery.",
 )
 parser.add_argument(
+    "--env_seed_base", type=int, default=None,
+    help="Amendment 7 §7.7 / Amendment 10 §10.4: base seed for deterministic "
+         "env.reset. Per-ep seed = env_seed_base + ep_idx, so multiple D11 "
+         "eval arms replay the same initial pose sequence (paired-samples "
+         "statistical efficiency on T1). Omit to keep legacy random resets.",
+)
+parser.add_argument(
     "--recap_buffer_readonly", action="store_true",
     help="Amendment 8 §8.5: freeze buffer during eval — retrieval reads from "
          "existing recaps, but no new recaps are persisted this run. Required "
@@ -196,6 +203,7 @@ def main():
             recap_buffer=recap_buffer,
             eval_template_variant=args_cli.eval_template_variant,
             recap_buffer_readonly=args_cli.recap_buffer_readonly,
+            env_seed_base=args_cli.env_seed_base,
         )
         logger.info("Collect loop execution complete.")
         logger.info(f"Stats summary: {stats}")

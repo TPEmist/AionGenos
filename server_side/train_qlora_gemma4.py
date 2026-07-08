@@ -349,6 +349,14 @@ def main():
     parser.add_argument("--epochs", type=int, default=1, help="Number of training epochs")
     parser.add_argument("--batch-size", type=int, default=2, help="Per-device train batch size")
     parser.add_argument("--lr", type=float, default=2e-4, help="Learning rate")
+    parser.add_argument("--run-tag", type=str, default=None,
+                        help="Amendment 7 §7.6 / Amendment 10 §10.4 (item 6): "
+                             "arm-level identifier for this run "
+                             "(e.g. 'A_action_only', 'A_ctrl_rat', 'B_main', "
+                             "'D_gist'). Written into training_meta.json under "
+                             "output-dir alongside effective-step count and "
+                             "the full hyperparam set so cross-arm equivalence "
+                             "is auditable after the fact.")
     args = parser.parse_args()
 
     if not args.replay_path and not args.jsonl_path:
@@ -432,6 +440,43 @@ def main():
         args=training_args,
         train_dataset=dataset,
         data_collator=collate_fn,
+    )
+
+    # Amendment 7 §7.6 / Amendment 10 §10.4 (item 6): compute + record
+    # effective-step count so all 2×2 arms have documented optimizer exposure.
+    n_samples = len(dataset)
+    ga = training_args.gradient_accumulation_steps
+    bs = training_args.per_device_train_batch_size
+    world = max(1, int(os.environ.get("WORLD_SIZE", 1)))
+    effective_batch = bs * ga * world
+    steps_per_epoch = max(1, n_samples // effective_batch)
+    effective_steps = steps_per_epoch * int(args.epochs)
+    training_meta = {
+        "run_tag": args.run_tag,
+        "jsonl_path": args.jsonl_path,
+        "replay_path": args.replay_path,
+        "stage": args.stage,
+        "n_samples": n_samples,
+        "epochs": int(args.epochs),
+        "per_device_batch_size": bs,
+        "gradient_accumulation_steps": ga,
+        "world_size": world,
+        "effective_batch": effective_batch,
+        "steps_per_epoch": steps_per_epoch,
+        "effective_steps": effective_steps,
+        "lr": args.lr,
+        "warmup_ratio": training_args.warmup_ratio,
+        "base_model": args.base_model,
+    }
+    import json as _json
+    os.makedirs(args.output_dir, exist_ok=True)
+    meta_path = os.path.join(args.output_dir, "training_meta.json")
+    with open(meta_path, "w") as fp:
+        _json.dump(training_meta, fp, indent=2)
+    print(f"Wrote training meta → {meta_path}")
+    print(
+        f"Effective steps: {effective_steps} "
+        f"(n={n_samples}, bs={bs}, ga={ga}, world={world}, epochs={args.epochs})"
     )
 
     # 6. Run Training

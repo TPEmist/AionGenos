@@ -76,8 +76,12 @@ class IsaacLabEnvInterface:
         else:
             logger.warning("Robot articulation not found in environment scene!")
 
-    def reset(self) -> dict:
+    def reset(self, seed: Optional[int] = None) -> dict:
         """Reset environment, return initial state dict.
+
+        Amendment 7 §7.7 / Amendment 10 §10.4 (item 7): when ``seed`` is
+        provided, forward it to ``env.reset(seed=...)`` so all D11 eval
+        arms replay the same initial pose sequence.
 
         After ``env.reset()`` Isaac Lab's CommandManager has not yet resampled
         a new target — querying it returns the (0, 0, 0) sentinel. We need to
@@ -93,7 +97,7 @@ class IsaacLabEnvInterface:
         Fix: feed the *current* EE pose as the action so the IK target equals
         the current state, leaving joints undisturbed.
         """
-        obs, info = self.env.reset()
+        obs, info = self.env.reset(seed=seed) if seed is not None else self.env.reset()
 
         try:
             action_shape = self.env.action_space.shape
