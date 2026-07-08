@@ -505,3 +505,8 @@ Rank 1 proposal (which had student emit rationale at inference).
   --freeze_level. Curriculum auto-advance re-enabled only in Phase 5 when
   buffer partitioning by task_name is added. Ext-5 quarantined; ext-5b
   launched with freeze active (run aa08bb4c).
+- 2026-07-07: Amendment 6 — residual audit 15.4% triggered (amended) §5.3
+  disaster branch; all rules demoted to advisory flags; full 992+1810 dataset
+  enters training with 3 flag columns; contamination bounded ~4-5% with
+  R1-ΔX probe as end-to-end detector; §5.3 band corrected to <45%; symmetry
+  clause for A_ctrl_rat. Filter iteration closed. Training unblocked.

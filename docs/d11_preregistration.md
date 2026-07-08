@@ -175,6 +175,107 @@ Pre-registration frozen at:
 
 ## 12. Amendment log
 
+### Amendment 6 — 2026-07-07 (still before any adapter trains) — Coherence Filter Demoted to Advisory Flags (v-final)
+
+**Status**: LOCKED — filed before any D11 arm training was launched.
+**Date**: 2026-07-07
+**Supersedes**: filter drop policy of Amendments 1–5. Does not alter arms, T1, R1-ΔX probe, or Bonferroni allocation.
+**Iron rule check**: no training run has consumed any filter output at time of filing. ✅
+
+---
+
+#### 6.1 Trigger — residual audit result
+
+Amendment 5 §5.3 mandated a blinded audit of the v4 filter's sole active surface: the 66 desirable-side samples dropped by Rule 1 (fixed). Result:
+
+- Audited: 13 of 66, blinded, notes recorded per sample (2 borderline excluded from denominator).
+- Agreement (filter=drop ∧ human=clearly-bad): **2/13 = 15.4%**, Wilson 95% CI ≈ **[4%, 42%]**.
+- 11/13 clearly-good drops trace to three phrasing classes the parser does not model:
+  1. **Number-based direction spec** — "increase X to 14" / "target Y=45" (direction implied by `sign(target − current)`).
+  2. **Missing-axis mentions** — rationale claims 2 axes; parser demanded consistency on all 3.
+  3. **Relative/reversal semantics** — "reverse the previous change", "shift back".
+
+Even the CI upper bound (42%) cannot justify a drop rule. The disaster branch is triggered.
+
+#### 6.2 Correction to §5.3 band definition
+
+§5.3 defined the disaster case as agreement ∈ [20%, 45%]; the observed 15.4% falls below the band, which was an unanticipated gap in the original spec. The band is hereby amended to **agreement < 45%**, and this trigger is processed under the amended definition per the original intent (lower agreement is strictly worse). Recorded here so the pre-registration contains no undefined branch.
+
+#### 6.3 Decision
+
+All deterministic rules are **demoted from drop authority to advisory flags**:
+
+| Rule | v4 role | v-final role |
+|---|---|---|
+| Rule 1 (direction consistency, fixed) | drop (desirable side) | `rule1_flag` only |
+| Rule 2 (GT contradiction) | flag (per Amendment 5) | `rule2_flag` only (unchanged) |
+| Rule 3 (vacuity) | drop | retains nominal drop authority; **0 fires / 3,794 samples** |
+
+Net effect: **all 992 desirable and 1,810 undesirable samples enter training.** The filter is retired as a curator and retained as a diagnostic instrument.
+
+#### 6.4 Stopping rationale — cost-benefit, not impossibility
+
+We explicitly do **not** claim deterministic parsing is incapable of this judgment. Two of the three failure classes in §6.1 are deterministically fixable (class 1: sign of target minus current state; class 2: check only claimed axes). The stopping argument is expected-return based:
+
+- Maximum filter surface: 66/992 = **6.7%** of desirable pool.
+- True-positive rate on that surface: ~15% ⇒ true rationale–action incoherence ≈ **1% of pool**.
+- Each fix+re-audit iteration costs 2–3 h and has, across three rounds (n = 88 audited samples total: 60 + 13 + 15), surfaced a new phrasing class each time.
+- Expected recoverable signal is bounded and small; iteration is terminated as a resource decision.
+
+#### 6.5 Residual contamination bound and downstream defenses
+
+The original motivation ("wrong reason, right result" baked into weights) is not dismissed; it is bounded:
+
+- Keep-precision from v2 audit: ~95% (43/45) ⇒ pool-level clearly-bad rationale rate ≈ **4–5%**, i.e. **~40–50 desirable samples** enter training with incoherent rationales (upper bound).
+- Defense 1: KTO undesirable side (n = 1,810) actively suppresses low-quality rationale–action patterns.
+- Defense 2 (decisive): the **R1 ΔX probe** is the pre-registered end-to-end detector. If ~5% contamination materially corrupts the student's grounding, it manifests as failure of the probe prediction (student R1 bias near −16 cm, not −24 cm). Contamination that does not move the probe or T1 is, by the study's own success criteria, immaterial.
+
+#### 6.6 Symmetry clause
+
+Flag-only policy applies **identically to A_ctrl_rat** (D6 native stage-1 thoughts): no drops, same three flag columns computed with the same code path. No curation asymmetry may exist between arms.
+
+#### 6.7 Flag-computation fixes (non-drop)
+
+The two cheap fixes from §6.4 (number-based direction, claimed-axes-only) are applied to the **flag computation only**, to improve post-hoc analysis precision. They confer no drop authority. Implemented in commit `[filled after commit]` via:
+- `collect_number_target_claims()` — parses "axis to N" / "target Y=N" patterns and derives direction from `sign(N − init_ee_axis)`.
+- The claimed-axes-only rule was already the semantic of the Amendment-4 Rule 1 fix (loop `if not claimed[axis]: continue`); made explicit in docstring.
+
+Empirical effect on v_final_kto_B: Rule 1 flag fires 169 times (vs 199 pre-fix on v3), a 15% reduction driven by fewer false alarms on multi-axis and number-based rationales.
+
+#### 6.8 Final training data spec (v-final JSONL)
+
+- Desirable: **992** · Undesirable: **1,810** · ratio **1.82** (original).
+- KTO auto-balance reads counts from dataset load — confirmed effective for v-final.
+- Every row carries `rule1_flag`, `rule2_flag`, `rule3_flag`.
+- Post-hoc analyses pre-committed:
+  (a) coherence-flag × outcome 2×2 table
+  (b) Rule-2 flag axis/sign distribution vs the R1 ΔX bias (language-level mechanism check)
+  (c) flagged-subset ablation if T1 marginally fails.
+
+Files: `data/training_sets/v_final_sft_A.jsonl`, `data/training_sets/v_final_kto_B.jsonl`.
+
+#### 6.9 Canonical paper sentences (replace Amendment 5 draft)
+
+> "We designed a deterministic three-rule filter for rationale–action coherence. Blinded audits across three rounds (n = 88) showed high precision on *keep* decisions (~95%) but only 15% precision on *drop* decisions: legitimate variation in how the teacher phrases spatial intent (number-based targets, relative reversal semantics, partial-axis mentions) dominates the drop surface. Since the filter's maximum surface was 6.7% of the pool with ~15% true-positive rate — a bounded ~1% true incoherence rate — we terminated rule iteration on cost-benefit grounds, demoted all rules to advisory flags, and retained the full dataset. Residual contamination is bounded at ~4–5% and is detectable end-to-end by the pre-registered R1 ΔX probe."
+
+Do **not** claim "deterministic parsing is insufficient" (falsifiable by §6.4 class-1/2 counterexamples) and do **not** claim "the teacher never produces vacuous rationales" (Rule 3's 0/3,794 is structurally guaranteed by the coordinate-bearing output format; if mentioned, phrase as "the output format enforces spatial specificity").
+
+#### 6.10 Audit trail summary
+
+| Round | Sample | Target | Key finding |
+|---|---|---|---|
+| v1 | 60 (47 ex-borderline) | stratified random | 48.9% — label definition error (correctness vs coherence) |
+| v2 | same 60, relabeled | stratified random | 74.5%; success×inconsistent stratum 0% → Rule 1 past-reference bug |
+| Amendment 4 | 13 (5 flips + 8 Rule-2 drops) | targeted | flips 5/5 ✓; Rule 2 precision 0% → demoted to flag |
+| Residual (this) | 13 of 66 (2 borderline) | Rule 1 (fixed) drops | 15.4% (11/13 disagreements = clearly good) → this amendment |
+
+Total human labels across all audits: **88 samples**.
+
+**Frozen by**: TPEmist (chat), 2026-07-07.
+- Amendment 6 commit SHA: **[filled after commit]**
+
+---
+
 ### Amendment 5 — 2026-07-07 (still before any adapter trains)
 
 Amendment 5 lands three items, all responses to the targeted 13-sample

@@ -228,8 +228,7 @@ def collect_direction_claims(own_thought: str) -> list[tuple[str, int, str]]:
     state, not a claim about which direction the action will move.
     Pooling those direction words with intent-declared directions
     caused Rule 1 to see "both signs claimed" and mis-flag as
-    inconsistent. Intent-only extraction fixes 4 of 10 audit FN cases
-    directly and further audit will show whether it's enough.
+    inconsistent.
     """
     hits: list[tuple[str, int, str]] = []
     for sent in _split_sentences(own_thought):
@@ -251,6 +250,50 @@ def collect_direction_claims(own_thought: str) -> list[tuple[str, int, str]]:
     return hits
 
 
+# Amendment 6 §6.7 — flag-only precision improvements.
+# Applies only to rule1_flag computation (Rule 1 has no drop authority
+# in v-final). These parse patterns cost nothing at inference but make
+# post-hoc flag-based analysis more accurate.
+
+# Number-based target spec: "X to 14", "target Y=45", "increase Z to 20".
+_NUMBER_TARGET_RE = re.compile(
+    r"\b([XYZxyz])(?:[-\s]*(?:axis|coordinate|value|position))?\s*"
+    r"(?:to|at|=|:|of|becomes|=\s*)\s*"
+    r"(-?\d+)",
+    re.IGNORECASE,
+)
+
+
+def collect_number_target_claims(
+    own_thought: str,
+    init_ee: tuple[int, int, int],
+) -> list[tuple[str, int, str]]:
+    """Extract number-based direction claims by comparing stated targets
+    against current EE state. If rationale says "increase Y to 45" and
+    current Y=30, we imply +y direction; if current Y=50, we imply -y.
+
+    Only applies to intent sentences.
+    """
+    hits: list[tuple[str, int, str]] = []
+    axis_idx = {"x": 0, "y": 1, "z": 2, "X": 0, "Y": 1, "Z": 2}
+    for sent in _split_sentences(own_thought):
+        if classify_sentence(sent) != "intent":
+            continue
+        for m in _NUMBER_TARGET_RE.finditer(sent):
+            ax_letter = m.group(1).lower()
+            idx = axis_idx.get(ax_letter)
+            if idx is None:
+                continue
+            target_val = int(m.group(2))
+            current_val = init_ee[idx]
+            delta = target_val - current_val
+            if abs(delta) < DEAD_BAND_CM:
+                continue
+            sign = 1 if delta > 0 else -1
+            hits.append((ax_letter, sign, f"{m.group(0)}[implied from init]"))
+    return hits
+
+
 # ─────────────────────────── Rules ───────────────────────────
 
 
@@ -269,23 +312,28 @@ def rule_1_direction(
     parsed_left: Optional[tuple[int, int, int]],
     init_left: tuple[int, int, int],
 ) -> tuple[str, dict]:
-    """Rule 1 — direction consistency with dead-band.
+    """Rule 1 — direction consistency (advisory flag, Amendment 6).
 
-    Relaxed formulation to handle the common pattern where the teacher's
-    thought discusses both past mistakes ("moving further left was wrong")
-    and current intent ("I will shift back to the right"). Both signs will
-    appear in the text.
+    Under Amendment 6 (v-final) Rule 1 has NO drop authority — it is
+    used only to compute rule1_flag for post-hoc analysis. This
+    function returns "consistent" / "inconsistent" / "no_claim_parseable"
+    unchanged from prior amendments, but the caller must not use these
+    values to reject samples on the desirable side.
 
-    Decision:
-      - For each axis where |ΔEE| ≥ dead-band, we require that AT LEAST
-        ONE claimed direction on that axis matches the observed sign.
-      - If any claims exist for that axis AND none of them match the
-        observed sign → reject as "direction inconsistent" (this is the
-        strong case: teacher never acknowledged the direction they're
-        actually moving).
-      - If claims exist AND at least one matches → pass (the rationale
-        does describe the action, even if it also references past
-        counter-examples).
+    Amendment 6 §6.7 flag-precision improvements applied here:
+      (1) Number-based direction spec: "target Y=45" implies direction
+          from sign(target − current_EE). See collect_number_target_claims.
+      (2) Claimed-axes-only: axes with no direction claim are not
+          checked. Previously rationales that only discussed 2 of 3
+          axes were flagged inconsistent on the un-mentioned axis
+          (residual audit sids 7, 11, 13).
+
+    Decision (unchanged semantic, but claim pool includes number-based):
+      - Pool direction claims from intent sentences (word- and
+        number-based).
+      - For each axis WITH at least one claim AND |ΔEE| ≥ dead-band,
+        require that the observed sign appears among claimed signs.
+      - Axes without claims are silently skipped.
     """
     if parsed_left is None:
         return "no_claim_parseable", {"reason": "no action available"}
@@ -294,7 +342,9 @@ def rule_1_direction(
     axes = ("x", "y", "z")
     delta_dict = dict(zip(axes, delta))
 
-    claims = collect_direction_claims(own_thought)
+    word_claims = collect_direction_claims(own_thought)
+    num_claims = collect_number_target_claims(own_thought, init_left)
+    claims = word_claims + num_claims
     if not claims:
         return "no_claim_parseable", {"delta": delta_dict}
 
@@ -444,18 +494,18 @@ def apply_filter(
     r2_out, r2_debug = rule_2_gt_geometry(own, init_left, gt_cube)
     r3_out, r3_debug = rule_3_vacuity(own)
 
-    # Amendment 5 (2026-07-07): Rule 2 (GT contradict) demoted from
-    # drop-authority to advisory flag. The 8-sample audit of Rule 2
-    # drops showed 0/8 agreement because Rule 2 checks correctness while
-    # the pinned audit dimension is coherence. Samples flagged by
-    # Rule 2 are retained in training data with rule2_flag=True.
+    # Amendment 6 (2026-07-07): flag-only policy.
+    #   - Rule 1 (direction consistency): flag only, NO drop authority.
+    #     Residual audit precision was 15.4% (Wilson CI [4, 42]);
+    #     stopping was declared on cost-benefit grounds.
+    #   - Rule 2 (GT contradiction): flag only (Amendment 5).
+    #   - Rule 3 (vacuity): retains nominal drop authority, but the
+    #     schema of Stage-1 output guarantees a spatial token, so this
+    #     fires 0/3794 times in practice — kept as a defense-in-depth
+    #     drop, not an active curator.
     reject_reason = None
     if r3_out == "vacuous_no_spatial_token":
         reject_reason = "vacuous"
-    elif drop_policy == "strict":
-        if r1_out == "inconsistent":
-            axes = r1_debug.get("axes") or [r1_debug.get("axis", "?")]
-            reject_reason = f"direction_inconsistent:{','.join(axes)}"
 
     return FilterVerdict(
         keep=(reject_reason is None),
@@ -652,12 +702,12 @@ def main() -> None:
 
             if v.keep:
                 n_pass += 1
-                # Amendment 5: attach rule2_flag so Rule-2-flagged samples
-                # remain identifiable in the training set for the
-                # planned post-hoc "GT-contradict analysis" tied to the
-                # R1-ΔX bias probe.
+                # Amendment 6: emit all 3 flags on kept samples so
+                # downstream analysis can slice by any of them.
                 s_out = dict(s)
+                s_out["rule1_flag"] = (v.rule_1_direction == "inconsistent")
                 s_out["rule2_flag"] = (v.rule_2_gt == "contradicts_gt")
+                s_out["rule3_flag"] = (v.rule_3_vacuity == "vacuous_no_spatial_token")
                 out_fp.write(json.dumps(s_out) + "\n")
             else:
                 reason_counter[v.reject_reason or "unknown"] += 1
