@@ -348,7 +348,7 @@ A_action_only per §9.5.
   (patterns + counts + representative examples).
 - Depends on Amendment 8 commit SHA **`a7bada2`** (pre-reg doc) and
   **`1a44d61`** (code).
-- Amendment 9 commit SHA: **_TBD (backfill after commit)_**
+- Amendment 9 commit SHA: **`503496b`**
 
 **Frozen by**: TPEmist (chat) — signed 2026-07-08 before any adapter
 training dispatches.
