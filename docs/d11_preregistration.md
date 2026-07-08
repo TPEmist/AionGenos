@@ -236,7 +236,7 @@ Flag-only policy applies **identically to A_ctrl_rat** (D6 native stage-1 though
 
 #### 6.7 Flag-computation fixes (non-drop)
 
-The two cheap fixes from §6.4 (number-based direction, claimed-axes-only) are applied to the **flag computation only**, to improve post-hoc analysis precision. They confer no drop authority. Implemented in commit `[filled after commit]` via:
+The two cheap fixes from §6.4 (number-based direction, claimed-axes-only) are applied to the **flag computation only**, to improve post-hoc analysis precision. They confer no drop authority. Implemented in commit `9b0a9da` via:
 - `collect_number_target_claims()` — parses "axis to N" / "target Y=N" patterns and derives direction from `sign(N − init_ee_axis)`.
 - The claimed-axes-only rule was already the semantic of the Amendment-4 Rule 1 fix (loop `if not claimed[axis]: continue`); made explicit in docstring.
 
@@ -272,7 +272,7 @@ Do **not** claim "deterministic parsing is insufficient" (falsifiable by §6.4 c
 Total human labels across all audits: **88 samples**.
 
 **Frozen by**: TPEmist (chat), 2026-07-07.
-- Amendment 6 commit SHA: **[filled after commit]**
+- Amendment 6 commit SHA: **`9b0a9da`**
 
 ---
 
