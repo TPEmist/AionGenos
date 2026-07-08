@@ -300,7 +300,7 @@ different RNG stream than the env's private one.
 
 #### 11.5 Anchors
 
-- Amendment 11 commit SHA: **_TBD (backfill after commit)_**
+- Amendment 11 commit SHA: **`bfa7cc6`**
 - Depends on: Amendment 10 (`bf2dbb5`), Amendment 9 (`503496b`),
   Amendment 8 pre-reg (`a7bada2`), Amendment 8 code (`1a44d61`).
 - Companion code change (driver + smoke test + interface seeding):
