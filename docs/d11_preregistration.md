@@ -175,6 +175,134 @@ Pre-registration frozen at:
 
 ## 12. Amendment log
 
+### Amendment 13 — 2026-07-08 (still before any adapter trains) — Step 2.verify row-count sentinel + drop_policy alias `flags_only_a6`
+
+**Status**: LOCKED — filed before any D11 arm training was launched.
+**Date**: 2026-07-08
+**Supersedes**: nothing — extends Amendment 12 §12.1
+`verify_training_shas` with an earlier, cheaper sentinel; renames the
+driver's `--drop_policy` argument for self-documentation.
+**Iron rule check**: no adapter training has consumed any of the four
+2×2 target files at time of filing. ✅
+
+Motivation. Dry-run review of Amendment-12's driver observed that
+`check_prereq` printed only "prereq OK: 7 runs + frozen buffer" with
+no per-file training-set gate — the SHA verification had been moved
+to a post-Step-2 function (`verify_training_shas`) but its output
+didn't appear at the top of the dry-run because dry-run mode short-
+circuited it silently. Two concrete risks:
+
+- Any silent Step-2 change that alters sample counts (a filter policy
+  regression, a rationale_map miss, a prep-side bug) would not be
+  caught by prereq. The pipeline would run 30 hours on 8 different-
+  from-pinned files.
+- The `--drop_policy asymmetric_kto` label is an Amendment-3-era name;
+  Amendment 6 flag-only-fied all rules. The name still fires the
+  correct code path (rule 1/2 are advisory-only inside the filter
+  itself, only Rule 3 keeps drop authority and empirically fires
+  0/3794), but a future maintainer reading `asymmetric_kto` will
+  reasonably worry it drops KTO-desirable samples.
+
+#### 13.1 Step 2.verify — row-count sentinel + SHA gate
+
+`verify_training_shas` in `run_d11_pipeline.sh` now runs a two-stage
+check in order:
+
+- **(a) Row-count sentinel** (cheap, human-readable): every
+  `v_final_sft_${arm}.jsonl` must have `SFT_EXPECTED_ROWS = 992`
+  rows, every `v_final_kto_${arm}.jsonl` must have
+  `KTO_EXPECTED_ROWS = 2791` rows. This is the Amendment-8 §8.6
+  "same 2791-row pool across all four arms" invariant. Any mismatch
+  produces "rows=X EXPECTED=Y — row count drifted, filter or prep is
+  dropping rows silently" and `exit 2` before the SHA check runs.
+- **(b) SHA pin verification**: the Amendment-12 §12.1 pinned first-
+  24 hex is checked. Message includes the row count for context.
+
+Coupled with §13.2's structural flag-only contract, the failure
+surface narrows to a single place: a row-count sentinel failure
+under `flags_only_a6` MUST originate upstream of the filter (prep
+regression, rationale_map miss, replay drift). The filter itself is
+proven not to drop under this policy. Debug path shortens by half.
+
+Dry-run now emits a "Step 2.verify (would run here in real invocation)"
+placeholder at the correct position (between the last Step-2 filter
+and Step 3 smoke test) so its location is discoverable without
+executing hashes.
+
+Real-run verified (2026-07-08 16:45): 8/8 files pass row-count (992
+for SFT, 2791 for KTO) and SHA-24 pin — see `logs/d11_seed_
+determinism.log` and preceding driver stdout.
+
+#### 13.2 `flags_only_a6` — structural flag-only policy (not just an alias)
+
+Initial draft of Amendment 13 introduced `flags_only_a6` as a pure
+alias for `asymmetric_kto` (same code path, same behavior). That was
+insufficient: the Amendment-6 flag-only guarantee for
+`asymmetric_kto` is empirical (Rule 3 fires 0/3794 in the current
+teacher rationale format), not structural. A future upstream shift
+(new rationale_source, new prep template, gist_only formatting drift
+in D_gist) could make Rule 3 fire — and `asymmetric_kto` would
+silently drop those rows.
+
+Under `flags_only_a6` the drop-authority override is structural:
+
+```python
+if args.drop_policy == "flags_only_a6":
+    force_keep = True
+# ... after apply_filter ...
+if force_keep:
+    v = FilterVerdict(keep=True, ..., reject_reason=None, debug=v.debug)
+```
+
+Every rule outcome (including Rule 3 vacuity) is still computed and
+emitted as an advisory flag (`rule3_flag` field on every output row),
+but the sample is always kept. **Zero drops guaranteed by code.**
+
+Contract summary:
+
+- `strict`         : Rule 1 / 2 / 3 all drop (Amendment 3 legacy).
+- `vacuity_only`   : Only Rule 3 drops.
+- `asymmetric_kto` : Per-sample split (desirable→strict,
+                     undesirable→vacuity_only). Empirically zero
+                     drops on D11 data because Rule 3 hasn't fired.
+- `flags_only_a6`  : Structural zero drops. All rules → flags only.
+                     Row count IS the count of rows in the input
+                     JSONL, by construction.
+
+`run_d11_pipeline.sh` uses `flags_only_a6`. The Rule 3 fire count
+still appears in filter stdout stats — a nonzero Rule-3-fire count
+under `flags_only_a6` is now a smoke alarm for upstream format drift
+(free monitoring, kept deliberately). Old names remain valid for
+backwards compat with pre-Amendment-13 tools.
+
+Regression check: A_action_only KTO regenerated with `flags_only_a6`
+produces sha `f30a3c3011bcb4b9208754ee` — byte-identical to the
+Amendment-12 §12.1 pin. The structural override changed nothing on
+this data (as expected, Rule 3 never fired), but the guarantee is
+now a code path rather than a coincidence.
+
+#### 13.3 Retained raw files (documentation-only, not enforced)
+
+`Step 2.*.filter` currently ends with `&& rm -f *.raw.jsonl`. This
+saves ~30 MB but discards the pre-filter file, which would be needed
+if a future user asks "why is row (ep_id=X, round=Y) flagged rule
+1_inconsistent — is it a filter bug or a real inconsistency in the
+teacher's rationale?" The reasons.csv retains all flag verdicts, so
+this is a debug-effort tradeoff, not a data-loss risk. Filed as a
+future ease-of-debugging improvement (drop the `rm -f`); not enforced
+by Amendment 13.
+
+#### 13.4 Anchors
+
+- Amendment 13 commit SHA: **_TBD (backfill after commit)_**
+- Depends on: Amendment 12 (`0e26443`), Amendment 12 code (`ae196b5`).
+- Companion code commit: **`9f5bec1`**.
+
+**Frozen by**: TPEmist (chat) — signed 2026-07-08 before any adapter
+training dispatches.
+
+---
+
 ### Amendment 12 — 2026-07-08 (still before any adapter trains) — Canonical training-set naming, D_gist eval-slot fix, SHA gate timing, driver robustness
 
 **Status**: LOCKED — filed before any D11 arm training was launched.
