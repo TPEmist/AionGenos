@@ -298,7 +298,7 @@ effective-step logging; env `reset(seed=...)` plumbing) remain OPEN.
 
 #### 10.6 Anchors
 
-- Amendment 10 commit SHA: **_TBD (backfill after commit)_**
+- Amendment 10 commit SHA: **`bf2dbb5`**
 - Depends on Amendment 9 (`503496b`) and Amendment 8 code (`1a44d61`),
   pre-reg (`a7bada2`).
 
