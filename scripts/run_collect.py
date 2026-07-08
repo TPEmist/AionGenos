@@ -96,12 +96,13 @@ parser.add_argument(
     "--eval_template_variant",
     type=str,
     default=None,
-    choices=(None, "action_only", "rationale",
+    choices=(None, "action_only", "rationale", "gist_only",
              "rationale_with_gist", "rationale_with_retrieval"),
     help="Amendment 8 §8.5: per-arm inference prompt variant. "
-         "action_only=A_ctrl, rationale=A_ctrl_rat, rationale_with_gist=B_main, "
-         "rationale_with_retrieval=C_retrieval. If unset, falls back to legacy "
-         "teacher template with THOUGHT slot (D6/D10 backwards-compat). "
+         "action_only=A_action_only, rationale=A_ctrl_rat, "
+         "gist_only=D_gist, rationale_with_gist=B_main, "
+         "rationale_with_retrieval=C_retrieval. If unset, falls back to "
+         "legacy teacher template with THOUGHT slot (D6/D10 backwards-compat). "
          "Only POSITION_ONLY (L0) is supported in Phase 4.",
 )
 parser.add_argument(

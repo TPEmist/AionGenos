@@ -70,12 +70,13 @@ declare -A ARM_TO_SRC=(
   [D_gist]=gist_only
 )
 
-# Per-arm --eval_template_variant for run_collect.py
+# Per-arm --eval_template_variant for run_collect.py. D_gist gets its own
+# variant (gist_only) — Amendment 12 §12.2 fix for train/eval slot mismatch.
 declare -A ARM_TO_VARIANT=(
   [A_action_only]=action_only
   [A_ctrl_rat]=rationale
   [B_main]=rationale_with_gist
-  [D_gist]=rationale_with_gist
+  [D_gist]=gist_only
 )
 
 REMOTE_HOST="exx@10.80.9.148"
@@ -83,14 +84,20 @@ REMOTE_ROOT="/home/exx/CYTu/AionGenos_server"
 TEACHER_URL="http://10.80.9.148:18888"
 STUDENT_URL="http://10.80.9.148:18889"
 
-# Amendment 8 §8.6 pinned SHA-256 prefixes (first 24 hex).
-declare -A ARM_TO_SHA=(
-  [A_action_only]="3386672377abf8bb2899a7e0"
-  [A_ctrl_rat]="542eddde69cfada29daf096c"
+# Amendment 12 §12.1 canonical training-set pins (first 24 hex of SHA-256).
+# Filename convention: v_final_{sft,kto}_${arm}.jsonl (canonical, post-filter).
+declare -A ARM_TO_SHA_KTO=(
+  [A_action_only]="f30a3c3011bcb4b9208754ee"
+  [A_ctrl_rat]="870df21da5c64a9cbfb7678f"
   [B_main]="98c4ffca1715f20c7a3191a1"
-  [D_gist]="2eea5c6b7c3f9e7046fa09b4"
+  [D_gist]="4091ebc175c2c1b712d489d1"
 )
-SFT_A_SHA_EXPECTED="ce7434ed7b227a31a032a765"
+declare -A ARM_TO_SHA_SFT=(
+  [A_action_only]="e2572d16071519ca4f984f7c"
+  [A_ctrl_rat]="39adb1640cec9eb831e028a3"
+  [B_main]="ce7434ed7b227a31a032a765"
+  [D_gist]="6a2436a056752513ec389e9e"
+)
 
 # ─────────────────────────── CLI ───────────────────────────
 
@@ -109,14 +116,23 @@ run() {
   echo
   echo "════════ Step $step ════════"
   echo "$ $*"
-  if [ "$DRY_RUN" -eq 1 ] || [ "$step" -lt "$SKIP_TO" ]; then
-    [ "$step" -lt "$SKIP_TO" ] && echo "  (skipped, --skip $SKIP_TO)" || echo "  (dry-run)"
+  # Extract leading integer of step label so "2.A_ctrl_rat.sft" compares as 2.
+  # This is what makes --skip N resumable through the per-arm loops (fix for
+  # dry-run bug "line 113: integer expression expected").
+  local step_num=${step%%.*}
+  if [ "$DRY_RUN" -eq 1 ] || [ "$step_num" -lt "$SKIP_TO" ]; then
+    [ "$step_num" -lt "$SKIP_TO" ] && echo "  (skipped, --skip $SKIP_TO)" || echo "  (dry-run)"
     return 0
   fi
   eval "$@"
 }
 
 check_prereq() {
+  # Amendment 12 §12.1: prereq covers replay dirs, logs, frozen buffer.
+  # Training-set JSONL SHA verification moves to a separate gate that runs
+  # AFTER Step 2 has generated them (verify_training_shas). This split
+  # avoids the previous bug where prereq validated stale fallback files
+  # while Step 2 then silently regenerated fresh ones that never got gated.
   for rid in $TRAIN_RUNS; do
     [ -d "data/replays/$rid" ] || { echo "MISSING replay dir: data/replays/$rid"; exit 1; }
     local log=${RUN_TO_LOG[$rid]:-}
@@ -126,47 +142,53 @@ check_prereq() {
   done
   echo "  prereq OK: ${#RUN_TO_LOG[@]} runs"
 
-  # Amendment 11: SHA verification of pinned training-set files against §8.6.
-  echo "  SHA verification vs Amendment 8 §8.6 pin:"
-  for arm in "${ARMS[@]}"; do
-    local f="${TRAINING_SETS_DIR}/v_final_kto_${arm}.jsonl"
-    if [ ! -f "$f" ]; then
-      # A_action_only file historically named v_final_kto_A_ctrl (Amendment 9 rename)
-      if [ "$arm" = "A_action_only" ]; then
-        f="${TRAINING_SETS_DIR}/v_final_kto_A_ctrl.jsonl"
-      else
-        echo "    MISSING $f"; return 0  # allow prep to build it later
-      fi
-    fi
-    local got=$(sha256sum "$f" | awk '{print $1}' | cut -c 1-24)
-    local want=${ARM_TO_SHA[$arm]}
-    if [ "$got" = "$want" ]; then
-      echo "    $arm: sha=$got ✓"
-    else
-      echo "    $arm: sha=$got EXPECTED=$want ✗ — aborting"; exit 2
-    fi
-  done
-  local sft_got=$(sha256sum "${TRAINING_SETS_DIR}/v_final_sft_A_v2.jsonl" 2>/dev/null \
-                    | awk '{print $1}' | cut -c 1-24 || true)
-  if [ -n "$sft_got" ]; then
-    if [ "$sft_got" = "$SFT_A_SHA_EXPECTED" ]; then
-      echo "    SFT_A: sha=$sft_got ✓"
-    else
-      echo "    SFT_A: sha=$sft_got EXPECTED=$SFT_A_SHA_EXPECTED ✗"; exit 2
-    fi
+  # Frozen buffer SHA (C_retrieval) — files that already exist can be gated
+  # right now; missing file is now a hard exit (Amendment 12 §12.4: same
+  # gate two severities is a smell, MISSING is stricter than mismatch).
+  if [ ! -f "$FROZEN_BUFFER_TAR" ]; then
+    echo "  MISSING frozen buffer tar: $FROZEN_BUFFER_TAR — C_retrieval cannot run, aborting."
+    exit 2
   fi
-
-  # Frozen buffer SHA (C_retrieval)
-  if [ -f "$FROZEN_BUFFER_TAR" ]; then
-    local bs=$(sha256sum "$FROZEN_BUFFER_TAR" | awk '{print $1}')
-    if [ "$bs" = "$FROZEN_BUFFER_SHA_EXPECTED" ]; then
-      echo "    frozen buffer: sha=$bs ✓"
-    else
-      echo "    frozen buffer: sha=$bs EXPECTED=$FROZEN_BUFFER_SHA_EXPECTED ✗"; exit 2
-    fi
+  local bs=$(sha256sum "$FROZEN_BUFFER_TAR" | awk '{print $1}')
+  if [ "$bs" = "$FROZEN_BUFFER_SHA_EXPECTED" ]; then
+    echo "  frozen buffer: sha=$bs ✓"
   else
-    echo "    frozen buffer tar MISSING — C_retrieval eval will fail"
+    echo "  frozen buffer: sha=$bs EXPECTED=$FROZEN_BUFFER_SHA_EXPECTED ✗"; exit 2
   fi
+}
+
+# Amendment 12 §12.1 SHA gate — verifies every training-set JSONL that
+# Step 2 just produced against the pinned SHA-24 in ARM_TO_SHA_{SFT,KTO}.
+# Called between Step 2 and Step 4. Non-zero exit = pipeline halt.
+verify_training_shas() {
+  echo
+  echo "════════ SHA verify (post-Step-2) ════════"
+  local fail=0
+  for arm in "${ARMS[@]}"; do
+    [ "$SKIP_D_GIST" = "1" ] && [ "$arm" = "D_gist" ] && continue
+
+    local sft_f="${TRAINING_SETS_DIR}/v_final_sft_${arm}.jsonl"
+    local kto_f="${TRAINING_SETS_DIR}/v_final_kto_${arm}.jsonl"
+
+    for pair in "sft:$sft_f:${ARM_TO_SHA_SFT[$arm]}" \
+                "kto:$kto_f:${ARM_TO_SHA_KTO[$arm]}"; do
+      IFS=: read kind f want <<< "$pair"
+      if [ ! -f "$f" ]; then
+        echo "  ${arm}.${kind}: MISSING $f — pipeline aborts"; fail=1; continue
+      fi
+      local got=$(sha256sum "$f" | awk '{print $1}' | cut -c 1-24)
+      if [ "$got" = "$want" ]; then
+        echo "  ${arm}.${kind}: sha=$got ✓"
+      else
+        echo "  ${arm}.${kind}: sha=$got EXPECTED=$want ✗"; fail=1
+      fi
+    done
+  done
+  if [ "$fail" -eq 1 ]; then
+    echo "SHA gate FAILED — pinned files drifted. Aborting."
+    exit 2
+  fi
+  echo "  All training-set SHA pins verified ✓"
 }
 
 echo "═══════════════════════════════════════════════════════════"
@@ -198,32 +220,56 @@ run 1 "python3 scripts/training/extract_historical_retrievals.py \
   --out $RATIONALE_MAP"
 
 # ─────────────────── Step 2: per-arm training-set generation ───────────────────
+#
+# Filename convention (Amendment 12 §12.1):
+#   ${TRAINING_SETS_DIR}/v_final_{sft,kto}_${arm}.jsonl  (post-filter, canonical)
+#
+# Two-stage pipeline per arm × per split:
+#   prep_training_data → *.raw.jsonl   (fresh from replay + rationale_map)
+#   filter_rationale   → *.jsonl       (advisory flags added; drop_policy=asymmetric_kto)
 
 for arm in "${ARMS[@]}"; do
   [ "$SKIP_D_GIST" = "1" ] && [ "$arm" = "D_gist" ] && continue
 
   src="${ARM_TO_SRC[$arm]}"
 
+  SFT_RAW="${TRAINING_SETS_DIR}/v_final_sft_${arm}.raw.jsonl"
+  SFT_JSONL="${TRAINING_SETS_DIR}/v_final_sft_${arm}.jsonl"
+  KTO_RAW="${TRAINING_SETS_DIR}/v_final_kto_${arm}.raw.jsonl"
+  KTO_JSONL="${TRAINING_SETS_DIR}/v_final_kto_${arm}.jsonl"
+
   # SFT-A (992 desirable, --only_progress_round, no failures)
-  SFT_JSONL="${TRAINING_SETS_DIR}/v_final_sft_A_${arm}.jsonl"
-  run "2.${arm}.sft" "python3 scripts/training/prep_training_data.py \
+  run "2.${arm}.sft.prep" "python3 scripts/training/prep_training_data.py \
     --runs $TRAIN_RUNS \
-    --out $SFT_JSONL \
+    --out $SFT_RAW \
     --only_progress_round \
     --rationale_map $RATIONALE_MAP \
     --rationale_source $src \
     --restrict_to_retrievable"
+  run "2.${arm}.sft.filter" "python3 scripts/training/filter_rationale_deterministic.py \
+    --in $SFT_RAW --out $SFT_JSONL --drop_policy asymmetric_kto \
+    && rm -f $SFT_RAW"
 
   # KTO-B (992 desirable + 1799 undesirable)
-  KTO_JSONL="${TRAINING_SETS_DIR}/v_final_kto_B_${arm}.jsonl"
-  run "2.${arm}.kto" "python3 scripts/training/prep_training_data.py \
+  run "2.${arm}.kto.prep" "python3 scripts/training/prep_training_data.py \
     --runs $TRAIN_RUNS \
-    --out $KTO_JSONL \
+    --out $KTO_RAW \
     --only_progress_round --include_failures \
     --rationale_map $RATIONALE_MAP \
     --rationale_source $src \
     --restrict_to_retrievable"
+  run "2.${arm}.kto.filter" "python3 scripts/training/filter_rationale_deterministic.py \
+    --in $KTO_RAW --out $KTO_JSONL --drop_policy asymmetric_kto \
+    && rm -f $KTO_RAW"
 done
+
+# ─────────────────── Step 2b: SHA gate against Amendment 12 pin ───────────────────
+# SHA verify runs unless the user explicitly requested to jump past
+# training itself (--skip 5 or later). Files must exist on disk regardless
+# of whether Step 2 was re-run this invocation or previously cached.
+if [ "$DRY_RUN" -eq 0 ] && [ "$SKIP_TO" -lt 5 ]; then
+  verify_training_shas
+fi
 
 # ─────────────────── Step 3: Blocker 2 — seed determinism smoke test ───────────────────
 #
@@ -242,7 +288,7 @@ run 3 "/home/control/IsaacLab/isaaclab.sh -p \
 BUNDLE_INPUTS=""
 for arm in "${ARMS[@]}"; do
   [ "$SKIP_D_GIST" = "1" ] && [ "$arm" = "D_gist" ] && continue
-  BUNDLE_INPUTS="$BUNDLE_INPUTS ${TRAINING_SETS_DIR}/v_final_sft_A_${arm}.jsonl ${TRAINING_SETS_DIR}/v_final_kto_B_${arm}.jsonl"
+  BUNDLE_INPUTS="$BUNDLE_INPUTS ${TRAINING_SETS_DIR}/v_final_sft_${arm}.jsonl ${TRAINING_SETS_DIR}/v_final_kto_${arm}.jsonl"
 done
 
 run 4 "python3 scripts/training/pack_training_bundle.py \
@@ -256,7 +302,7 @@ run 4 "python3 scripts/training/pack_training_bundle.py \
 for arm in "${ARMS[@]}"; do
   [ "$SKIP_D_GIST" = "1" ] && [ "$arm" = "D_gist" ] && continue
 
-  SFT_JSONL="${TRAINING_SETS_DIR}/v_final_sft_A_${arm}.jsonl"
+  SFT_JSONL="${TRAINING_SETS_DIR}/v_final_sft_${arm}.jsonl"
   SFT_CKPT="$CHECKPOINTS_DIR/${arm}/sft_A"
   run "5.${arm}" "ssh $REMOTE_HOST 'cd $REMOTE_ROOT && \
     CUDA_VISIBLE_DEVICES=1,2 python3 server_side/train_qlora_gemma4.py \
@@ -272,7 +318,7 @@ done
 for arm in "${ARMS[@]}"; do
   [ "$SKIP_D_GIST" = "1" ] && [ "$arm" = "D_gist" ] && continue
 
-  KTO_JSONL="${TRAINING_SETS_DIR}/v_final_kto_B_${arm}.jsonl"
+  KTO_JSONL="${TRAINING_SETS_DIR}/v_final_kto_${arm}.jsonl"
   SFT_CKPT="$CHECKPOINTS_DIR/${arm}/sft_A"
   KTO_CKPT="$CHECKPOINTS_DIR/${arm}/kto_B"
   run "6.${arm}" "ssh $REMOTE_HOST 'cd $REMOTE_ROOT && \
@@ -315,12 +361,18 @@ done
 # Prepare frozen buffer for C_retrieval eval (Amendment 8 §8.5).
 # Record pre-collect file count so the readonly gate can be verified after
 # C_retrieval collect finishes.
-BUFFER_COUNT_FILE="/tmp/d11_c_retrieval_buffer_precount.txt"
+BUFFER_TREE_HASH_FILE="/tmp/d11_c_retrieval_buffer_tree.sha256"
+# Amendment 12 §12.3: record tree hash (sorted per-file sha256 aggregate) so
+# a same-count overwrite of an existing recap is caught by the post-collect
+# gate. File-count alone would miss it. Escape \$(cat) so the shell that
+# runs `eval` (not the shell that builds the command string) reads the file
+# post-unpack.
 run "8.frozen_buffer_unpack" "rm -rf $C_RETRIEVAL_BUFFER_ROOT && \
   mkdir -p $C_RETRIEVAL_BUFFER_ROOT && \
   tar xzf $FROZEN_BUFFER_TAR -C $C_RETRIEVAL_BUFFER_ROOT && \
-  find $C_RETRIEVAL_BUFFER_ROOT -type f | wc -l > $BUFFER_COUNT_FILE && \
-  echo \"C_retrieval buffer unpacked to $C_RETRIEVAL_BUFFER_ROOT ($(cat $BUFFER_COUNT_FILE) files)\""
+  ( cd $C_RETRIEVAL_BUFFER_ROOT && find . -type f | sort | xargs sha256sum ) \
+    | sha256sum | awk '{print \$1}' > $BUFFER_TREE_HASH_FILE && \
+  echo \"C_retrieval buffer unpacked to $C_RETRIEVAL_BUFFER_ROOT — tree_hash=\$(cat $BUFFER_TREE_HASH_FILE)\""
 
 # Adapter-set → collect loop map. C_retrieval reuses A_ctrl_rat's adapter.
 declare -A PROTOCOL_TO_ARM=(
@@ -334,7 +386,7 @@ declare -A PROTOCOL_TO_VARIANT=(
   [A_action_only]=action_only
   [A_ctrl_rat]=rationale
   [B_main]=rationale_with_gist
-  [D_gist]=rationale_with_gist
+  [D_gist]=gist_only
   [C_retrieval]=rationale_with_retrieval
 )
 declare -a PROTOCOLS=(A_action_only A_ctrl_rat B_main D_gist C_retrieval)
@@ -376,14 +428,15 @@ for prot in "${PROTOCOLS[@]}"; do
       > $D11_LOG 2>&1 && \
     echo 'D11 $prot collect done → $D11_LOG'"
 
-  # Amendment 8 §8.5 readonly gate check for C_retrieval — assert buffer
-  # file count unchanged pre vs post. Fails hard (exit 3) if any write
-  # slipped through the gate; that would invalidate C_retrieval.
+  # Amendment 12 §12.3 readonly gate — assert tree hash unchanged pre vs
+  # post (catches same-count overwrites, which file-count alone would miss).
+  # Fails hard (exit 3) if any write slipped through; that would invalidate
+  # C_retrieval as a frozen-external-memory comparator.
   if [ "$prot" = "C_retrieval" ]; then
-    run "8.${prot}.readonly_check" "PRE=\$(cat $BUFFER_COUNT_FILE); \
-      POST=\$(find $C_RETRIEVAL_BUFFER_ROOT -type f | wc -l); \
+    run "8.${prot}.readonly_check" "PRE=\$(cat $BUFFER_TREE_HASH_FILE); \
+      POST=\$( ( cd $C_RETRIEVAL_BUFFER_ROOT && find . -type f | sort | xargs sha256sum ) | sha256sum | awk '{print \$1}' ); \
       echo \"pre=\$PRE post=\$POST\"; \
-      [ \"\$PRE\" = \"\$POST\" ] || { echo \"READONLY GATE FAILED — recap file count changed during C_retrieval eval\"; exit 3; }"
+      [ \"\$PRE\" = \"\$POST\" ] || { echo \"READONLY GATE FAILED — buffer tree hash changed during C_retrieval eval\"; exit 3; }"
   fi
 done
 

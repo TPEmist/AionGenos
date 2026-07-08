@@ -152,12 +152,22 @@ _S1_POS_TAIL_RATIONALE_WITH_GIST: Final[str] = (
     + _S1_POS_TAIL_ACTION
 )
 
+_S1_POS_TAIL_GIST_ONLY: Final[str] = (
+    "PAST_LESSONS: <top-3 retrieved lessons as bullets>\n"
+    + _S1_POS_TAIL_ACTION
+)
+
 STAGE1_TEMPLATES_BY_VARIANT: Final[dict[str, dict[ControlMode, str]]] = {
     "action_only": {
         ControlMode.POSITION_ONLY: _S1_POS_HEAD + _S1_POS_TAIL_ACTION,
     },
     "rationale": {
         ControlMode.POSITION_ONLY: _S1_POS_HEAD + _S1_POS_TAIL_RATIONALE,
+    },
+    "gist_only": {
+        # D_gist: PAST_LESSONS + canonical, no INTRINSIC_RATIONALE slot.
+        # Matches training target from --rationale_source gist_only.
+        ControlMode.POSITION_ONLY: _S1_POS_HEAD + _S1_POS_TAIL_GIST_ONLY,
     },
     "rationale_with_gist": {
         ControlMode.POSITION_ONLY: _S1_POS_HEAD + _S1_POS_TAIL_RATIONALE_WITH_GIST,
