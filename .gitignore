@@ -35,4 +35,6 @@ Thumbs.db
 # Phase 4: per-run recaps + memory buffer (large, regenerable)
 workspace/recaps/
 workspace/recaps_*/
+workspace/frozen_buffers/
+workspace/d11_audit/
 CLAUDE.md

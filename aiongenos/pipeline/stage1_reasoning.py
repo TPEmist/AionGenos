@@ -38,6 +38,7 @@ def run_stage1(
     max_retries: int = 2,
     memory_preamble_text: Optional[str] = None,
     memory_preamble_images_b64: Optional[list[str]] = None,
+    eval_template_variant: Optional[str] = None,
 ) -> tuple[Optional[Stage1Response], float, Optional[str]]:
     """Execute Stage 1: VLM Reasoning.
 
@@ -61,7 +62,9 @@ def run_stage1(
         Tuple of (parsed_response or None, latency_ms, error_message or None).
     """
     system_prompt = get_stage1_system_prompt()
-    user_prompt = get_stage1_prompt(level_config, state)
+    user_prompt = get_stage1_prompt(
+        level_config, state, eval_template_variant=eval_template_variant
+    )
 
     if critic_feedback:
         user_prompt += f"\n\n{CRITIC_FEEDBACK_INJECTION_HEADER}\n{critic_feedback}"

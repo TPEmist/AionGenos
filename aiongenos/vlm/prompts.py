@@ -32,7 +32,7 @@ new fields requires updating ``replay.schema.OBSERVABLE_WHITELIST``.
 
 from __future__ import annotations
 
-from typing import Final
+from typing import Final, Optional
 
 from aiongenos.config import ControlMode, LevelConfig
 
@@ -51,17 +51,23 @@ STAGE1_SYSTEM: Final[str] = (
 # ─────────────────────────────────────────────────────────────────────────
 # P2-P4: Stage 1 user templates per ControlMode
 # ─────────────────────────────────────────────────────────────────────────
-_S1_POS: Final[str] = (
+_S1_POS_HEAD: Final[str] = (
     "TASK: {instruction}\nCONTROL_MODE: end_effector_position_only\n\n"
     "CURRENT STATE:\n"
     "  LEFT_EE_POS  = (X={left_x}, Y={left_y}, Z={left_z})\n"
     "  RIGHT_EE_POS = (X={right_x}, Y={right_y}, Z={right_z})\n"
     "  LEFT_EE_TO_RED_CUBE  = {dist_red_cm} cm\n"
     "  RIGHT_EE_TO_BLUE_CUBE = {dist_blue_cm} cm\n\n"
-    "THOUGHT: <one paragraph physics reasoning>\n"
+)
+_S1_POS_TAIL_ACTION: Final[str] = (
     "LEFT_TARGET_POS:  X=<int> Y=<int> Z=<int>\n"
     "RIGHT_TARGET_POS: X=<int> Y=<int> Z=<int>\n"
     "STOP: <true|false>"
+)
+_S1_POS: Final[str] = (
+    _S1_POS_HEAD
+    + "THOUGHT: <one paragraph physics reasoning>\n"
+    + _S1_POS_TAIL_ACTION
 )
 
 _S1_RPY2: Final[str] = (
@@ -106,6 +112,61 @@ STAGE1_TEMPLATES: Final[dict[ControlMode, str]] = {
     ControlMode.POSITION_ONLY: _S1_POS,
     ControlMode.POSITION_RPY_2DOF: _S1_RPY2,
     ControlMode.POSITION_RPY_GRIPPER: _S1_FULL,
+}
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# Amendment 8 §8.5 — Per-arm inference template variants.
+#
+# The user prompt's OUTPUT SLOT list must match what the student learned to
+# emit at training time. Four arms → four output-slot shapes (POSITION_ONLY
+# only for now; L1+ will extend when those arms are added):
+#
+#   action_only              (A_ctrl):      canonical action lines only.
+#   rationale                (A_ctrl_rat):  INTRINSIC_RATIONALE + canonical.
+#   rationale_with_gist      (B_main):      PAST_LESSONS + INTRINSIC_RATIONALE + canonical.
+#                                           (gist itself comes from separate
+#                                            retrieval preamble injection at
+#                                            stage1_reasoning level, not
+#                                            baked into this template.)
+#   rationale_with_retrieval (C_retrieval): identical prompt to `rationale`;
+#                                           retrieval preamble is injected
+#                                           separately at inference time
+#                                           (base adapter = A_ctrl_rat).
+#
+# Under `rationale_with_gist`, at training time the PAST_LESSONS block was
+# INSIDE the target_response; at inference time it must not be — the model
+# generates it, so the user prompt only tells it the required OUTPUT format.
+# ─────────────────────────────────────────────────────────────────────────
+
+EvalTemplateVariant = str  # one of {"action_only","rationale","rationale_with_gist","rationale_with_retrieval"}
+
+_S1_POS_TAIL_RATIONALE: Final[str] = (
+    "INTRINSIC_RATIONALE: <one paragraph physics reasoning>\n"
+    + _S1_POS_TAIL_ACTION
+)
+
+_S1_POS_TAIL_RATIONALE_WITH_GIST: Final[str] = (
+    "PAST_LESSONS: <top-3 retrieved lessons as bullets>\n"
+    "INTRINSIC_RATIONALE: <one paragraph physics reasoning>\n"
+    + _S1_POS_TAIL_ACTION
+)
+
+STAGE1_TEMPLATES_BY_VARIANT: Final[dict[str, dict[ControlMode, str]]] = {
+    "action_only": {
+        ControlMode.POSITION_ONLY: _S1_POS_HEAD + _S1_POS_TAIL_ACTION,
+    },
+    "rationale": {
+        ControlMode.POSITION_ONLY: _S1_POS_HEAD + _S1_POS_TAIL_RATIONALE,
+    },
+    "rationale_with_gist": {
+        ControlMode.POSITION_ONLY: _S1_POS_HEAD + _S1_POS_TAIL_RATIONALE_WITH_GIST,
+    },
+    "rationale_with_retrieval": {
+        # C_retrieval uses the SAME output slots as A_ctrl_rat (its adapter
+        # base). The retrieved PAST_LESSONS enter as a preamble, not a slot.
+        ControlMode.POSITION_ONLY: _S1_POS_HEAD + _S1_POS_TAIL_RATIONALE,
+    },
 }
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -191,9 +252,38 @@ CRITIC_PROGRESS_DEAD_BAND_CM: Final[float] = 1.0
 CRITIC_FEEDBACK_INJECTION_HEADER: Final[str] = "### CRITIC FEEDBACK FROM PREVIOUS ROUND:"
 
 
-def get_stage1_prompt(level_config: LevelConfig, state: dict) -> str:
-    """Build Stage 1 user prompt."""
-    return STAGE1_TEMPLATES[level_config.control_mode].format_map(state)
+def get_stage1_prompt(
+    level_config: LevelConfig,
+    state: dict,
+    eval_template_variant: Optional[str] = None,
+) -> str:
+    """Build Stage 1 user prompt.
+
+    Args:
+        level_config: current level config (drives ControlMode branch).
+        state: template placeholders (instruction, left_x, ...).
+        eval_template_variant: Amendment 8 arm-specific output-slot variant.
+            One of {"action_only","rationale","rationale_with_gist",
+            "rationale_with_retrieval"}. If None, falls back to the legacy
+            teacher template (with THOUGHT slot) — kept for D6/D10 replay
+            compatibility so old scripts don't break.
+    """
+    if eval_template_variant is None:
+        return STAGE1_TEMPLATES[level_config.control_mode].format_map(state)
+    variant_map = STAGE1_TEMPLATES_BY_VARIANT.get(eval_template_variant)
+    if variant_map is None:
+        raise ValueError(
+            f"Unknown eval_template_variant={eval_template_variant!r}. "
+            f"Expected one of {sorted(STAGE1_TEMPLATES_BY_VARIANT)}."
+        )
+    tmpl = variant_map.get(level_config.control_mode)
+    if tmpl is None:
+        raise NotImplementedError(
+            f"eval_template_variant={eval_template_variant!r} not yet "
+            f"implemented for ControlMode {level_config.control_mode}. "
+            f"Only POSITION_ONLY (L0) is supported in Phase 4."
+        )
+    return tmpl.format_map(state)
 
 
 def get_stage3_prompt(level_config: LevelConfig, state: dict) -> str:

@@ -136,6 +136,79 @@ def wrap_target_with_rationale(rationale_gist: str, original_response: str) -> s
     return f"{rationale_gist}\n{original_response}"
 
 
+# ─────────────────────────── D6-native THOUGHT extractor (A_ctrl_rat) ───────
+
+import re as _re_native
+# D6 stage-1 responses do NOT literally emit "THOUGHT:" as a header — the
+# model produces prose reasoning followed by the LEFT_TARGET_POS lines.
+# Empirical inspection confirms: raw response = <prose paragraph>
+# \n LEFT_TARGET_POS: ... \n RIGHT_TARGET_POS: ... \n STOP: ...
+# So the "thought" is everything BEFORE the first coordinate output line.
+_THOUGHT_RE = _re_native.compile(
+    r"(?:THOUGHT:)?\s*(.*?)(?=\n?LEFT_TARGET_POS:|\n?RIGHT_TARGET_POS:|$)",
+    _re_native.DOTALL | _re_native.IGNORECASE,
+)
+
+# Cap picked to match B_main gist median (129 words) — pre-registration
+# Amendment 7 §7.1 pins this. Longer thoughts have decision content in
+# the tail, so we keep the LAST N words rather than truncating from the
+# front.
+_A_CTRL_RAT_WORD_CAP = 130
+
+
+def _build_action_lines(interaction: dict) -> str:
+    """Build canonical action-lines string from parsed coordinate fields.
+
+    D6 (and other) stage-1 responses save `full_response` as prose only,
+    with LEFT_TARGET_POS/etc. parsed out separately into interaction
+    fields. To construct an "action-only" target we synthesize the
+    canonical LEFT_TARGET_POS: X=.. Y=.. Z=.. \n RIGHT_TARGET_POS: ...
+    from those fields. This is what the Stage-1 prompt template expects
+    the model to emit, so it matches training format exactly.
+    """
+    left = interaction.get("parsed_left_pos") or [0, 0, 0]
+    right = interaction.get("parsed_right_pos") or [0, 0, 0]
+    stop_flag = interaction.get("parsed_stop", False)
+    parts = []
+    parts.append(f"LEFT_TARGET_POS:  X={left[0]} Y={left[1]} Z={left[2]}")
+    parts.append(f"RIGHT_TARGET_POS: X={right[0]} Y={right[1]} Z={right[2]}")
+    parts.append(f"STOP: {'true' if stop_flag else 'false'}")
+    return "\n".join(parts)
+
+
+def extract_native_thought(full_response: str) -> str:
+    """Extract the THOUGHT paragraph from a D6 stage-1 raw response.
+
+    Returns empty string if no THOUGHT section found. Length-cap and
+    tail-preserving truncation applied per Amendment 7 §7.1.
+    """
+    m = _THOUGHT_RE.search(full_response or "")
+    if not m:
+        return ""
+    text = m.group(1).strip()
+    words = text.split()
+    if len(words) > _A_CTRL_RAT_WORD_CAP:
+        # Preserve DECISION tail — decision terms appear at end of D6's CoT
+        # (empirical inspection: "I need to move the left arm in..." is the
+        # closing pattern). Prefix "..." makes truncation legible in target.
+        text = "… " + " ".join(words[-_A_CTRL_RAT_WORD_CAP:])
+    return text
+
+
+def format_native_rationale_gist(native_thought: str) -> str:
+    """Prefix a D6 native thought with a header that mirrors the structural
+    shape of the B_main PAST_LESSONS block but uses only intrinsic content
+    (no cross-episode retrieval). This lets A_ctrl_rat's target format
+    match B_main's schema without importing memory content.
+    """
+    if not native_thought:
+        return ""
+    parts = ["INTRINSIC_RATIONALE (this attempt's own reasoning):",
+             f"  {native_thought}",
+             ""]
+    return "\n".join(parts)
+
+
 def _resolve_active_arm(level_name: str) -> str | None:
     """Mirror IsaacLabEnvInterface._active_arm_for_level."""
     if level_name.endswith("_left"):
@@ -188,6 +261,8 @@ def build_samples(
     include_failures: bool = False,
     progress_threshold_cm: float = 0.5,
     rationale_map: Optional[dict[str, list[dict]]] = None,
+    rationale_source: str = "retrieval",  # "retrieval" | "native" | "gist_only" | "none"
+    restrict_to_retrievable: bool = False,
 ) -> list[dict]:
     """Build per-round samples from replay episodes (Phase 4 Option C+).
 
@@ -265,15 +340,91 @@ def build_samples(
                         skipped["empty_response"] += 1
                         continue
 
-                    # Phase 4 D11: prepend historical retrieved lessons.
+                    # Phase 4 D11 rationale attachment — Amendment 8 2×2
+                    # factorial. All arms terminate with canonical action
+                    # lines synthesized from parsed coords (cross-arm
+                    # ablation hygiene: single output-format synthesizer
+                    # _build_action_lines used everywhere so R1 ΔX probe
+                    # is well-defined on every arm).
+                    #
+                    #                    | no gist          | with gist
+                    #   no native thought| "none"  A_ctrl   | "gist_only" D_gist
+                    #   native thought   | "native" A_ctrl_rat | "retrieval" B_main
+                    #
+                    # Same-round pairing (Amendment 7 §7.3): native THOUGHT
+                    # source and action target come from the SAME interaction
+                    # (inter[round_idx-1]) — enforced by construction.
                     has_rationale = False
-                    if rationale_map is not None:
+                    action_lines = _build_action_lines(interaction)
+
+                    # Cross-arm hygiene: A_ctrl / A_ctrl_rat should share the
+                    # SAME row-set as B_main / D_gist. Drop rows whose ep has
+                    # no retrieval hit even when the current arm doesn't
+                    # need the gist itself.
+                    if (restrict_to_retrievable
+                            and rationale_source in ("none", "native")
+                            and rationale_map is not None
+                            and not (rationale_map.get(ep_id) or [])):
+                        skipped["no_retrieval_for_ep"] += 1
+                        continue
+
+                    if rationale_source == "retrieval" and rationale_map is not None:
+                        # B_main: PAST_LESSONS gist + native thought + canonical.
                         lessons = rationale_map.get(ep_id) or []
-                        if lessons:
-                            gist = format_rationale_gist(lessons)
-                            if gist:
-                                response = wrap_target_with_rationale(gist, response)
+                        gist_block = format_rationale_gist(lessons) if lessons else ""
+                        native_thought = extract_native_thought(
+                            interaction.get("full_response", "")
+                        )
+                        thought_block = (
+                            format_native_rationale_gist(native_thought)
+                            if native_thought else ""
+                        )
+                        if gist_block and thought_block:
+                            response = gist_block + "\n" + thought_block + action_lines
+                            has_rationale = True
+                        elif gist_block:
+                            # Rare: interaction has no parseable native thought.
+                            # Keep sample with gist + canonical only rather than
+                            # dropping — Amendment 8 §8.6 logs these.
+                            response = gist_block + "\n" + action_lines
+                            has_rationale = True
+                        elif thought_block:
+                            # Rare: ep has no retrieval hits. Skip — this row
+                            # would not be a B_main sample.
+                            skipped["no_retrieval_for_ep"] += 1
+                            continue
+                        else:
+                            skipped["no_retrieval_for_ep"] += 1
+                            continue
+                    elif rationale_source == "native":
+                        # A_ctrl_rat: native thought + canonical.
+                        native_thought = extract_native_thought(
+                            interaction.get("full_response", "")
+                        )
+                        if native_thought:
+                            thought_block = format_native_rationale_gist(native_thought)
+                            if thought_block:
+                                response = thought_block + action_lines
                                 has_rationale = True
+                    elif rationale_source == "gist_only":
+                        # D_gist (Amendment 8 secondary): gist + canonical,
+                        # no native thought. Fills the {gist=yes, thought=no}
+                        # cell of the 2×2 factorial.
+                        lessons = rationale_map.get(ep_id) if rationale_map else None
+                        if lessons:
+                            gist_block = format_rationale_gist(lessons)
+                            if gist_block:
+                                response = gist_block + "\n" + action_lines
+                                has_rationale = True
+                            else:
+                                skipped["no_retrieval_for_ep"] += 1
+                                continue
+                        else:
+                            skipped["no_retrieval_for_ep"] += 1
+                            continue
+                    elif rationale_source == "none":
+                        # A_ctrl: canonical action lines only.
+                        response = action_lines
 
                     state = _state_at_round(replay, meta_round, round_idx, sim_steps_per_round)
                     dist_l = meta_round.get("final_dist_l_cm")
@@ -424,6 +575,22 @@ def main() -> None:
                         help="Phase 4 D11: JSONL produced by extract_historical_retrievals.py. "
                              "For each ep with retrieval history, prepend a PAST_LESSONS block "
                              "to the training target so student LoRA learns memory-derived reasoning.")
+    parser.add_argument("--restrict_to_retrievable", action="store_true",
+                        help="Amendment 8 cross-arm hygiene: even for --rationale_source none/native "
+                             "(which do not need PAST_LESSONS gist), still drop samples whose ep_id "
+                             "has no rationale_map hit. This aligns the sample set across all four "
+                             "arms of the 2×2 factorial so training-step count is a shared variable, "
+                             "not a between-arm confound. Requires --rationale_map.")
+    parser.add_argument("--rationale_source",
+                        choices=("retrieval", "native", "gist_only", "none"),
+                        default="retrieval",
+                        help="Amendment 8 2×2 factorial: rationale attachment mode. "
+                             "All arms terminate with canonical action lines from "
+                             "_build_action_lines(inter). "
+                             "'retrieval'  (B_main):   PAST_LESSONS gist + native THOUGHT + canonical. "
+                             "'native'     (A_ctrl_rat): native THOUGHT + canonical. "
+                             "'gist_only'  (D_gist, secondary): PAST_LESSONS gist + canonical. "
+                             "'none'       (A_ctrl):   canonical only.")
     args = parser.parse_args()
 
     if args.skip_first_round and args.min_round == 1:
@@ -452,7 +619,27 @@ def main() -> None:
         include_failures=args.include_failures,
         progress_threshold_cm=args.progress_threshold_cm,
         rationale_map=rationale_map,
+        rationale_source=args.rationale_source,
+        restrict_to_retrievable=args.restrict_to_retrievable,
     )
+
+    # Amendment 7 §7.1 length-distribution audit — print histograms so
+    # any cross-arm length skew is visible before training. Applies only
+    # when rationale is attached.
+    if args.rationale_source in ("retrieval", "native", "gist_only"):
+        import statistics as _st
+        wlens = []
+        for s in samples:
+            if s.get("has_rationale"):
+                wlens.append(len(s["target_response"].split()))
+        if wlens:
+            logger.info("")
+            logger.info(f"Rationale-attached target word count "
+                        f"(rationale_source={args.rationale_source}, n={len(wlens)}):")
+            logger.info(f"  min={min(wlens)} p25={sorted(wlens)[len(wlens)//4]} "
+                        f"median={_st.median(wlens):.0f} "
+                        f"p75={sorted(wlens)[3*len(wlens)//4]} max={max(wlens)}")
+            logger.info(f"  mean={_st.mean(wlens):.0f} stdev={_st.stdev(wlens) if len(wlens)>1 else 0:.1f}")
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with args.out.open("w") as fp:

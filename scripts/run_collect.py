@@ -79,6 +79,25 @@ parser.add_argument(
          "to success-only during SR-dip recovery.",
 )
 parser.add_argument(
+    "--recap_buffer_readonly", action="store_true",
+    help="Amendment 8 §8.5: freeze buffer during eval — retrieval reads from "
+         "existing recaps, but no new recaps are persisted this run. Required "
+         "for the C_retrieval arm so its 'external memory' remains a "
+         "point-in-time snapshot comparable to B_main's frozen weights.",
+)
+parser.add_argument(
+    "--eval_template_variant",
+    type=str,
+    default=None,
+    choices=(None, "action_only", "rationale",
+             "rationale_with_gist", "rationale_with_retrieval"),
+    help="Amendment 8 §8.5: per-arm inference prompt variant. "
+         "action_only=A_ctrl, rationale=A_ctrl_rat, rationale_with_gist=B_main, "
+         "rationale_with_retrieval=C_retrieval. If unset, falls back to legacy "
+         "teacher template with THOUGHT slot (D6/D10 backwards-compat). "
+         "Only POSITION_ONLY (L0) is supported in Phase 4.",
+)
+parser.add_argument(
     "--freeze_level", action="store_true",
     help="When set, curriculum never auto-advances even if SR ≥ threshold. "
          "Required for single-task paper-quality collects: ext-5 auto-advanced "
@@ -175,6 +194,8 @@ def main():
             dump_images_root=Path(args_cli.dump_images_root) if args_cli.dump_images_root else None,
             memory_retriever=memory_retriever,
             recap_buffer=recap_buffer,
+            eval_template_variant=args_cli.eval_template_variant,
+            recap_buffer_readonly=args_cli.recap_buffer_readonly,
         )
         logger.info("Collect loop execution complete.")
         logger.info(f"Stats summary: {stats}")

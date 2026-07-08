@@ -117,6 +117,8 @@ def run_collect_loop(
     dump_images_root: Optional[Path] = None,
     memory_retriever: "Optional[object]" = None,
     recap_buffer: "Optional[object]" = None,
+    eval_template_variant: Optional[str] = None,
+    recap_buffer_readonly: bool = False,
 ) -> CollectStats:
     """Run the 4-stage cognitive evolution collect loop.
 
@@ -277,6 +279,7 @@ def run_collect_loop(
                 max_retries=level_config.max_retry_on_parse_fail,
                 memory_preamble_text=r1_preamble_text,
                 memory_preamble_images_b64=r1_preamble_imgs,
+                eval_template_variant=eval_template_variant,
             )
             stats.total_vlm_latency_ms += stage1_latency
 
@@ -469,7 +472,11 @@ def run_collect_loop(
             )
 
         # Phase 4: post-episode self-recap (Q1 — always written).
-        if recap_buffer is not None:
+        # Amendment 8 §8.5: for C_retrieval eval we use a frozen snapshot of
+        # the D10-ext buffer and MUST NOT write new recaps — otherwise the
+        # external memory would keep growing during eval and confound the
+        # weights-vs-context comparison against B_main (frozen weights).
+        if recap_buffer is not None and not recap_buffer_readonly:
             try:
                 _emit_recap_for_episode(
                     recap_buffer=recap_buffer,
