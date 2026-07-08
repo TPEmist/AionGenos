@@ -294,7 +294,7 @@ by Amendment 13.
 
 #### 13.4 Anchors
 
-- Amendment 13 commit SHA: **_TBD (backfill after commit)_**
+- Amendment 13 commit SHA: **`cd1eb94`**
 - Depends on: Amendment 12 (`0e26443`), Amendment 12 code (`ae196b5`).
 - Companion code commit: **`9f5bec1`**.
 
