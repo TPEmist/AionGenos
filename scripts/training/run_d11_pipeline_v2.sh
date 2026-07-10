@@ -418,11 +418,11 @@ for arm in "${ARMS[@]}"; do
   fi
   run "7.${arm}" "ssh $REMOTE_HOST 'cd $REMOTE_ROOT && \
     python3 server_side/export_lora_gguf.py \
-      --adapter $SFT_CKPT/final_adapter \
-      --out $SFT_GGUF \
+      --checkpoint-dir $SFT_CKPT/final_adapter \
+      --output $SFT_GGUF \
     && python3 server_side/export_lora_gguf.py \
-      --adapter $KTO_CKPT/final_adapter \
-      --out $KTO_GGUF'"
+      --checkpoint-dir $KTO_CKPT/final_adapter \
+      --output $KTO_GGUF'"
 done
 
 # ─────────────────── Step 8: five eval protocols ───────────────────

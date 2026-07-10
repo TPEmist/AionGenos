@@ -347,14 +347,17 @@ class KTOTrainer(Trainer):
                 # For the policy pass we want [frozen + trainable] active;
                 # for the ref pass we want [frozen] only.
                 try:
-                    self.model.set_adapter(self.frozen_adapter_name)
+                    # Ref pass: LoraModel switches to frozen only.
+                    self.model.base_model.set_adapter(self.frozen_adapter_name)
                     out = self._forward_no_grad(inputs)
                 finally:
-                    # Restore both adapters as active so the subsequent
-                    # policy forward pass (which runs AFTER this ref pass
-                    # returned) uses π_θ = base + both. PEFT >=0.10 supports
-                    # set_adapter with a list.
-                    self.model.set_adapter([self.frozen_adapter_name, self.trainable_adapter_name])
+                    # Restore both at LoraModel layer. Keep PeftModel-level
+                    # active_adapter as single string ("kto") so PEFT
+                    # introspection paths don't hit unhashable-list bugs.
+                    self.model.base_model.set_adapter(
+                        [self.frozen_adapter_name, self.trainable_adapter_name]
+                    )
+                    self.model.active_adapter = self.trainable_adapter_name
         return out.logits
 
     def _forward_no_grad(self, inputs: dict):
@@ -509,7 +512,15 @@ def main():
         print("Adding fresh trainable 'kto' adapter...")
         model.add_adapter("kto", fresh_lora_cfg)
         # Activate both: π_θ pass uses both, ref pass switches to sft_frozen only.
-        model.set_adapter(["sft_frozen", "kto"])
+        # PEFT 0.19: PeftModel.set_adapter is single-string only. LoraModel
+        # (accessed via .base_model) still supports list — that's what
+        # actually turns the LoRA layers on/off. The C.3-B invariant is:
+        # both adapters route through forward at the LoraModel layer level.
+        # PeftModel.active_adapter (used by Trainer for introspection) stays
+        # as a single string pointing to the TRAINABLE adapter; PEFT internal
+        # code does `peft_config[active_adapter]` which requires hashable key.
+        model.base_model.set_adapter(["sft_frozen", "kto"])
+        model.active_adapter = "kto"  # single-string for PEFT introspection
         # Freeze parameters that belong to sft_frozen (paranoid — PEFT should
         # already handle this via is_trainable=False, but ensure at param level).
         n_kto_trainable = n_frozen = 0
