@@ -643,7 +643,15 @@ def main():
         # C.3-B: save ONLY the trainable kto adapter. The frozen sft_frozen
         # adapter should be re-loaded from its original path at inference time
         # via llama-server --lora, not duplicated here.
-        trainer.model.save_pretrained(final_output_path, selected_adapters=["kto"])
+        # save_pretrained(selected_adapters=[X]) stores X in a subdir named X;
+        # temporarily switch the trainable adapter to be the default so the
+        # default-write goes flat under final_output_path/ instead of
+        # final_output_path/kto/ (which breaks downstream GGUF export that
+        # expects adapter_config.json at the top of final_output_path).
+        prev_active = trainer.model.active_adapter
+        trainer.model.set_adapter("kto")
+        trainer.model.save_pretrained(final_output_path)
+        trainer.model.active_adapter = prev_active
         print(f"  saved adapter: kto")
         print(f"  frozen sft adapter left at its input path: {args.frozen_adapter}")
         print(f"  inference: base + {args.frozen_adapter}/*.gguf + {final_output_path}/*.gguf (both --lora)")

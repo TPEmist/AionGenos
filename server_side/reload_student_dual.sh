@@ -25,15 +25,21 @@ MMPROJ_PATH="${MMPROJ_PATH:-/home/exx/.cache/llama.cpp/ggml-org_gemma-4-31B-it-G
 PORT="${STUDENT_PORT:-18889}"
 CTX_SIZE="${CTX_SIZE:-16384}"
 
-# Build the --lora argument list — one per positional arg.
-LORA_ARGS=""
+# llama.cpp deprecation (2026): repeated --lora is dropped, only last is kept.
+# New API: single --lora with comma-separated adapter list.
+LORA_LIST=""
 for adapter in "$@"; do
     if [ ! -f "$adapter" ]; then
         echo "ERROR: adapter not found: $adapter" >&2
         exit 1
     fi
-    LORA_ARGS="$LORA_ARGS --lora $adapter"
+    if [ -z "$LORA_LIST" ]; then
+        LORA_LIST="$adapter"
+    else
+        LORA_LIST="$LORA_LIST,$adapter"
+    fi
 done
+LORA_ARGS="--lora $LORA_LIST"
 
 echo "=== Reloading Student server (dual-LoRA) ==="
 echo "Model:    $MODEL_PATH"
