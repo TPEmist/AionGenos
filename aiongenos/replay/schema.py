@@ -81,6 +81,17 @@ class ReplayEpisode(BaseModel):
     rgb_start_path: Optional[str] = None
     rgb_end_path: Optional[str] = None
 
+    # Reset-time initial world configuration, captured AFTER env.reset() but
+    # BEFORE the first VLM action servos anything (D11 Amendment 14 lesson:
+    # trajectory[0] is already one servo-step in, so it cannot verify seed-
+    # based pairing across arms). These fields are seed-determined and
+    # action-independent, giving a machine-verifiable pairing fingerprint for
+    # paired-design experiments (paper 2 logit-lens contrasts need it).
+    init_cube_pose: Optional[dict[str, list[float]]] = None  # {"red": [x,y,z], "blue": [...]}
+    init_left_ee_pose: Optional[list[float]] = None
+    init_right_ee_pose: Optional[list[float]] = None
+    env_seed: Optional[int] = None
+
     # Metadata
     metadata: dict[str, Any] = Field(default_factory=dict)
 

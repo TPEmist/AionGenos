@@ -248,13 +248,49 @@ named as future work. No overclaim beyond the tested recipe.
 
 #### 14.5 Exploratory analyses (labelled, not confirmatory)
 
-Permitted after the confirmatory tests, explicitly tagged exploratory:
-- Rationale fabrication / hallucination rate per arm.
-- Per-episode rescue analysis (paired-seed dividend): which init poses
-  C_retrieval solves that A_ctrl_rat fails — the "memory-dependent
-  episode" profile.
-- R1 ΔX probe per arm (mechanism, Amendment 9 §9.3 H_behavior vs
-  H_language table).
+Permitted after the confirmatory tests, explicitly tagged exploratory.
+Execution order is fixed here (most-disciplined first):
+1. **R1 ΔX probe per arm** (mechanism, Amendment 9 §9.3 H_behavior vs
+   H_language table) — it has pre-registered per-arm predictions so it
+   is closest to confirmatory discipline.
+2. **Rationale fabrication / hallucination rate per arm** — tests the
+   "self-produced rationale is a tax" hypothesis: any arm that makes the
+   student emit rationale at inference (A_ctrl_rat −10pp, D_gist −6pp,
+   B_main +1pp vs A_action_only) underperforms or ties the action-only
+   baseline; only C_retrieval (+24pp, rationale content is REAL
+   retrieval) wins. If fabrication is high in A_ctrl_rat/B_main and
+   correlates with wrong actions, the second headline stands:
+   "rationale externalisation helps only when its content is true."
+3. **Per-episode rescue analysis** (paired-seed dividend): which init
+   poses C_retrieval solves that A_ctrl_rat fails — "memory-dependent
+   episode" profile, figure fodder.
+
+#### 14.5b McNemar sensitivity status (LOCKED before McNemar is run)
+
+The frozen-arm diagnostic (seed 100/100, frozen right-arm 100/100
+identical, active left-arm 1/100) proves pairing is physically real;
+the §14.1 gate failed only because replay lacks pre-action cube pose.
+It is therefore legitimate and standard to report a **paired McNemar
+as a sensitivity analysis** that recovers the design's power.
+
+But T1a sits at z-test p=0.054 vs α=0.020, and McNemar's efficiency
+gain may push it across. To prevent that from becoming a reverse-fit,
+this is locked NOW, before McNemar is computed:
+
+> **McNemar is reported as sensitivity only. The confirmatory verdict
+> is governed by the Amendment-14-locked primary z-test, regardless of
+> what McNemar shows. If McNemar and z disagree on any contrast, the
+> disagreement itself is reported as a finding — the verdict is NOT
+> switched.** T4 (z=3.36) has no risk here; McNemar can only strengthen
+> it. The clause exists for T1a.
+
+#### 14.5c Sim-validity eyeball check (folded into exploratory)
+
+Close the sim-validity question permanently: manually inspect 10
+C_retrieval successes + 10 B_main failures (playback / RGB pairs),
+confirm the success criterion fired correctly (active EE within
+threshold of the true cube, not a false-positive). Report one line;
+if any misclassification found, escalate before trusting SR.
 
 #### 14.6 Anchors
 
