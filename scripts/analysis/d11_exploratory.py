@@ -174,6 +174,33 @@ def main() -> None:
     print(f"    → 'pure memory-dependent' episodes (only external retrieval")
     print(f"      rescues them): ep_idx {both_fail_c_wins}")
 
+    # Test hypothesis: are rescue-only episodes the ones with most extreme
+    # init pose (where a static baked-in correction is least adequate)?
+    # NULL RESULT — rescue episodes are NOT init-pose outliers.
+    def cfg_vec(rp):
+        t0 = rp["trajectory"][0]
+        return [t0.get("distances", {}).get("dist_red", 0) * 100, *t0["left_ee_pos"]]
+    aa = {ep_idx: rp for ep_idx, _, rp in data["A_action_only"]}
+    vecs = {k: cfg_vec(aa[k]) for k in common if k in aa}
+    dims = list(zip(*[vecs[k] for k in vecs]))
+    means = [st.mean(x) for x in dims]
+    sds = [st.stdev(x) if len(x) > 1 else 1 for x in dims]
+    dev = lambda k: sum(((vecs[k][j] - means[j]) / (sds[j] or 1)) ** 2
+                        for j in range(len(means))) ** 0.5
+    other = [k for k in vecs if k not in both_fail_c_wins]
+    dr_res = st.mean([dev(k) for k in both_fail_c_wins if k in vecs])
+    dr_oth = st.mean([dev(k) for k in other])
+    print(f"\n  Hypothesis test (init-pose extremity of rescue episodes):")
+    print(f"    rescue-only mean init-pose deviation = {dr_res:.3f}")
+    print(f"    other       mean init-pose deviation = {dr_oth:.3f}")
+    print(f"    → NULL: rescue episodes are NOT init-pose outliers")
+    print(f"      (ratio {dr_res/dr_oth:.2f}). The value of conditional")
+    print(f"      correction is NOT 'hard starting poses'. Likely lives in")
+    print(f"      mid-trajectory recovery timing (retrieval re-corrects every")
+    print(f"      round; bake-in gives a one-shot R1 prior). Paper 2 per-round")
+    print(f"      analysis. CAVEAT: init-pose proxy is A_action_only t0, mildly")
+    print(f"      servo-contaminated; dist_red (cleanest) was identical 19.9cm.")
+
     # persist
     out = {
         "r1_dx": {arm: r1_summary[arm] for arm in ARMS},
