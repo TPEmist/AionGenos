@@ -127,9 +127,13 @@ source of retrieval's +23 pp. This variance-based account is
 exploratory — it interprets σ, which the pre-registration did not
 predict, whereas the μ-based branch selection above is confirmatory.
 
-*Figure 2 (money figure): five-arm R1 ΔX distribution (violin/strip) —
-four arms tight at −16.7±9, C_retrieval at −7.1±14.4. μ and σ together
-show static prior vs conditional correction in one panel.*
+*Figure 2 (money figure): five-arm R1 ΔX distribution (violin/strip),
+with two horizontal reference lines — D6 memoryless teacher (−23.5 cm)
+and memory-teacher last quartile (−15.8 cm). Four distilled arms sit
+tight on the −15.8 line at −16.7±9; C_retrieval sits at −7.1±14.4. μ
+and σ together show static prior vs conditional correction in one
+panel; the reference lines show all four distilled arms adopting the
+memory-teacher fingerprint, not D6's.*
 
 ## 4.4 Which episodes need memory — and what "conditional" is not
 
@@ -137,8 +141,9 @@ show static prior vs conditional correction in one panel.*
 episodes are solved *only* by `C_retrieval` (all four no-retrieval arms
 fail) — a "memory-dependent" episode set.
 
-Two pre-registered-style mechanistic hypotheses for *what makes them
-memory-dependent* were tested and both returned null:
+Two exploratory mechanistic hypotheses for *what makes them
+memory-dependent*, each stated in the audit log before its test,
+returned null:
 - **Not starting difficulty**: rescue-only episodes are not init-pose
   outliers (init-pose deviation ratio 0.96; initial red-cube distance
   identical, 19.9 cm vs 19.9 cm). [null]
@@ -179,15 +184,34 @@ A round-resolved test of this is future work (§6).
   configuration. Generalisation across tasks and stronger consolidation
   recipes is untested.
 
-## Table 1 — Confirmatory contrasts (n=100/arm, two-sided)
+## Table 1 — Confirmatory contrasts (n=100/arm, two-sided z primary)
 
-| Test | Contrast | Δ SR | z (primary) | p_z | McNemar p | agree | verdict @ pre-reg α |
-|---|---|---|---|---|---|---|---|
-| T1-strong | B_main − A_action_only | +1 pp | 0.16 | 0.87 | 1.0 | ✓ | FAIL (α=0.020) → null |
-| T1-weak | B_main − A_action_only | +1 pp | 0.16 | 0.87 | 1.0 | ✓ | FAIL (α=0.010) |
-| T1a | B_main − A_ctrl_rat | +11 pp | 1.93 | 0.054 | 0.046 | ✓ | n.s. (α=0.020) |
-| T4 | C_retrieval − B_main | +23 pp | 3.36 | 7.8e-4 | 1.0e-3 | ✓ | PASS (α=0.010) |
-| T3 | B_main ≥ 0.7×mem-teacher | 26% vs 36.2% | −2.12 | — | — | — | BELOW floor |
+| Test | Contrast | Δ SR | Δ 95% CI (Newcombe) | z | p_z | McNemar p | agree | verdict @ pre-reg α |
+|---|---|---|---|---|---|---|---|---|
+| T1 | B_main − A_action_only | +1 pp | [−11.0, +13.0] | 0.16 | 0.87 | 1.0 | ✓ | FAIL @ α=0.020 → **null** |
+| T1a | B_main − A_ctrl_rat | +11 pp | [−0.2, +22.0] | 1.93 | 0.054 | 0.046 | ✓ | **n.s.** @ α=0.020 |
+| T4 | C_retrieval − B_main | +23 pp | [+9.6, +35.3] | 3.36 | 7.8e-4 | 1.0e-3 | ✓ | **PASS** @ α=0.010 |
+| T3 | B_main SR vs 0.7×teacher floor | 26% vs 36.2% | — | −2.12 | 0.98¹ | — | — | **BELOW floor** |
+
+¹ T3 is a one-sided proportion-vs-constant test (H₁: SR > floor); floor
+= 0.7 × 51.7% pooled memory-teacher SR = 36.2% (pre-reg §4). Reported
+one-sided p is the upper-tail probability; B_main is below the floor.
+
+**Two-tier T1**: T1-strong (Δ ≥ +10 pp & sig) and T1-weak (Δ > 0 & sig
+at α=0.010) are graded readings *within* T1's single α=0.020 budget
+line (Amendment 9 §9.2), not separate family members. Both fail here.
+
+**α budget (Amendment 10 §10.2, family-wise 0.060)**: T1 0.020, T1a
+0.020, T3 0.010, T4 0.010. (The original 0.05 five-test plan was
+revised when B_matched was dropped and its 0.010 reallocated to T1a;
+the documented over-spend to 0.060 buys power on the T1a safety-net
+contrast and is itself pre-registered.)
+
+**Reading the CIs**: T1a's [−0.2, +22.0] is the honest statement that
+a real effect may exist but this study is underpowered to resolve it
+(the interval barely includes zero); we therefore report n.s. at the
+pre-registered α and make no directional claim. T4's [+9.6, +35.3]
+excludes zero comfortably.
 
 ## Table 2 — Arm / protocol definitions (from pre-reg §10.3)
 
