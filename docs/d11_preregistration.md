@@ -258,8 +258,8 @@ Permitted after the confirmatory tests, explicitly tagged exploratory:
 
 #### 14.6 Anchors
 
-- Analysis script + gate commit SHA: **_TBD (backfill after commit)_**.
-- Amendment 14 commit SHA: **_TBD (backfill after commit)_**.
+- Analysis script + gate commit SHA: **`73e712b`**.
+- Amendment 14 commit SHA: **`00be6d5`**.
 - Frozen by: TPEmist (chat) — signed 2026-07-13, raw SR seen, zero
   p-values computed.
 
