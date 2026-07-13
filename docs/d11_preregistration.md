@@ -175,6 +175,96 @@ Pre-registration frozen at:
 
 ## 12. Amendment log
 
+### Amendment 14 — 2026-07-13 (collect complete, raw SR seen, NO p-values computed) — Analysis-time decision lock
+
+**Status**: LOCKED — filed after all five collects finished and raw
+success counts were observed (unavoidable: they print in each collect
+log's `Stats summary`), but BEFORE any pairwise statistic or p-value
+has been computed. This is the honest boundary: outcome direction is
+known, inferential-decision degrees of freedom are hereby frozen so
+the choice of test / tail / fallback cannot be reverse-fit to a
+p-value.
+
+**Raw success counts observed** (100 ep each, 0 parse fail):
+C_retrieval 49, B_main 26, A_action_only 25, D_gist 19, A_ctrl_rat 15.
+
+#### 14.1 Pairing-integrity gate (runs BEFORE any test)
+
+The analysis script's first action is a hard gate, not a human step:
+
+- For each ep_idx k ∈ [0, 99], pull the cube init pose and both EE
+  init poses from all five runs' replay JSONs (the ep_idx=k episode).
+- Assert 5-way `np.allclose` per component, epsilon = 1e-4 m (same
+  epsilon as the Blocker-2 seed smoke test, Amendment 11 §11.4).
+- On any mismatch: print the full failing-ep list and HALT (no test
+  runs). On all-match: proceed to McNemar.
+
+#### 14.2 Test-selection fallback (mechanical, no human discretion)
+
+- **If pairing gate passes**: McNemar is the primary test for all
+  paired contrasts (T1-strong, T1-weak, T1a, T4), exactly as
+  Amendment 11 §11.1 specifies. Two-proportion z reported alongside as
+  sensitivity check (Amendment 11 §11.1).
+- **If pairing gate fails**: mechanically fall back to two-proportion
+  z-test (two-sided, §4) as primary for every contrast. NO per-contrast
+  human choice, NO mixing (not "McNemar where pairs survive, z where
+  they don't"). The gate is all-or-nothing across the five arms.
+
+This binary rule is fixed now, before the gate is even run.
+
+#### 14.3 Directionality is unchanged — all tests remain two-sided
+
+§4 pinned every pairwise test as **two-sided** (α reallocated but
+tails never changed by any amendment). Amendment 14 does not alter
+this. Consequence for the observed data (stated now so it cannot be
+reframed later):
+
+- **T1** (B_main − A_action_only, observed +1 pp): two-sided, will
+  fail both T1-strong (needs ≥ +10 pp) and T1-weak (needs z > 1.96).
+  The memory-in-weights headline claim is withdrawn per the
+  pre-registered falsification clause. This is a confirmatory NULL,
+  reported as such.
+- **T1a** (B_main − A_ctrl_rat, observed +11 pp): two-sided at
+  α=0.020. Direction-consistent and above the +10 pp reference;
+  candidate survivor. Reported as its McNemar/z result dictates.
+- **T4** (C_retrieval − B_main, observed +23 pp): two-sided (NOT a
+  one-sided B_main-favouring test — §4 never made it one-sided).
+  The +23 pp is inside the two-sided rejection region and in the
+  C_retrieval-favouring direction. It is therefore a **pre-registered,
+  correct-tail, confirmatory** result — not exploratory. Its
+  *interpretation* inverts the §4 framing: §4 anticipated a small gap
+  ("bake-in replaces retrieval"); the data says bake-in captured
+  almost none of retrieval's benefit (B_main 26% vs A_action_only 25%
+  ⇒ +1 pp bake-in effect). Interpretation change ≠ test change.
+
+#### 14.4 Scope discipline for the withdrawn T1
+
+The confirmatory null on T1 licenses the claim "**this distillation
+recipe (single-round SFT + composable-KTO, LoRA rank-16) does not bake
+the memory benefit into weights**". It does NOT license "baking-in is
+impossible". Stronger consolidation methods (multi-round, replay,
+surprise-gated writing à la Titans) are explicitly out of scope and
+named as future work. No overclaim beyond the tested recipe.
+
+#### 14.5 Exploratory analyses (labelled, not confirmatory)
+
+Permitted after the confirmatory tests, explicitly tagged exploratory:
+- Rationale fabrication / hallucination rate per arm.
+- Per-episode rescue analysis (paired-seed dividend): which init poses
+  C_retrieval solves that A_ctrl_rat fails — the "memory-dependent
+  episode" profile.
+- R1 ΔX probe per arm (mechanism, Amendment 9 §9.3 H_behavior vs
+  H_language table).
+
+#### 14.6 Anchors
+
+- Analysis script + gate commit SHA: **_TBD (backfill after commit)_**.
+- Amendment 14 commit SHA: **_TBD (backfill after commit)_**.
+- Frozen by: TPEmist (chat) — signed 2026-07-13, raw SR seen, zero
+  p-values computed.
+
+---
+
 ### Amendment 13 — 2026-07-08 (still before any adapter trains) — Step 2.verify row-count sentinel + drop_policy alias `flags_only_a6`
 
 **Status**: LOCKED — filed before any D11 arm training was launched.
