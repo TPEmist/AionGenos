@@ -81,6 +81,9 @@ declare -A ARM_TO_VARIANT=(
 
 REMOTE_HOST="exx@10.80.9.148"
 REMOTE_ROOT="/home/exx/CYTu/AionGenos_server"
+# Venv python on the server that has gguf/sentencepiece — required by
+# patch_gguf.py (plain python3 lacks these modules). Used in Step 7.
+REMOTE_VENV_PY="/home/exx/CYTu/test_zone/gemma3-bbox-finetune/.venv/bin/python"
 TEACHER_URL="http://10.80.9.148:18888"
 STUDENT_URL="http://10.80.9.148:18889"
 
@@ -416,13 +419,22 @@ for arm in "${ARMS[@]}"; do
     skip_done "7.${arm}" "both GGUFs present under $REMOTE_ROOT/data/lora_gguf/d11_${arm}_*/"
     continue
   fi
+  # Auto-patch gemma3→gemma4 arch tag immediately after each fresh export
+  # (closes the manual-patch tech debt). convert_lora_to_gguf.py tags the
+  # LoRA general.architecture=gemma3 for gemma-4's language backbone, but the
+  # llama.cpp base GGUF is tagged gemma4; the loader's strict-equality arch
+  # check refuses a mismatched LoRA. patch_gguf.py rewrites the tag in place
+  # and MUST run under the venv python (needs gguf/sentencepiece). Chained
+  # in the same ssh block so it runs remotely, only on a just-exported file.
   run "7.${arm}" "ssh $REMOTE_HOST 'cd $REMOTE_ROOT && \
     python3 server_side/export_lora_gguf.py \
       --checkpoint-dir $SFT_CKPT/final_adapter \
       --output $SFT_GGUF \
     && python3 server_side/export_lora_gguf.py \
       --checkpoint-dir $KTO_CKPT/final_adapter \
-      --output $KTO_GGUF'"
+      --output $KTO_GGUF \
+    && $REMOTE_VENV_PY server_side/patch_gguf.py $SFT_GGUF \
+    && $REMOTE_VENV_PY server_side/patch_gguf.py $KTO_GGUF'"
 done
 
 # ─────────────────── Step 8: five eval protocols ───────────────────
