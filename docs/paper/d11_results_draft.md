@@ -8,14 +8,21 @@ Pre-registered α is stated; no "trending" language.*
 
 ## 4.1 A pre-registered null: memory does not bake into weights (T1)
 
-We pre-registered (Amendment 14, filed after collect but before any
-p-value) the primary hypothesis **T1**: a student distilled from
-memory-augmented-teacher trajectories with retrieved-lesson gist in its
-target (`B_main`) would exceed a student distilled from the same
-trajectories with action-only targets (`A_action_only`), evaluated with
-zero inference-time retrieval. The pre-registered rejection region was
-Δ SR ≥ +10 pp **and** statistically significant (two-sided, α=0.020),
-with an explicit falsification clause.
+Two timestamps matter and we keep them separate. The **hypothesis**
+T1 was registered *before any training* (pre-registration §2, filed
+2026-07-06; refined by Amendments 9–10 which sharpened the arm
+semantics and reallocated α). The **analysis rules** — pairing gate,
+test-selection fallback, two-sided form — were locked *after
+collection but before any p-value was computed* (Amendment 14). The
+raw success counts are visible in the collect logs; what A14 froze is
+only how they would be tested, not what was hypothesised.
+
+T1: a student distilled from memory-augmented-teacher trajectories
+with retrieved-lesson gist in its target (`B_main`) would exceed a
+student distilled from the same trajectories with action-only targets
+(`A_action_only`), evaluated with zero inference-time retrieval. The
+pre-registered rejection region was Δ SR ≥ +10 pp **and** statistically
+significant (two-sided, α=0.020), with an explicit falsification clause.
 
 The data reject the hypothesis. **[CONFIRMATORY]** `B_main` 26/100 vs
 `A_action_only` 25/100 — a +1 pp difference (z=0.16, p=0.87; McNemar
@@ -46,17 +53,51 @@ C_retrieval 49% [39.4, 58.7], B_main 26% [18.4, 35.4] — non-overlapping.
 Read against §4.1: baking-in captured essentially none of retrieval's
 benefit (+1 pp), while context retrieval captured +23 pp on identical
 weights. The pre-registration §4 had anticipated a *small* gap
-("bake-in replaces retrieval"); the interpretation inverts, not the
-test — T4 is a correct-tail, pre-registered confirmatory result.
+("bake-in replaces retrieval"); the **interpretation** inverts, not
+the test.
+
+*Registration note (immunisation against the "you saw the direction
+first" objection):* the two-sided form of every pairwise test was
+registered pre-collection — §4 of the original pre-registration (dated
+2026-07-06) reads verbatim "all two-proportion z, α=0.05, **two-sided**".
+The significance threshold for T4 (α=0.010) was set in Amendment 11,
+also before collection. A14 restated the two-sided form; it did not
+introduce it. T4 is thus a pre-registered, two-sided confirmatory
+result whose rejection was reachable in either direction — the +23 pp
+outcome was not privileged by the test design.
+
+**The constructive corollary (the take-home for practitioners).**
+`C_retrieval` reaches 49% — indistinguishable from the memory-augmented
+teacher's own success rate (≈49.3%, post-fix pool)† — at student
+inference cost (~200 ms/round) rather than teacher cost (10–15 s/round,
+memory-augmented VLM). The competence transferred; only the *memory*
+did not. The operational reading is therefore not "distillation
+fails" but a design recipe: **distil the competence, externalise the
+memory.** A high-Hz student carrying a frozen retrieval buffer
+recovers full teacher-level task performance at ~50–75× lower
+inference cost, without baking memory into weights at all.
+
+†Footnote: the teacher 49.3% is an *indicative* comparison — pooled
+post-fix teacher runs (n=221), not seed-matched to the D11 eval, so
+this is a level-setting reference, not a controlled contrast.
 
 ## 4.3 Mechanism — distillation bakes the margin, retrieval supplies the condition (R1 ΔX probe)
 
-The pre-registered R1 ΔX behavioural probe (round-1 target X minus
-initial EE X; reference fingerprints D6 memoryless teacher −23.5 cm,
-memory-teacher last quartile −15.8 cm) localises *what* transferred.
+The R1 ΔX behavioural probe (round-1 target X minus initial EE X;
+reference fingerprints D6 memoryless teacher −23.5 cm, memory-teacher
+last quartile −15.8 cm) localises *what* transferred. This probe was
+**pre-registered with a per-arm prediction matrix** (Amendment 9 §9.4)
+that named two branches: an H_language branch (bias correction carried
+by rationale text — only gist/thought arms would shift) and an
+H_behavior branch (correction carried by the action distribution — all
+mem-teacher-distilled arms shift regardless of rationale).
 
-**[EXPLORATORY]** All four distilled arms cluster at the memory-teacher
-fingerprint, not D6's:
+**[CONFIRMATORY — pre-registered probe, registered branch selected]**
+All four distilled arms cluster at the memory-teacher fingerprint, not
+D6's, and the decisive control `A_action_only` (never trained on any
+rationale) shifts identically — cleanly selecting the **H_behavior
+branch**: the carrier of the bias correction is the action
+distribution, not the memory content.
 
 | Arm | R1 ΔX μ | σ | closer to |
 |---|---|---|---|
@@ -66,25 +107,25 @@ fingerprint, not D6's:
 | D_gist | −18.15 | 7.89 | mem-teacher |
 | **C_retrieval** | **−7.10** | **14.39** | (bias nearly erased) |
 
-The decisive control is `A_action_only`: it never saw any rationale or
-gist in training, yet its R1 bias sits at −16.62, indistinguishable from
-`B_main`. **The carrier of the bias correction is therefore the action
-distribution, not the memory content.** All four arms were pinned
+All four arms were pinned
 (Amendment 8) to the same memory-teacher trajectories, whose coordinates
 were already memory-corrected; distillation moved the corrected
 behavioural *average* into weights, and all four arms inherited it
 equally — which is exactly why T1 is +1 pp.
 
-What distillation does **not** transfer is visible in the variance.
+**[EXPLORATORY — σ interpretation beyond the registered branch]** What
+distillation does **not** transfer is visible in the variance.
 `C_retrieval`'s μ=−7.10 with σ=14.4 (the largest) is the signature of a
 *conditional* correction: retrieval applies a different, situation-
 specific adjustment per episode, averaging near zero bias with wide
 spread. The four distilled arms apply the *same* static −16.7 shift to
-every episode regardless of need. **The mechanism: distillation bakes
-in the marginal distribution shift (a static prior); the value of
-memory lives in the conditional structure (situation-specific
-correction), which does not survive distillation and is the source of
-retrieval's +23 pp.** [EXPLORATORY]
+every episode regardless of need. This motivates the mechanism reading:
+distillation bakes in the marginal distribution shift (a static prior);
+the value of memory lives in the conditional structure (situation-
+specific correction), which does not survive distillation and is the
+source of retrieval's +23 pp. This variance-based account is
+exploratory — it interprets σ, which the pre-registration did not
+predict, whereas the μ-based branch selection above is confirmatory.
 
 *Figure 2 (money figure): five-arm R1 ΔX distribution (violin/strip) —
 four arms tight at −16.7±9, C_retrieval at −7.1±14.4. μ and σ together
