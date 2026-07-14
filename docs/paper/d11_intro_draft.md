@@ -78,10 +78,12 @@ against that registered plan.
    task, this data scale, and this adapter capacity (LoRA rank-16). A
    no-training diagnostic (§4.4b) finds no conditional trace that more
    data of the same kind could amplify.
-3. **A controlled reversal** (T4): on identical weights, supplying the
-   same memory through inference-time retrieval beat baking it in by
-   +23 pp (z=3.36), recovering the teacher's own success rate at
-   roughly 50–75× lower inference cost.
+3. **A reversal**: on a *fixed* set of student weights, attaching
+   inference-time retrieval added +34 pp (identical-weights contrast,
+   C_retrieval vs A_ctrl_rat, z=5.15, exploratory); the pre-registered
+   protocol contrast (T4, C_retrieval vs B_main, each with its own
+   adapter) agrees at +23 pp (z=3.36, confirmatory). Retrieval matches
+   the teacher's own 49% success rate at ~50–75× lower inference cost.
 4. **A mechanism** (R1 ΔX probe, pre-registered per-arm prediction):
    distillation transfers the *marginal* distribution shift (a static
    prior all arms adopt regardless of situation) but not the

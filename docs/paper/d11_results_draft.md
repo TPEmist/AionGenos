@@ -24,11 +24,25 @@ student distilled from the same trajectories with action-only targets
 pre-registered rejection region was Δ SR ≥ +10 pp **and** statistically
 significant (two-sided, α=0.020), with an explicit falsification clause.
 
-The data reject the hypothesis. **[CONFIRMATORY]** `B_main` 26/100 vs
-`A_action_only` 25/100 — a +1 pp difference (z=0.16, p=0.87; McNemar
-sensitivity p=1.0, agreeing). Neither T1-strong (≥+10 pp) nor T1-weak
-(>0 & significant at α=0.010) passes. **Per the pre-registered
-falsification clause, we withdraw the memory-in-weights claim.**
+**[CONFIRMATORY]** `B_main` 26/100 vs `A_action_only` 25/100 — no
+detectable effect: +1 pp (z=0.16, p=0.87, two-sided; Newcombe 95% CI
+[−11.1, +13.1]; McNemar sensitivity p=1.0, agreeing).
+
+We are deliberate about what this licenses. The registered minimum
+effect (+10 pp) lies *inside* the confidence interval, and a post-hoc
+minimum-detectable-effect calculation is unforgiving: at n=100 per arm
+with SR≈0.25, significance at the registered two-sided α=0.020 requires
+Δ ≥ 14.2 pp, so the design has only ~24% power for its own registered
++10 pp effect and *cannot* reach significance for a true +10 pp
+difference at all — a flaw in our registered design that we disclose
+rather than obscure. Accordingly, **per the registered clause we
+withdraw the memory-in-weights claim (we stop asserting it), but we do
+not assert the strong null at the success-rate level** — that would be
+absence of evidence read as evidence of absence. The claim that the
+*conditional* structure specifically fails to transfer does not rest on
+this underpowered SR test; it is carried independently by the
+mechanism-level diagnostic (§4.4b), whose conditional-trace null is not
+subject to the SR power problem (with its own |r|<0.20 caveat).
 
 Scope: this null concerns *this distillation recipe* — single-round
 SFT + composable-KTO, on the L0a-Left reach task, at this data scale
@@ -37,25 +51,40 @@ and capacity-scope respectively. It does **not** claim baking-in is
 impossible; stronger consolidation (multi-round, replay, surprise-gated
 writing) is untested and named as future work (§6).
 
-## 4.2 The controlled reversal: external memory nearly doubles success (T4)
+## 4.2 The reversal: retrieval on fixed weights nearly triples success
 
-The comparison that inverts the framing is **T4**, `C_retrieval` vs
-`B_main`. These two arms share the *same adapter weights* — `C_retrieval`
-is `A_ctrl_rat`'s adapter run with an inference-time frozen-buffer
-retrieval preamble; `B_main` is the weight-baked arm run with none. The
-contrast is therefore a clean *protocol* comparison: same learned
-parameters, memory supplied via context vs baked into weights.
+Two contrasts speak to bake-in vs retrieval, and we report both with
+their exact adapter relationships — a distinction the earlier draft of
+this section blurred.
 
-**[CONFIRMATORY]** `C_retrieval` 49/100 vs `B_main` 26/100 — +23 pp
-(z=3.36, p=7.8×10⁻⁴; McNemar p=1.0×10⁻³, agreeing), significant at the
-pre-registered α=0.010. Relative effect ≈1.9×. Wilson 95% CI:
-C_retrieval 49% [39.4, 58.7], B_main 26% [18.4, 35.4] — non-overlapping.
+**The identical-weights contrast (exploratory, decisive).** The genuine
+same-weights comparison is `C_retrieval` vs `A_ctrl_rat`: `C_retrieval`
+*is* `A_ctrl_rat`'s adapter, run with an inference-time frozen-buffer
+retrieval preamble; `A_ctrl_rat` is the same adapter with none. On
+*fixed* student weights, attaching retrieval moved 15/100 → 49/100 —
+**+34 pp (z=5.15, p≈2.6×10⁻⁷; Newcombe 95% CI [+21, +45])**. This was
+not pre-registered as a primary test, so we mark it exploratory — but
+at p≈3×10⁻⁷ it survives any multiplicity correction; exploratory here
+means "not registered", not "fragile".
 
-Read against §4.1: baking-in captured essentially none of retrieval's
-benefit (+1 pp), while context retrieval captured +23 pp on identical
-weights. The pre-registration §4 had anticipated a *small* gap
-("bake-in replaces retrieval"); the **interpretation** inverts, not
-the test.
+**The registered protocol contrast (confirmatory).** The
+pre-registered T4 is `C_retrieval` vs `B_main` — a *protocol* contrast
+in which each arm carries its own adapter (C_retrieval = A_ctrl_rat's
+weights + retrieval; B_main = the gist+thought-baked weights, no
+retrieval). **[CONFIRMATORY]** 49/100 vs 26/100 — +23 pp (z=3.36,
+p=7.8×10⁻⁴; McNemar p=1.0×10⁻³, agreeing), significant at the
+pre-registered α=0.010. This contrast varies both adapter and protocol,
+so it under-states the pure retrieval effect the identical-weights
+contrast isolates.
+
+The one-line pairing: *on fixed student weights, attaching retrieval
+added +34 pp (exploratory, z=5.15); the registered
+consolidation-vs-retrieval protocol contrast was +23 pp (confirmatory,
+z=3.36).* Both point the same way — memory supplied through context at
+inference vastly outperforms the same memory routed through
+distillation into weights. The pre-registration §4 had anticipated a
+*small* C_retrieval−B_main gap ("bake-in replaces retrieval"); the
+**interpretation** inverts, not the test.
 
 *Registration note (immunisation against the "you saw the direction
 first" objection):* the two-sided form of every pairwise test was
@@ -67,20 +96,49 @@ introduce it. T4 is thus a pre-registered, two-sided confirmatory
 result whose rejection was reachable in either direction — the +23 pp
 outcome was not privileged by the test design.
 
-**The constructive corollary (the take-home for practitioners).**
-`C_retrieval` reaches 49% — indistinguishable from the memory-augmented
-teacher's own success rate (≈49.3%, post-fix pool)† — at student
-inference cost (~200 ms/round) rather than teacher cost (10–15 s/round,
-memory-augmented VLM). The competence transferred; only the *memory*
-did not. The operational reading is therefore not "distillation
-fails" but a design recipe: **distil the competence, externalise the
-memory.** A high-Hz student carrying a frozen retrieval buffer
-recovers full teacher-level task performance at ~50–75× lower
-inference cost, without baking memory into weights at all.
+One further disclosure about the A14 lock, since a skeptic is entitled
+to it. The pairing-integrity gate's *literal* failure was foreseeable
+at lock time — that replays do not persist pre-action cube pose is a
+fixed schema property, not a post-hoc surprise — so the gate→z fallback
+was a mechanical rule, not a branch chosen after seeing which test
+favoured which conclusion. We therefore lean on the fact that the two
+tests *agree on every contrast* (McNemar and z, §4.5b), not on a claim
+that the fallback was executed blind. On the one contrast where the
+branch could matter (T1a: McNemar p=0.046 vs z p=0.054), both remain
+n.s. at the pre-registered α=0.020, so the choice changes no verdict.
 
-†Footnote: the teacher 49.3% is an *indicative* comparison — pooled
-post-fix teacher runs (n=221), not seed-matched to the D11 eval, so
-this is a level-setting reference, not a controlled contrast.
+**The registered transfer floor (T3), and the like-for-like reading
+it forces.** [CONFIRMATORY] T3 asks whether `B_main` (distilled,
+no-retrieval) clears 0.7 × the *memory-augmented* teacher's 51.7% pool
+= 36.2%. It does not: 26% < 36.2% (one-sided z=−2.12). Reported
+honestly, T3 **fails**. But the floor is a cross-rung comparison — it
+measures a *no-memory* student against a *with-memory* teacher's bar,
+a level mismatch baked into the registration. Aligning rungs
+like-for-like (exploratory):
+
+| rung | student | teacher (same rung) |
+|---|---|---|
+| no-memory | B_main / A_action_only ≈ 25–26% | memoryless teacher ≈ 30%† |
+| with-memory | C_retrieval 49% | memory-teacher 49.3%‡ |
+
+At *matched* memory conditions the student tracks the teacher on both
+rungs; what fails is specifically the middle step — **consolidating the
+memory advantage into weights**. So the practitioner take-home is not
+"competence didn't transfer" (it did, at each rung) but the sharper
+recipe: **distil the competence, externalise the memory** — a high-Hz
+student carrying a frozen retrieval buffer reaches the memory-teacher's
+own rung (49% vs 49.3%) at ~50–75× lower inference cost, whereas
+routing that same memory through distillation into weights lands it
+back on the no-memory rung.
+
+†Memoryless-teacher ≈30% is derived, not directly seed-matched: D6b
+memory main-effect (+19.2 pp) subtracted from the memory-teacher pool.
+‡The two teacher figures use different pools and we keep them distinct
+on purpose: T3's floor uses the pre-registration's pinned 51.7%
+(pre-reg §4, the memory-teacher pool at registration time); the parity
+reference uses the post-fix pool's 49.3% (n=221). Neither is
+seed-matched to the D11 eval, so both are level-setting references, not
+controlled contrasts — disclosed rather than picked.
 
 ## 4.3 Mechanism — distillation bakes the margin, retrieval supplies the condition (R1 ΔX probe)
 
@@ -121,10 +179,15 @@ distillation does **not** transfer is visible in the variance.
 specific adjustment per episode, averaging near zero bias with wide
 spread. The four distilled arms apply the *same* static −16.7 shift to
 every episode regardless of need. This motivates the mechanism reading:
-distillation bakes in the marginal distribution shift (a static prior);
-the value of memory lives in the conditional structure (situation-
-specific correction), which does not survive distillation and is the
-source of retrieval's +23 pp. This variance-based account is
+*behavioural* distillation of a *prompt-retrieved* memory teacher bakes
+in the marginal distribution shift (a static prior) but not the
+conditional structure (situation-specific correction) that the
+retrieved-lesson text carried — the conditional component does not
+survive this recipe and is the source of retrieval's edge. We scope the
+claim to prompt-retrieved memory and behavioural distillation
+deliberately: a teacher whose memory is architecturally trained-in
+(§5.2) presents a different distillation surface we do not test. This
+variance-based account is
 exploratory — it interprets σ, which the pre-registration did not
 predict, whereas the μ-based branch selection above is confirmatory.
 

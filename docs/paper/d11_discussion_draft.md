@@ -13,11 +13,14 @@ test", never "will show".*
 
 The two headline results are one finding seen from two sides. Baking
 the memory-augmented teacher's behaviour into student weights bought
-+1 pp over an action-only control (T1, null); supplying the same
-memory to the *same weights* through an inference-time retrieval
-context bought +23 pp (T4, z=3.36) and recovered the teacher's own
-success rate (49% vs ≈49.3%) at roughly 50–75× lower inference cost.
-The competence transferred under distillation; the memory did not.
++1 pp over an action-only control (T1, null); attaching an
+inference-time retrieval context to a *fixed* set of student weights
+bought +34 pp (identical-weights contrast, z=5.15; the registered
+protocol contrast agrees, +23 pp, z=3.36) and recovered the teacher's
+own success rate (49% vs ≈49.3%) at roughly 50–75× lower inference
+cost. Competence tracks the teacher at each memory rung (§4.2); what
+distillation fails to move into weights is specifically the memory
+advantage.
 
 We resist reading this as "distillation fails". The mechanism probe
 (§4.3) shows *why* the split is principled rather than incidental, and
@@ -46,15 +49,31 @@ experience each substrate can hold.
 
 **ASPIRE (external memory as the substrate) — we supply supporting
 evidence.** The retrieval-augmented pole, in which competence is
-distilled and experience is kept external and looked up, is the world-
-view our T4 supports: in a controlled comparison, on matched adapter
-weights, context-supplied memory significantly outperformed weight-
-baked memory (+23 pp, CI [+9.6, +35.3]). We claim this as, to our
-knowledge, the first controlled *embodied* evidence for that pole —
-with a scope guard:
-ASPIRE's code-as-reusable-skill and our lesson-retrieval are two
-instantiations of external memory, and our data support the pole, not
-any single implementation of it.
+distilled and experience is kept external and looked up, is the
+world-view our results support: on *fixed* student weights, attaching
+retrieval added +34 pp (identical-weights contrast, z=5.15; the
+registered protocol contrast agrees at +23 pp). Embodied
+retrieval-augmented policies already exist — behaviour/skill retrieval
+and episodic-memory agents (Voyager, ExpeL, AWM) show external-memory
+gains — so we do not claim primacy for the idea. What we add is a
+*pre-registered* embodied comparison that isolates substrate: the same
+retrieved memory routed into weights vs into context, with the mechanism
+probe showing *why* the routing matters (marginal vs conditional). Scope
+guard: ASPIRE's code-as-reusable-skill and our lesson-retrieval are two
+instantiations of external memory; our data support the pole, not any
+single implementation.
+
+**Provenance caveat (an honest open question).** C_retrieval is fed the
+*teacher's* frozen experience buffer, not the student's own. For the
+question D11 actually asks — the *same* memory, routed to weights vs
+context — buffer source is a controlled constant (B_main was distilled
+from, and C_retrieval retrieves, the same teacher lessons), so the
+substrate contrast is clean. What we do *not* test is whether a student
+retrieving its *own* self-generated buffer would win by the same margin;
+self-produced recap quality is unknown and connects to the epiphenomenal
+self-gist finding (§4.3). We flag this as future work, not a resolved
+claim — externalisation-as-mechanism and teacher-memory-quality are
+deconfounded only by a student-own-buffer arm we have not run.
 
 **Titans (memory→weights at the architecture level) — we bound our
 null and leave the door open.** Our T1 null is a statement about a

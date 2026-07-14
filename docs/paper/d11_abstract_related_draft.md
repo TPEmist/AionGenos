@@ -16,15 +16,18 @@ vs-contextual-memory contrast on identical weights. Because the
 headline result is a null, we pre-registered the hypotheses, arms,
 tests, and analysis rules before training and before any p-value.
 Distilling the memory-augmented behaviour into weights beat an
-action-only control by only +1 pp (n.s.; the memory-in-weights claim
-was withdrawn per the registered falsification clause), whereas
-supplying the same memory through inference-time retrieval — on
-identical weights — gained +23 pp (z=3.36), matching the teacher's own
-49% success rate at ~50–75× lower inference cost. A pre-registered
-behavioural probe localises the mechanism: distillation transfers the
+action-only control by only +1 pp (n.s.; we withdraw the
+memory-in-weights claim, while noting the registered test was
+underpowered for its own effect size — disclosed, not hidden). By
+contrast, attaching retrieval to a *fixed* set of student weights added
++34 pp (z=5.15), matching the memory-augmented teacher's own 49%
+success rate at ~50–75× lower inference cost; the pre-registered
+protocol contrast agrees (+23 pp, z=3.36). A pre-registered behavioural
+probe localises the mechanism: behavioural distillation transfers the
 *marginal* correction (a static prior every arm adopts) but not the
-*conditional*, situation-specific correction that retrieval supplies.
-The recipe that follows: distil the competence, externalise the memory.
+*conditional*, situation-specific correction that prompt-retrieved
+memory supplies. The recipe that follows: distil the competence,
+externalise the memory.
 
 *(~200 words. Sentence 2 of a shorter version can carry the mechanism
 slogan "distillation moves the average, retrieval supplies the
@@ -73,9 +76,10 @@ qualifies when rationale externalisation pays.
 **Pre-registration in ML.** We adopt pre-registration [pre-reg
 advocacy refs] as a methodological stance: registering hypotheses,
 tests, and analysis rules before seeing outcomes is what converts a
-null from a non-result into evidence. To our knowledge this is among
-the first embodied-learning studies to carry a full, amendment-tracked
-pre-registration end to end.
+null from a non-result into evidence. We do not claim primacy; we claim
+only that the study is explicitly pre-registered with a full,
+amendment-tracked chain, which is uncommon in embodied learning and is
+what licenses the null's interpretation.
 
 *(TODO: fill bracketed citations — the named systems above are all
 discussed in the project log; convert to bibkeys at bib pass.)*

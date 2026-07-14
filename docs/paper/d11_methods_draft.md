@@ -76,11 +76,18 @@ same task with `--freeze_level`:
 
 C_retrieval is *not* a fifth trained arm: it reuses A_ctrl_rat's
 adapter weights and re-attaches the frozen retrieval buffer as an
-inference-time PAST_LESSONS preamble. B_main vs C_retrieval is thus a
-clean protocol contrast on identical weights — parametric vs contextual
-memory (Amendment 8). The C_retrieval buffer is read-only during
-evaluation; a tree-hash gate confirms it was not written during the run
-(Amendment 12–13).
+inference-time PAST_LESSONS preamble. Two contrasts therefore follow,
+and we keep them distinct (a distinction the results section makes
+central):
+- **Identical-weights** (C_retrieval vs A_ctrl_rat): same adapter,
+  retrieval toggled — the clean parametric-vs-contextual contrast.
+  Not pre-registered as primary (reported exploratory).
+- **Registered protocol** (C_retrieval vs B_main = T4): each arm its
+  own adapter, so this varies both adapter and protocol; pre-registered
+  and confirmatory (Amendment 8).
+
+The C_retrieval buffer is read-only during evaluation; a tree-hash gate
+confirms it was not written during the run (Amendment 12–13).
 
 All five protocols share a fixed environment seed base (4500; per-
 episode seed = 4500 + episode index), so episode *k* starts from the
