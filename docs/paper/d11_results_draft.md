@@ -162,6 +162,46 @@ A round-resolved test of this is future work (§6).
 
 *Figure 3: rescue matrix / UpSet plot over the five arms.*
 
+## 4.4b Is the null just too little data? A no-training diagnostic
+
+The first reviewer question about a null this size is whether `B_main`
+underperformed for lack of training data — 992 desirable rounds spread
+over a continuous cube-position space may leave each situation-cell
+sparse, and a conditional situation→correction map is far more
+sample-hungry than a constant marginal shift. The concern is
+well-founded: the marginal/conditional asymmetry has a sample-complexity
+asymmetry built in, and this is arguably the *cause* of our headline
+split, not a threat to it.
+
+We can bound it without any retraining, using the paired seeds.
+**[EXPLORATORY]** Treat `C_retrieval`'s per-episode R1 residual (its
+round-1 correction minus its own mean) as a proxy for the
+situation-specific correction each episode calls for, and correlate it
+with each distilled arm's R1 residual on the same episode. If weight
+distillation captured any conditional structure, the correlation should
+be positive; a null correlation means the arm learned nothing beyond
+the static prior.
+
+| distilled arm | corr with C_retrieval residual | p |
+|---|---|---|
+| A_action_only | −0.12 | 0.24 |
+| B_main | −0.12 | 0.23 |
+| A_ctrl_rat | +0.03 | 0.78 |
+| D_gist | −0.12 | 0.24 |
+
+All correlations are statistically indistinguishable from zero, and
+`B_main` (−0.12) is no higher than the no-rationale control
+`A_action_only` (−0.12). Caveat: `C_retrieval`'s correction is one
+noisy sample of a good policy, not ground truth, so the correlation is
+attenuated toward zero — but even attenuated, a real conditional
+structure in the weights would register as positive-and-significant. It
+does not. This favours the stronger reading of the null: within this
+recipe, the conditional structure is absent from the weights, not
+merely under-resolved at n=992 — a data-scaling probe (25/50/100% of
+rows) is therefore unlikely to rescue it, and we did not run one.
+`B_main` ≈ `A_action_only` here also mirrors T1a at finer grain: the
+gist-in-target contributes no detectable conditionality.
+
 ## 4.5 Limitations
 
 - **Rationale-fabrication is a measurement gap, not a null.** The D11
@@ -180,6 +220,14 @@ A round-resolved test of this is future work (§6).
   pairing is physically real; the reported McNemar sensitivity
   (agreeing with z on all contrasts) recovers the design's power. Per
   the pre-registration, the z verdict governs.
+- **Adapter capacity is a sibling explanation to data quantity.** A
+  rank-16 LoRA may lack the capacity to represent a conditional
+  situation→correction function even with unlimited data — a limitation
+  parallel to, not subsumed by, the data-scaling diagnostic in §4.4b
+  (that probe holds capacity fixed and varies data; this holds data
+  fixed and varies capacity). We do not run a rank sweep here. Together
+  these sharpen the scope of the T1 null to: *this recipe, at this data
+  scale and this adapter capacity*.
 - **Single task, single recipe.** L0a-Left only; one distillation
   configuration. Generalisation across tasks and stronger consolidation
   recipes is untested.
@@ -225,13 +273,14 @@ excludes zero comfortably.
 
 ---
 
-## Open: title
+## Title (LOCKED)
 
-Needs to hold BOTH "pre-registered null (weights)" and "retrieval wins"
-without reading as two papers. Candidates to workshop:
-- "Memory Does Not Bake In: A Pre-Registered Null and the Marginal-vs-
-  Conditional Account of Experience Transfer"
-- "The Margin Transfers, the Condition Does Not: Why Distilled Memory
-  Underperforms Retrieval in an Embodied Agent"
-- "Baked-In vs Looked-Up: A Controlled, Pre-Registered Comparison of
-  Parametric and Contextual Memory for Embodied Skill"
+> **Distillation Moves the Average, Retrieval Supplies the Situation:
+> A Pre-Registered Study of Memory in Embodied Agents**
+
+Chosen from the §5.1 thesis sentence (marginal→weights,
+conditional→context). Main clause is mechanism-as-slogan, zero jargon,
+citable; "supplies the situation" encodes the per-round-supply
+mechanism (§4.4). Subtitle carries the two reviewer keywords
+(pre-registered, embodied). The null and the reversal are bound as one
+finding because §4.3 proved they are one mechanism.

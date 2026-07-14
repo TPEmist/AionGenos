@@ -49,8 +49,9 @@ evidence.** The retrieval-augmented pole, in which competence is
 distilled and experience is kept external and looked up, is the world-
 view our T4 supports: in a controlled comparison, on matched adapter
 weights, context-supplied memory significantly outperformed weight-
-baked memory (+23 pp, CI [+9.6, +35.3]). We claim this as the first
-controlled *embodied* evidence for that pole — with a scope guard:
+baked memory (+23 pp, CI [+9.6, +35.3]). We claim this as, to our
+knowledge, the first controlled *embodied* evidence for that pole —
+with a scope guard:
 ASPIRE's code-as-reusable-skill and our lesson-retrieval are two
 instantiations of external memory, and our data support the pole, not
 any single implementation of it.
