@@ -189,17 +189,37 @@ the static prior.
 | A_ctrl_rat | +0.03 | 0.78 |
 | D_gist | −0.12 | 0.24 |
 
-All correlations are statistically indistinguishable from zero, and
-`B_main` (−0.12) is no higher than the no-rationale control
-`A_action_only` (−0.12). Caveat: `C_retrieval`'s correction is one
-noisy sample of a good policy, not ground truth, so the correlation is
-attenuated toward zero — but even attenuated, a real conditional
-structure in the weights would register as positive-and-significant. It
-does not. This favours the stronger reading of the null: within this
-recipe, the conditional structure is absent from the weights, not
-merely under-resolved at n=992 — a data-scaling probe (25/50/100% of
-rows) is therefore unlikely to rescue it, and we did not run one.
-`B_main` ≈ `A_action_only` here also mirrors T1a at finer grain: the
+We ran this at rounds 1–3 (later rounds give the student fresh visual
+observations and are where a conditional component could most plausibly
+surface) with a 2000-draw permutation null:
+
+| arm | r (round 1) | r (round 2) | r (round 3) |
+|---|---|---|---|
+| A_action_only | −0.12 | +0.15 | +0.02 |
+| B_main | −0.12 | +0.19 | −0.10 |
+| A_ctrl_rat | +0.03 | +0.20 | +0.00 |
+| D_gist | −0.12 | +0.05 | −0.16 |
+
+Every correlation, at every round, falls inside its permutation chance
+band (±≈0.20 at these n); none is significant, and `B_main` never
+exceeds the no-rationale control `A_action_only`. Two caveats bound the
+reading. (i) `C_retrieval`'s correction is one noisy sample of a good
+policy, not ground truth, so the correlation is attenuated toward zero.
+(ii) With n≈100 the correlation's 95% CI is roughly ±0.20, so this
+rules out a *moderate* conditional structure, not a vanishingly weak
+trace. The uniform −0.12 at round 1 is itself a shared-residual
+artifact of the common seed/trajectory source, confirmed in the
+chance band by permutation.
+
+Accordingly we take the *intermediate* scope, not the strongest one:
+**we find no detectable trace of a conditional component that more data
+of the same kind could amplify** (round 1–3 residual correlations ≈ 0,
+|r| < 0.20). This is stronger than "insufficient at n=992" — a scaling
+curve has to grow from a detectable trace, and the trace is absent —
+but weaker than "unlearnable at any scale", which would over-extrapolate
+from one data point. The data-scaling probe's omission is therefore an
+evidenced decision, not an untested assumption; we did not run it.
+`B_main` ≈ `A_action_only` also mirrors T1a at finer grain: the
 gist-in-target contributes no detectable conditionality.
 
 ## 4.5 Limitations
@@ -275,12 +295,17 @@ excludes zero comfortably.
 
 ## Title (LOCKED)
 
-> **Distillation Moves the Average, Retrieval Supplies the Situation:
-> A Pre-Registered Study of Memory in Embodied Agents**
+> **Distil the Competence, Externalise the Memory:
+> A Pre-Registered Study of Parametric vs. Contextual Memory in
+> Embodied Agents**
 
-Chosen from the §5.1 thesis sentence (marginal→weights,
-conditional→context). Main clause is mechanism-as-slogan, zero jargon,
-citable; "supplies the situation" encodes the per-round-supply
-mechanism (§4.4). Subtitle carries the two reviewer keywords
-(pre-registered, embodied). The null and the reversal are bound as one
-finding because §4.3 proved they are one mechanism.
+Imperative-recipe form (cf. "Attention Is All You Need", "Textbooks
+Are All You Need") — the main clause is the operational design
+criterion a system builder can cite directly ("following [cite], one
+should distil the competence and externalise the memory"). Grew from
+the §5.1 thesis sentence. The mechanism slogan (*Distillation Moves the
+Average, Retrieval Supplies the Situation*) demotes to abstract
+sentence 2 and the §4.3 heading — not wasted. Risk of an
+imperative title: reading as single-task overclaim; the "Pre-Registered"
+subtitle is the armour, and the L2/L3 cross-task replication (in
+progress) converts the recipe from observation to regularity.
