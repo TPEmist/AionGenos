@@ -16,13 +16,13 @@ vs-contextual-memory contrast on identical weights. Because the
 headline result is a null, we pre-registered the hypotheses, arms,
 tests, and analysis rules before training and before any p-value.
 Distilling the memory-augmented behaviour into weights beat an
-action-only control by only +1 pp (n.s.; we withdraw the
-memory-in-weights claim, while noting the registered test was
-underpowered for its own effect size — disclosed, not hidden). By
-contrast, attaching retrieval to a *fixed* set of student weights added
-+34 pp (z=5.15), matching the memory-augmented teacher's own 49%
-success rate at ~50–75× lower inference cost; the pre-registered
-protocol contrast agrees (+23 pp, z=3.36). A pre-registered behavioural
+action-only control by only +1 pp (n.s.); the registered test proves
+underpowered for its own minimum effect, so we withdraw — rather than
+refute — the memory-in-weights claim. By contrast, attaching retrieval
+to a *fixed* set of student weights added +34 pp (z=5.15), matching the
+memory-augmented teacher's own 49% success rate at ~50–75× lower
+inference cost; the pre-registered protocol contrast agrees
+(+23 pp, z=3.36). A pre-registered behavioural
 probe localises the mechanism: behavioural distillation transfers the
 *marginal* correction (a static prior every arm adopts) but not the
 *conditional*, situation-specific correction that prompt-retrieved
