@@ -31,10 +31,11 @@ sensitivity p=1.0, agreeing). Neither T1-strong (≥+10 pp) nor T1-weak
 falsification clause, we withdraw the memory-in-weights claim.**
 
 Scope: this null concerns *this distillation recipe* — single-round
-SFT + composable-KTO (LoRA rank-16), on the L0a-Left reach task. It
-does **not** claim baking-in is impossible; stronger consolidation
-(multi-round, replay, surprise-gated writing) is untested and named as
-future work (§6).
+SFT + composable-KTO, on the L0a-Left reach task, at this data scale
+and adapter capacity (LoRA rank-16); §4.4b and §4.5 sharpen the data-
+and capacity-scope respectively. It does **not** claim baking-in is
+impossible; stronger consolidation (multi-round, replay, surprise-gated
+writing) is untested and named as future work (§6).
 
 ## 4.2 The controlled reversal: external memory nearly doubles success (T4)
 

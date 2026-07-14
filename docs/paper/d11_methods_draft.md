@@ -33,7 +33,7 @@ the C_retrieval protocol later reuses at student inference.
 
 ### 3.3 Students, arms, and the 2×2 factorial
 
-Students are LoRA adapters (rank 16, α=32, dropout 0.05) on the same
+Students are LoRA adapters (rank-16, α=32, dropout 0.05) on the same
 Gemma-4-31B-it base, targeting the language-model attention and MLP
 projections only (`self_attn.{q,k,v,o}_proj`, `mlp.{gate,up,down}_proj`);
 the vision tower is untouched. Each arm is trained in two stages on the
@@ -171,6 +171,11 @@ collection but before any p-value.
 *(Amendments 5–13 filed 07-07/07-08 in the pre-flight window; SHAs are
 the frozen commits. Full text of each is in the pre-registration
 document.)*
+
+*Counts shown are as pinned at each amendment's date; the final
+training counts are 992 + 1799 (Amendment 8 re-pinned from A6's
+992 + 1810 after a trajectory-set ID diff removed 11 no-retrieval-hit
+rounds from a single episode). The methods body uses the final 1799.*
 
 ## Appendix A2 — Filter audit trail
 

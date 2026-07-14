@@ -74,10 +74,10 @@ against that registered plan.
    memory-augmented teacher's behaviour into student weights beat an
    action-only control by +1 pp (n.s.), and we withdrew the
    memory-in-weights claim per the registered falsification clause —
-   scoped to this recipe (single-round SFT + composable-KTO, LoRA
-   rank-16), this task, and this data scale (a no-training diagnostic,
-   §4.4b, finds no conditional trace that more data of the same kind
-   could amplify).
+   scoped to this recipe (single-round SFT + composable-KTO), this
+   task, this data scale, and this adapter capacity (LoRA rank-16). A
+   no-training diagnostic (§4.4b) finds no conditional trace that more
+   data of the same kind could amplify.
 3. **A controlled reversal** (T4): on identical weights, supplying the
    same memory through inference-time retrieval beat baking it in by
    +23 pp (z=3.36), recovering the teacher's own success rate at

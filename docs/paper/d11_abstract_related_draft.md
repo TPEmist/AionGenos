@@ -19,8 +19,8 @@ Distilling the memory-augmented behaviour into weights beat an
 action-only control by only +1 pp (n.s.; the memory-in-weights claim
 was withdrawn per the registered falsification clause), whereas
 supplying the same memory through inference-time retrieval — on
-identical weights — gained +23 pp (z=3.36), recovering the teacher's
-own success rate at ~50–75× lower inference cost. A pre-registered
+identical weights — gained +23 pp (z=3.36), matching the teacher's own
+49% success rate at ~50–75× lower inference cost. A pre-registered
 behavioural probe localises the mechanism: distillation transfers the
 *marginal* correction (a static prior every arm adopts) but not the
 *conditional*, situation-specific correction that retrieval supplies.
