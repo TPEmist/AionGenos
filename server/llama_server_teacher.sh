@@ -28,13 +28,21 @@ if [ ! -x "${LLAMA_SERVER_BIN}" ]; then
     LLAMA_SERVER_BIN="llama-server"
 fi
 
+# Reasoning OFF for the teacher: gemma-4's reasoning mode consumes the
+# entire output budget on reasoning_content and returns EMPTY content for
+# the reflective Stage-4 recap prompt (confirmed 2026-07-14: finish_reason
+# "length", completion_tokens=400 all reasoning, content len 0). Stage-1
+# terse calls survive reasoning-on, but Stage-4 recap generation does not,
+# so every recap silently returned None. The D11 student ran reasoning-off
+# for the same reason; the teacher must too for recaps to generate.
 "${LLAMA_SERVER_BIN}" \
     --model "${MODEL_PATH}" \
     --mmproj "${MMPROJ_PATH}" \
     --port "${PORT}" \
     --ctx-size "${CTX_SIZE}" \
     --n-gpu-layers 99 \
-    --reasoning-budget 512 \
+    --reasoning off \
+    --reasoning-budget 0 \
     --host 0.0.0.0 \
     --parallel 1 \
     --verbose
