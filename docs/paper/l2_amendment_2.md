@@ -26,8 +26,16 @@ single strongest result.
 
 ## Stage 1 (this window): A_ctrl_rat + C_retrieval only
 
-- Train ONE adapter: A_ctrl_rat (all 56 desirable instances → thickest
-  possible pool for the one adapter that matters).
+- Train ONE adapter: A_ctrl_rat (all 56 desirable episode-instances →
+  thickest possible pool for the one adapter that matters).
+  - **Training adequacy (distinct from eval power — do not conflate):**
+    the 56 desirable EPISODE-instances expand to **511 desirable /
+    1119 undesirable per-arm ROUNDS** (KTO trains on rounds). So the
+    training signal is 511/1119, not 56 — moving A_ctrl_rat-L2's
+    training adequacy from "borderline" to "healthy". This concerns
+    whether the adapter can be *fit*, NOT the n=100 eval's power to
+    *detect* the C_retrieval−A_ctrl_rat contrast (that is the separate
+    Power/MDE analysis below, governed by episode-level n=100).
 - Two eval protocols: A_ctrl_rat bare + C_retrieval (reuses A_ctrl_rat's
   weights + frozen re-tagged buffer, success_label_arm='left').
 - ~12h A4500 (not 30h); the difference returns to the LIBERO gate.

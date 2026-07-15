@@ -74,6 +74,13 @@ parser.add_argument(
     help="Minimum fraction of top-K that must be from success episodes (Q12).",
 )
 parser.add_argument(
+    "--memory_success_label_arm", type=str, default=None, choices=(None, "left", "right"),
+    help="L2 Amendment 1a: arm-aligned success-floor. When 'left'/'right', the "
+         "retriever's success-floor reads that arm's per-arm reached-label "
+         "(left_reached/right_reached) instead of the joint is_success. "
+         "None (default) → joint label (L0a/D10 unchanged).",
+)
+parser.add_argument(
     "--memory_mode_flag_path", type=str, default=None,
     help="Optional path to a file the watcher (R4/L2) toggles to flip retrieval "
          "to success-only during SR-dip recovery.",
@@ -180,6 +187,7 @@ def main():
                 state_scale_cm=args_cli.memory_state_scale_cm,
                 success_floor_frac=args_cli.memory_success_floor,
                 success_only_flag_path=args_cli.memory_mode_flag_path,
+                success_label_arm=args_cli.memory_success_label_arm,
             )
             logger.info(
                 f"Memory retrieval enabled: top_k={args_cli.memory_top_k} "

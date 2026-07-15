@@ -67,6 +67,37 @@ Unchanged: `flags_only_a6` structural zero-drop; L2 training pool
 counts to be pinned by SHA once the L2 collect + prep complete (the
 D11 Step-2.verify row-count sentinel carries over).
 
+## Addendum (2026-07-15) — superseded/refined by Amendments 1 & 2
+
+This page pinned the L2 plan before the 100-ep collect result was
+known. After collect (teacher per-arm 28%, joint 1%) two amendments
+refined it; this addendum records the delta so the pre-registration
+reads as one coherent chain:
+
+- **Scope narrowed (Amendment 2).** The symmetric 4-arm 2×2 above is
+  NOT run. T1-class (bake-in) is dropped as un-measurable: measured L2
+  baseline ~15–25% gives MDE 12–13 pp at α=0.020, n=100, against an
+  L0a bake-in effect of +1 pp — the "decision rule pinned now" clause
+  above resolves to *do not run T1 on L2*. L2 tests only the
+  answerable question: does the identical-weights retrieval effect
+  (C_retrieval − A_ctrl_rat) replicate? T4-class power at n=100,
+  α=0.010, baseline 15%: 76% (+20pp) / 99% (+30pp) / 100% (+34pp).
+- **Per-arm scoring (Amendment 1).** Joint SR (1%) is compounding, not
+  incompetence (per-arm 28%/28%). Primary L2 metric is per-arm;
+  desirable pool = 56 episode-instances = 511/1119 desirable/undesirable
+  ROUNDS (training adequacy, distinct from the episode-level n=100 eval
+  power). Task renamed dual-arm pose-reach (not push).
+- **Buffer re-tag (Amendment 1a).** Success-floor arm-aligned; the
+  memory-world asymmetry (teacher joint-labelled growing buffer vs
+  eval's re-tagged frozen buffer) is disclosed in
+  l2_memory_world_asymmetry.md.
+- **R1 probe** per l2_analysis_adaptation.md (per-arm, L2-teacher
+  fingerprint).
+
+The prediction bets above (marginal/conditional split; retrieval
+positive) stand, restricted to the retrieval half that Amendment 2
+retains.
+
 ## What this page is NOT
 
 Not a rewrite of the D11 pre-reg; a task-specific delta sheet. Its
