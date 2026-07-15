@@ -86,3 +86,62 @@ from eval completion:
   split-from-dual introduces a real confound OR the result is
   ambiguous on (a)/(b).
 This criterion is written before any L2 five-protocol number exists.
+
+---
+
+## Amendment 1a — buffer re-tag (dual-label) + arm-aligned success-floor
+
+**Status**: LOCKED before any C_retrieval-L2 eval. Filed 2026-07-15,
+after the full per-arm re-score (56 desirable instances confirmed) but
+before any five-protocol run.
+
+### The mismatch (verified, not hypothesised)
+
+The 100 L2 recaps were tagged `is_success` by JOINT outcome at collect
+time (1 True / 99 False). Full-population re-score: 46/100 episodes have
+≥1 arm reaching goal; **45 of those carry is_success=False despite
+holding a goal-reaching arm trajectory.** Under per-arm scoring the
+buffer's labels are wrong for ~45% of episodes — and the naive fix
+(`is_success = left OR right`) reintroduces cross-arm contamination
+(F65's cousin): a "right-reached, left-failed" episode whose
+failure-driven `text_lesson` is about the LEFT arm would be served as a
+[✓] success to a student operating the LEFT arm.
+
+### Fix (two layers, minimal)
+
+1. **Data layer — dual label on each recap** (does not touch retrieval
+   similarity): add `left_reached` / `right_reached` bool fields from
+   replay GT (the re-score in `workspace/l2_audit/per_arm_rescore.json`).
+   Keep `is_success` (joint) for reference/comparison.
+2. **Retriever logic — arm-aligned success-floor** (3–5 lines): the
+   success-floor filter reads the label **corresponding to the arm the
+   student is currently scored on** (`left_reached` when the current
+   canonical action line is the left arm's, else `right_reached`), not
+   the joint `is_success`. The arm being operated each round is already
+   known to the pipeline (canonical lines are left/right explicit), so
+   this is a lookup of an existing variable, NOT new retrieval logic.
+
+### Explicitly unchanged (stated so future-me doesn't over-read it)
+
+- **Retrieval similarity is untouched** — image + full-state anchor as
+  before. Only the success-floor FILTER label is arm-aligned.
+- No per-arm retrieval, no recap splitting.
+
+### Residual limitation (disclosed)
+
+`text_lesson` remains episode-level natural language and may reference
+either or both arms; only the success-floor LABEL is arm-aligned, not
+the lesson prose. One-line paper limitation: *"lesson text remains
+episode-level; only the success-floor label is arm-aligned."* This
+shrinks the original whole-buffer mislabel to an occasional
+cross-arm phrasing in retrieved lesson text — an acceptable residual.
+
+### Order of operations (locked)
+
+Amendment (this) → buffer re-tag script → retriever 3–5 line change →
+re-pin buffer SHA → THEN C_retrieval-L2 unlocked. No C_retrieval eval
+before the re-pin.
+
+### Pin targets (post re-tag)
+- per-arm desirable instances: 56 (28 L + 28 R) — Step-2.verify target.
+- re-tagged buffer tree-hash: to be recorded after re-tag runs.
