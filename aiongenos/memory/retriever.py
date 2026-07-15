@@ -74,6 +74,7 @@ class MemoryRetriever:
         state_scale_cm: float = 30.0,
         success_floor_frac: float = 2.0 / 3.0,
         success_only_flag_path: Optional[Path | str] = None,
+        success_label_arm: Optional[str] = None,
     ) -> None:
         self.buffer = buffer
         self.top_k = top_k
@@ -83,6 +84,11 @@ class MemoryRetriever:
         self.state_scale_cm = state_scale_cm
         self.success_floor_frac = success_floor_frac
         self.success_only_flag_path = Path(success_only_flag_path) if success_only_flag_path else None
+        # L2 Amendment 1a: when set to 'left'/'right', the success-floor
+        # filter reads the arm-aligned per-arm label. Retrieval is keyed
+        # on init_L_EE, so 'left' aligns the floor with the query anchor.
+        # None (default) → joint is_success (L0a/D10 unchanged).
+        self.success_label_arm = success_label_arm
         # Lazy: only load buffer/embedder when first used
         if not buffer._loaded:
             buffer.load()
@@ -129,6 +135,7 @@ class MemoryRetriever:
             image_weight=self.image_weight,
             state_scale_cm=self.state_scale_cm,
             success_floor_frac=self.success_floor_frac,
+            success_label_arm=self.success_label_arm,
         )
         if not hits:
             return _empty_preamble()

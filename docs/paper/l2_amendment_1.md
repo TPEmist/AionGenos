@@ -145,3 +145,13 @@ before the re-pin.
 ### Pin targets (post re-tag)
 - per-arm desirable instances: 56 (28 L + 28 R) — Step-2.verify target.
 - re-tagged buffer tree-hash: to be recorded after re-tag runs.
+
+### Pin recorded (post re-tag, 2026-07-15)
+- pre-retag buffer tree-hash:  83337879872b734922c34522454f6393fb64c0812d122722c994233f0af0e4f9
+- post-retag buffer tree-hash: a79581cdd9d19a6ab29bf6b815a28ab0a9511ae6527f959b37bd22d068e394c4
+- 100/100 recaps dual-labelled (0 missing); joint is_success=1, ≥1-arm=46.
+- retriever wired: success_label_arm=None (default, L0a/D10 joint) →
+  set 'left' for L2 C_retrieval (query keyed on init_L_EE).
+- backward-compat verified: L0a/D10 records (no per-arm labels) fall
+  back to joint is_success; L2 mixed (left✓/right✗/joint✗) returns
+  True for success_label('left'), False for joint — the fix.

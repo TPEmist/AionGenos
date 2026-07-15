@@ -1,0 +1,712 @@
+{
+  "run_id": "a6e6c917",
+  "n_episodes": 100,
+  "threshold_m": 0.05,
+  "left_reached": 28,
+  "right_reached": 28,
+  "per_arm_any": 46,
+  "both": 10,
+  "per_arm_desirable_instances": 56,
+  "per_episode": {
+    "006b4e0f-3b1": {
+      "left_reached": true,
+      "right_reached": true,
+      "best_dist_L": 0.0303,
+      "best_dist_R": 0.0463,
+      "outcome_joint": "timeout"
+    },
+    "05f7d433-fb8": {
+      "left_reached": true,
+      "right_reached": true,
+      "best_dist_L": 0.0399,
+      "best_dist_R": 0.0239,
+      "outcome_joint": "timeout"
+    },
+    "083e9093-2cc": {
+      "left_reached": false,
+      "right_reached": true,
+      "best_dist_L": 0.06,
+      "best_dist_R": 0.0336,
+      "outcome_joint": "timeout"
+    },
+    "08f5e4e6-aa7": {
+      "left_reached": false,
+      "right_reached": true,
+      "best_dist_L": 0.2149,
+      "best_dist_R": 0.0262,
+      "outcome_joint": "timeout"
+    },
+    "0be40cf3-629": {
+      "left_reached": false,
+      "right_reached": true,
+      "best_dist_L": 0.0857,
+      "best_dist_R": 0.0312,
+      "outcome_joint": "timeout"
+    },
+    "1047ddd2-865": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.091,
+      "best_dist_R": 0.062,
+      "outcome_joint": "timeout"
+    },
+    "10cd3003-b86": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1038,
+      "best_dist_R": 0.1316,
+      "outcome_joint": "timeout"
+    },
+    "11a28d5d-ab3": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1861,
+      "best_dist_R": 0.0737,
+      "outcome_joint": "timeout"
+    },
+    "12eac35d-522": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1063,
+      "best_dist_R": 0.1207,
+      "outcome_joint": "timeout"
+    },
+    "1cf0436d-2e1": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.0606,
+      "best_dist_R": 0.0773,
+      "outcome_joint": "timeout"
+    },
+    "1d2a995b-ed5": {
+      "left_reached": true,
+      "right_reached": false,
+      "best_dist_L": 0.0394,
+      "best_dist_R": 0.1007,
+      "outcome_joint": "timeout"
+    },
+    "1d9962e9-386": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1091,
+      "best_dist_R": 0.1187,
+      "outcome_joint": "timeout"
+    },
+    "1f85d742-85e": {
+      "left_reached": true,
+      "right_reached": true,
+      "best_dist_L": 0.0345,
+      "best_dist_R": 0.0069,
+      "outcome_joint": "timeout"
+    },
+    "20dfa059-b93": {
+      "left_reached": true,
+      "right_reached": false,
+      "best_dist_L": 0.0493,
+      "best_dist_R": 0.1205,
+      "outcome_joint": "timeout"
+    },
+    "22c3d603-816": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.0507,
+      "best_dist_R": 0.0587,
+      "outcome_joint": "timeout"
+    },
+    "2df3d05f-cc4": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.0594,
+      "best_dist_R": 0.0857,
+      "outcome_joint": "timeout"
+    },
+    "2f5adfc1-913": {
+      "left_reached": true,
+      "right_reached": false,
+      "best_dist_L": 0.0205,
+      "best_dist_R": 0.0894,
+      "outcome_joint": "timeout"
+    },
+    "353bc0c1-116": {
+      "left_reached": true,
+      "right_reached": false,
+      "best_dist_L": 0.0295,
+      "best_dist_R": 0.0639,
+      "outcome_joint": "timeout"
+    },
+    "3a6aca8f-aba": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1045,
+      "best_dist_R": 0.0982,
+      "outcome_joint": "timeout"
+    },
+    "3e05cf9d-6cd": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1124,
+      "best_dist_R": 0.0773,
+      "outcome_joint": "timeout"
+    },
+    "3e915fb7-4c6": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1616,
+      "best_dist_R": 0.0865,
+      "outcome_joint": "timeout"
+    },
+    "3ea606d9-bad": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.139,
+      "best_dist_R": 0.1067,
+      "outcome_joint": "timeout"
+    },
+    "3ef6dca9-f4a": {
+      "left_reached": true,
+      "right_reached": false,
+      "best_dist_L": 0.0482,
+      "best_dist_R": 0.0966,
+      "outcome_joint": "timeout"
+    },
+    "407883ac-57e": {
+      "left_reached": false,
+      "right_reached": true,
+      "best_dist_L": 0.0903,
+      "best_dist_R": 0.0382,
+      "outcome_joint": "timeout"
+    },
+    "4151aa72-0ab": {
+      "left_reached": true,
+      "right_reached": false,
+      "best_dist_L": 0.0377,
+      "best_dist_R": 0.1545,
+      "outcome_joint": "timeout"
+    },
+    "4196c6f4-94e": {
+      "left_reached": false,
+      "right_reached": true,
+      "best_dist_L": 0.0732,
+      "best_dist_R": 0.0051,
+      "outcome_joint": "timeout"
+    },
+    "47b1c867-43b": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1161,
+      "best_dist_R": 0.1187,
+      "outcome_joint": "timeout"
+    },
+    "49bffc4e-34f": {
+      "left_reached": false,
+      "right_reached": true,
+      "best_dist_L": 0.0735,
+      "best_dist_R": 0.0492,
+      "outcome_joint": "timeout"
+    },
+    "4a11d34f-43d": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1143,
+      "best_dist_R": 0.0755,
+      "outcome_joint": "timeout"
+    },
+    "4ae879fa-d1b": {
+      "left_reached": true,
+      "right_reached": true,
+      "best_dist_L": 0.0277,
+      "best_dist_R": 0.0084,
+      "outcome_joint": "timeout"
+    },
+    "4fdab0f4-4e6": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1041,
+      "best_dist_R": 0.122,
+      "outcome_joint": "timeout"
+    },
+    "52656ad2-66d": {
+      "left_reached": true,
+      "right_reached": false,
+      "best_dist_L": 0.0262,
+      "best_dist_R": 0.1555,
+      "outcome_joint": "timeout"
+    },
+    "53472be8-786": {
+      "left_reached": false,
+      "right_reached": true,
+      "best_dist_L": 0.0874,
+      "best_dist_R": 0.0086,
+      "outcome_joint": "timeout"
+    },
+    "5589d4ce-009": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1465,
+      "best_dist_R": 0.0929,
+      "outcome_joint": "timeout"
+    },
+    "570ebe84-472": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.2069,
+      "best_dist_R": 0.1062,
+      "outcome_joint": "timeout"
+    },
+    "5784d6eb-779": {
+      "left_reached": false,
+      "right_reached": true,
+      "best_dist_L": 0.1078,
+      "best_dist_R": 0.0464,
+      "outcome_joint": "timeout"
+    },
+    "5cd34aa9-474": {
+      "left_reached": true,
+      "right_reached": false,
+      "best_dist_L": 0.0324,
+      "best_dist_R": 0.1035,
+      "outcome_joint": "timeout"
+    },
+    "5e499f80-9cd": {
+      "left_reached": true,
+      "right_reached": false,
+      "best_dist_L": 0.0325,
+      "best_dist_R": 0.1401,
+      "outcome_joint": "timeout"
+    },
+    "5fb17ecd-a0d": {
+      "left_reached": false,
+      "right_reached": true,
+      "best_dist_L": 0.141,
+      "best_dist_R": 0.0149,
+      "outcome_joint": "timeout"
+    },
+    "642f55c3-fd8": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1243,
+      "best_dist_R": 0.1315,
+      "outcome_joint": "timeout"
+    },
+    "66c66794-d8b": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.0727,
+      "best_dist_R": 0.1114,
+      "outcome_joint": "timeout"
+    },
+    "67037b19-ef1": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1006,
+      "best_dist_R": 0.1278,
+      "outcome_joint": "timeout"
+    },
+    "67c87168-489": {
+      "left_reached": true,
+      "right_reached": false,
+      "best_dist_L": 0.034,
+      "best_dist_R": 0.1581,
+      "outcome_joint": "timeout"
+    },
+    "67dde825-c24": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.0946,
+      "best_dist_R": 0.1043,
+      "outcome_joint": "timeout"
+    },
+    "70ffc953-648": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.0683,
+      "best_dist_R": 0.1139,
+      "outcome_joint": "timeout"
+    },
+    "7207d974-b2c": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1085,
+      "best_dist_R": 0.0977,
+      "outcome_joint": "timeout"
+    },
+    "738c100d-8ee": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.0928,
+      "best_dist_R": 0.055,
+      "outcome_joint": "timeout"
+    },
+    "7537c0da-516": {
+      "left_reached": true,
+      "right_reached": true,
+      "best_dist_L": 0.0279,
+      "best_dist_R": 0.0319,
+      "outcome_joint": "timeout"
+    },
+    "7974d40b-1bd": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1115,
+      "best_dist_R": 0.1427,
+      "outcome_joint": "timeout"
+    },
+    "7b5dd7c9-bf1": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1155,
+      "best_dist_R": 0.1254,
+      "outcome_joint": "timeout"
+    },
+    "7cf0361b-7dc": {
+      "left_reached": true,
+      "right_reached": false,
+      "best_dist_L": 0.0432,
+      "best_dist_R": 0.1075,
+      "outcome_joint": "timeout"
+    },
+    "7df15847-3f5": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1234,
+      "best_dist_R": 0.0511,
+      "outcome_joint": "timeout"
+    },
+    "7ef57019-4fd": {
+      "left_reached": false,
+      "right_reached": true,
+      "best_dist_L": 0.1402,
+      "best_dist_R": 0.0186,
+      "outcome_joint": "timeout"
+    },
+    "8283a7bd-cf6": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1453,
+      "best_dist_R": 0.1237,
+      "outcome_joint": "timeout"
+    },
+    "832be0b2-d34": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.197,
+      "best_dist_R": 0.1008,
+      "outcome_joint": "timeout"
+    },
+    "87c96732-44e": {
+      "left_reached": true,
+      "right_reached": false,
+      "best_dist_L": 0.0492,
+      "best_dist_R": 0.1668,
+      "outcome_joint": "timeout"
+    },
+    "899c28da-025": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.0655,
+      "best_dist_R": 0.1054,
+      "outcome_joint": "timeout"
+    },
+    "89b689c0-17c": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.0553,
+      "best_dist_R": 0.0973,
+      "outcome_joint": "timeout"
+    },
+    "89be6c4c-a59": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.084,
+      "best_dist_R": 0.0502,
+      "outcome_joint": "timeout"
+    },
+    "8bdcba52-fa0": {
+      "left_reached": false,
+      "right_reached": true,
+      "best_dist_L": 0.1153,
+      "best_dist_R": 0.024,
+      "outcome_joint": "timeout"
+    },
+    "910dd3dd-1d7": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1662,
+      "best_dist_R": 0.0676,
+      "outcome_joint": "timeout"
+    },
+    "92bf6951-c3e": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.0719,
+      "best_dist_R": 0.0673,
+      "outcome_joint": "timeout"
+    },
+    "934d7830-c92": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.2064,
+      "best_dist_R": 0.0648,
+      "outcome_joint": "timeout"
+    },
+    "94516df6-38f": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.13,
+      "best_dist_R": 0.1024,
+      "outcome_joint": "timeout"
+    },
+    "9ffc21dc-9ab": {
+      "left_reached": false,
+      "right_reached": true,
+      "best_dist_L": 0.1264,
+      "best_dist_R": 0.0224,
+      "outcome_joint": "timeout"
+    },
+    "a5307a99-b5d": {
+      "left_reached": false,
+      "right_reached": true,
+      "best_dist_L": 0.1084,
+      "best_dist_R": 0.0377,
+      "outcome_joint": "timeout"
+    },
+    "a5aba773-bcf": {
+      "left_reached": true,
+      "right_reached": false,
+      "best_dist_L": 0.015,
+      "best_dist_R": 0.0586,
+      "outcome_joint": "timeout"
+    },
+    "a7ea768f-59c": {
+      "left_reached": true,
+      "right_reached": true,
+      "best_dist_L": 0.0064,
+      "best_dist_R": 0.0274,
+      "outcome_joint": "timeout"
+    },
+    "a9bb874a-dc1": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.092,
+      "best_dist_R": 0.0846,
+      "outcome_joint": "timeout"
+    },
+    "aa57bd4b-2f1": {
+      "left_reached": true,
+      "right_reached": false,
+      "best_dist_L": 0.0238,
+      "best_dist_R": 0.1202,
+      "outcome_joint": "timeout"
+    },
+    "ab632ecb-d60": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1489,
+      "best_dist_R": 0.0764,
+      "outcome_joint": "timeout"
+    },
+    "adf099a3-278": {
+      "left_reached": true,
+      "right_reached": false,
+      "best_dist_L": 0.0107,
+      "best_dist_R": 0.1252,
+      "outcome_joint": "timeout"
+    },
+    "ae1cf71f-a3a": {
+      "left_reached": true,
+      "right_reached": false,
+      "best_dist_L": 0.0135,
+      "best_dist_R": 0.1808,
+      "outcome_joint": "timeout"
+    },
+    "b0f25c9d-5ae": {
+      "left_reached": false,
+      "right_reached": true,
+      "best_dist_L": 0.0719,
+      "best_dist_R": 0.0314,
+      "outcome_joint": "timeout"
+    },
+    "bb4f6741-63c": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1273,
+      "best_dist_R": 0.0578,
+      "outcome_joint": "timeout"
+    },
+    "bb597a6b-7cb": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.0985,
+      "best_dist_R": 0.0614,
+      "outcome_joint": "timeout"
+    },
+    "bc2a7daf-1a2": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1366,
+      "best_dist_R": 0.1129,
+      "outcome_joint": "timeout"
+    },
+    "bc9fd7e4-313": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1646,
+      "best_dist_R": 0.0728,
+      "outcome_joint": "timeout"
+    },
+    "c155c030-bdd": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.0845,
+      "best_dist_R": 0.1559,
+      "outcome_joint": "timeout"
+    },
+    "c17f8ca8-861": {
+      "left_reached": true,
+      "right_reached": false,
+      "best_dist_L": 0.0372,
+      "best_dist_R": 0.1462,
+      "outcome_joint": "timeout"
+    },
+    "c9aee1a7-965": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1857,
+      "best_dist_R": 0.1225,
+      "outcome_joint": "timeout"
+    },
+    "cb99d73b-389": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1185,
+      "best_dist_R": 0.1584,
+      "outcome_joint": "timeout"
+    },
+    "ce04b762-a42": {
+      "left_reached": false,
+      "right_reached": true,
+      "best_dist_L": 0.1459,
+      "best_dist_R": 0.0474,
+      "outcome_joint": "timeout"
+    },
+    "cefb3d1d-42f": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.0745,
+      "best_dist_R": 0.0712,
+      "outcome_joint": "timeout"
+    },
+    "cf408c16-b27": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1075,
+      "best_dist_R": 0.0976,
+      "outcome_joint": "timeout"
+    },
+    "d235a9c1-af2": {
+      "left_reached": true,
+      "right_reached": true,
+      "best_dist_L": 0.0452,
+      "best_dist_R": 0.0493,
+      "outcome_joint": "timeout"
+    },
+    "d59fd3d5-499": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.0715,
+      "best_dist_R": 0.1316,
+      "outcome_joint": "timeout"
+    },
+    "da80ef3c-ca6": {
+      "left_reached": false,
+      "right_reached": true,
+      "best_dist_L": 0.066,
+      "best_dist_R": 0.0319,
+      "outcome_joint": "timeout"
+    },
+    "dd067d68-9c6": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.0687,
+      "best_dist_R": 0.103,
+      "outcome_joint": "timeout"
+    },
+    "df7214b5-02f": {
+      "left_reached": false,
+      "right_reached": true,
+      "best_dist_L": 0.0622,
+      "best_dist_R": 0.034,
+      "outcome_joint": "timeout"
+    },
+    "e0e78e20-305": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.0783,
+      "best_dist_R": 0.0807,
+      "outcome_joint": "timeout"
+    },
+    "e21064af-095": {
+      "left_reached": true,
+      "right_reached": true,
+      "best_dist_L": 0.0471,
+      "best_dist_R": 0.0078,
+      "outcome_joint": "timeout"
+    },
+    "e445d40e-5eb": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1766,
+      "best_dist_R": 0.0997,
+      "outcome_joint": "timeout"
+    },
+    "ea570987-dab": {
+      "left_reached": true,
+      "right_reached": true,
+      "best_dist_L": 0.0486,
+      "best_dist_R": 0.0362,
+      "outcome_joint": "timeout"
+    },
+    "f0bb2026-5a3": {
+      "left_reached": false,
+      "right_reached": true,
+      "best_dist_L": 0.071,
+      "best_dist_R": 0.0335,
+      "outcome_joint": "timeout"
+    },
+    "f2e10c7a-344": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1258,
+      "best_dist_R": 0.1279,
+      "outcome_joint": "timeout"
+    },
+    "f5b29c82-618": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.1132,
+      "best_dist_R": 0.1058,
+      "outcome_joint": "timeout"
+    },
+    "f7c0b772-f8d": {
+      "left_reached": false,
+      "right_reached": false,
+      "best_dist_L": 0.0558,
+      "best_dist_R": 0.0751,
+      "outcome_joint": "timeout"
+    },
+    "f874a376-858": {
+      "left_reached": true,
+      "right_reached": false,
+      "best_dist_L": 0.0484,
+      "best_dist_R": 0.1516,
+      "outcome_joint": "timeout"
+    },
+    "c077e481-57d": {
+      "left_reached": true,
+      "right_reached": true,
+      "best_dist_L": 0.0429,
+      "best_dist_R": 0.0395,
+      "outcome_joint": "success"
+    }
+  }
+}

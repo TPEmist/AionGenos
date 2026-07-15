@@ -42,6 +42,22 @@ class RecapRecord:
     text_lesson: str
     image_embedding: list[float]   # 576-dim, unit-norm
     metadata: dict[str, Any] = field(default_factory=dict)
+    # L2 Amendment 1a: per-arm success labels (None on L0a/D10 buffers,
+    # which never scored per-arm). When present, an arm-aligned
+    # success-floor can use these instead of the joint is_success.
+    left_reached: Optional[bool] = None
+    right_reached: Optional[bool] = None
+
+    def success_label(self, arm: Optional[str] = None) -> bool:
+        """Arm-aligned success label. arm='left'/'right' reads the
+        per-arm label if it exists (L2 Amendment 1a); arm=None or a
+        buffer without per-arm labels falls back to joint is_success —
+        so L0a/D10 behaviour is unchanged."""
+        if arm == "left" and self.left_reached is not None:
+            return self.left_reached
+        if arm == "right" and self.right_reached is not None:
+            return self.right_reached
+        return self.is_success
 
     def to_json(self) -> dict[str, Any]:
         d = asdict(self)
@@ -59,6 +75,8 @@ class RecapRecord:
             text_lesson=d["text_lesson"],
             image_embedding=d["image_embedding"],
             metadata=d.get("metadata", {}),
+            left_reached=d.get("left_reached"),
+            right_reached=d.get("right_reached"),
         )
 
 
@@ -138,6 +156,7 @@ class RecapBuffer:
         state_scale_cm: float = 30.0,
         success_floor_frac: float = 2.0 / 3.0,
         coarse_k: Optional[int] = None,  # kept for back-compat, ignored
+        success_label_arm: Optional[str] = None,  # L2-1a: 'left'/'right' → arm-aligned floor
     ) -> list[tuple[RecapRecord, float]]:
         """Combined-score retrieval. Returns up to ``fine_k`` (record, score) pairs.
 
@@ -182,7 +201,7 @@ class RecapBuffer:
         # Filter mask
         keep_idx = []
         for i, rec in enumerate(self._records):
-            if success_only and not rec.is_success:
+            if success_only and not rec.success_label(success_label_arm):
                 continue
             if exclude_run_ids and rec.run_id in exclude_run_ids:
                 continue
@@ -228,7 +247,7 @@ class RecapBuffer:
         for j in order:
             global_idx = int(keep_idx_arr[int(j)])
             rec = self._records[global_idx]
-            if rec.is_success:
+            if rec.success_label(success_label_arm):
                 success_picks.append(int(j))
             else:
                 failure_picks.append(int(j))
