@@ -2,6 +2,15 @@
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
+#
+# NAMING (L2 Amendment 1, 2026-07-15): despite the "dual_push" module
+# name, this task is a DUAL-ARM 6-DoF POSE-REACH — it tracks
+# left_ee_pose / right_ee_pose commands via end_effector_position_tracking
+# rewards; the goal cubes are pose-target VISUALIZERS, not pushable
+# objects. No object is pushed. Paper + docs call it "dual-arm pose-reach
+# (formerly misnamed dual_push)". A genuine push (cube as tracked object)
+# is L3-scope. Module path kept for gym-registration stability; do not
+# infer task semantics from the name.
 
 from isaaclab.utils import configclass
 from isaaclab.envs.mdp.actions.actions_cfg import DifferentialInverseKinematicsActionCfg
