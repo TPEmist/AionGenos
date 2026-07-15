@@ -108,6 +108,21 @@ def load_rationale_map(path: Optional[Path]) -> dict[tuple[str, str], list[dict]
     return idx
 
 
+def load_per_arm_rescore(path: Optional[Path]) -> dict[str, dict]:
+    """Load workspace/l2_audit/per_arm_rescore.json — the per-episode per-arm
+    ground-truth reached flags (L2 Amendment 1 §3 / 1a).
+
+    Returns ``{ep_id: {"left_reached": bool, "right_reached": bool, ...}}``
+    keyed on the ``per_episode`` map. Empty dict when ``path`` is None. This
+    is loaded and trusted as-is (rather than recomputing min-over-episode
+    distance) to stay consistent with the buffer re-tag.
+    """
+    if path is None:
+        return {}
+    data = json.loads(path.read_text())
+    return data.get("per_episode", {})
+
+
 def format_rationale_gist(lessons: list[dict], max_lessons: int = 3) -> str:
     """Compress up to ``max_lessons`` retrieved-recap lessons into a single
     PAST_LESSONS preamble that fits comfortably in a training target."""
@@ -172,6 +187,30 @@ def _build_action_lines(interaction: dict) -> str:
     parts = []
     parts.append(f"LEFT_TARGET_POS:  X={left[0]} Y={left[1]} Z={left[2]}")
     parts.append(f"RIGHT_TARGET_POS: X={right[0]} Y={right[1]} Z={right[2]}")
+    parts.append(f"STOP: {'true' if stop_flag else 'false'}")
+    return "\n".join(parts)
+
+
+def _build_action_lines_single(interaction: dict, arm: str) -> str:
+    """Single-arm variant of :func:`_build_action_lines` (L2 Amendment 1 §3).
+
+    Emits ONLY the scored arm's canonical target line (LEFT_TARGET_POS for
+    ``arm='left'``, RIGHT_TARGET_POS for ``arm='right'``) + STOP, so a
+    per-arm-scored student's SFT target matches what a single-arm student
+    should produce. The non-scored arm's line is intentionally omitted; its
+    reached-status is recorded on the sample as ``other_arm_reached`` instead.
+
+    Spacing matches :func:`_build_action_lines` byte-for-byte per line so the
+    output format is identical to the dual-arm canonical the trainer expects.
+    """
+    left = interaction.get("parsed_left_pos") or [0, 0, 0]
+    right = interaction.get("parsed_right_pos") or [0, 0, 0]
+    stop_flag = interaction.get("parsed_stop", False)
+    parts = []
+    if arm == "left":
+        parts.append(f"LEFT_TARGET_POS:  X={left[0]} Y={left[1]} Z={left[2]}")
+    else:
+        parts.append(f"RIGHT_TARGET_POS: X={right[0]} Y={right[1]} Z={right[2]}")
     parts.append(f"STOP: {'true' if stop_flag else 'false'}")
     return "\n".join(parts)
 
@@ -503,6 +542,198 @@ def build_samples(
     return samples
 
 
+def build_samples_per_arm(
+    replay_root: Path,
+    dump_root: Path,
+    run_ids: list[str],
+    per_arm_rescore: dict[str, dict],
+    sim_steps_per_round: int,
+    min_round: int = 1,
+    only_progress_round: bool = False,
+    progress_threshold_cm: float = 0.5,
+    rationale_map: Optional[dict[str, list[dict]]] = None,
+    rationale_source: str = "native",
+) -> list[dict]:
+    """L2 per-arm sample emission (Amendment 1 §3 + 1a).
+
+    Scores EACH arm of every dual-arm episode independently and emits TWO
+    candidate sample-streams (left-scored, right-scored). A round enters arm
+    X's stream as a per-arm sample. Per-arm reached ground truth comes from
+    ``per_arm_rescore`` (workspace/l2_audit/per_arm_rescore.json), NOT
+    recomputed, to stay consistent with the buffer re-tag.
+
+    Per-arm semantics (arm X ∈ {left, right}):
+      - distance series: ``dist_red`` for left, ``dist_blue`` for right.
+      - ``is_progress`` uses arm X's OWN distance series.
+      - reached  := per_arm_rescore[ep][f'{X}_reached'] (best-in-ep <0.05 m).
+      - kto_label:  desirable   iff (reached AND is_progress)
+                    undesirable iff (not reached AND is_progress)
+                    None         otherwise (non-progress / indeterminate).
+      - SFT desirable target: for the desirable rounds, the canonical action
+        line is emitted SINGLE-ARM (only arm X's LEFT/RIGHT_TARGET_POS + STOP)
+        via :func:`_build_action_lines_single`.
+      - ``other_arm_reached``: the OTHER arm's reached flag, recorded as a
+        field (NOT folded into the target text).
+      - ``scored_arm``: 'left' | 'right'.
+
+    ``rationale_source='native'`` (A_ctrl_rat, Stage 1): target = teacher's
+    native THOUGHT for the round + single-arm canonical action line, mirroring
+    the 'native' branch of :func:`build_samples` but single-arm. 'none' emits
+    the single-arm canonical line only. Other modes are not part of L2 Stage 1.
+    """
+    samples: list[dict] = []
+    skipped = Counter()
+
+    for run_id in run_ids:
+        run_dir = replay_root / run_id
+        if not run_dir.exists():
+            logger.warning(f"  {run_id}: no run dir, skip")
+            continue
+
+        subdirs: list[tuple[str, Path]] = []
+        succ_dir = run_dir / "success"
+        if succ_dir.exists():
+            subdirs.append(("success", succ_dir))
+        fail_dir = run_dir / "failure"
+        if fail_dir.exists():
+            subdirs.append(("failure", fail_dir))
+
+        if not subdirs:
+            logger.warning(f"  {run_id}: no success/ or failure/ dirs, skip")
+            continue
+
+        for ep_outcome, subdir in subdirs:
+            for replay_path in sorted(subdir.glob("*.json")):
+                ep_id = replay_path.stem
+                rescore = per_arm_rescore.get(ep_id)
+                if rescore is None:
+                    skipped["no_rescore_entry"] += 1
+                    continue
+                replay = json.loads(replay_path.read_text())
+                ep_dump_dir = dump_root / run_id / ep_id
+                meta_path = ep_dump_dir / "meta.json"
+                if not meta_path.exists():
+                    skipped["no_dump_meta"] += 1
+                    continue
+                meta = json.loads(meta_path.read_text())
+                meta_rounds = {r["round"]: r for r in meta.get("rounds", [])}
+
+                inter = replay.get("vlm_interactions", [])
+                instruction = replay.get("instruction", "")
+                level = replay.get("level", -2)
+                n_rounds = len(inter)
+                traj = replay.get("trajectory", [])
+
+                left_reached = bool(rescore.get("left_reached", False))
+                right_reached = bool(rescore.get("right_reached", False))
+
+                # Emit two per-arm streams for this episode.
+                for scored_arm in ("left", "right"):
+                    reached = left_reached if scored_arm == "left" else right_reached
+                    other_arm_reached = right_reached if scored_arm == "left" else left_reached
+                    d_key = "dist_red" if scored_arm == "left" else "dist_blue"
+
+                    for round_idx in range(1, n_rounds + 1):
+                        if round_idx < min_round:
+                            skipped["below_min_round"] += 1
+                            continue
+
+                        meta_round = meta_rounds.get(round_idx)
+                        if meta_round is None:
+                            skipped["no_meta_round"] += 1
+                            continue
+
+                        png_path = _round_pre_png(dump_root, run_id, ep_id, round_idx)
+                        if png_path is None:
+                            skipped["no_pre_png"] += 1
+                            continue
+
+                        interaction = inter[round_idx - 1]
+                        response = interaction.get("full_response") or meta_round.get("vlm_full_response") or ""
+                        if not response.strip():
+                            skipped["empty_response"] += 1
+                            continue
+
+                        # Single-arm canonical action line for the scored arm.
+                        has_rationale = False
+                        action_lines = _build_action_lines_single(interaction, scored_arm)
+
+                        if rationale_source == "native":
+                            # A_ctrl_rat: native thought + single-arm canonical.
+                            native_thought = extract_native_thought(
+                                interaction.get("full_response", "")
+                            )
+                            if native_thought:
+                                thought_block = format_native_rationale_gist(native_thought)
+                                if thought_block:
+                                    response = thought_block + action_lines
+                                    has_rationale = True
+                        elif rationale_source == "none":
+                            # A_ctrl: single-arm canonical only.
+                            response = action_lines
+
+                        state = _state_at_round(replay, meta_round, round_idx, sim_steps_per_round)
+                        dist_l = meta_round.get("final_dist_l_cm")
+                        dist_r = meta_round.get("final_dist_r_cm")
+
+                        # is_progress on the SCORED arm's own distance series.
+                        is_progress: Optional[bool] = None
+                        d_start_cm = d_end_cm = None
+                        if traj:
+                            start_step = (round_idx - 1) * sim_steps_per_round
+                            end_step = min(round_idx * sim_steps_per_round - 1, len(traj) - 1)
+                            if 0 <= start_step < len(traj) and 0 <= end_step < len(traj):
+                                d_start_cm = (traj[start_step].get("distances") or {}).get(d_key, 0) * 100
+                                d_end_cm = (traj[end_step].get("distances") or {}).get(d_key, 0) * 100
+                                is_progress = (d_end_cm < d_start_cm - progress_threshold_cm)
+
+                        if only_progress_round and is_progress is False:
+                            skipped[f"no_progress_{scored_arm}"] += 1
+                            continue
+                        if only_progress_round and is_progress is None:
+                            skipped["no_progress_indeterminate"] += 1
+                            continue
+
+                        # Per-arm kto_label (Amendment 1 §3):
+                        #   desirable   = arm reached  + progress round
+                        #   undesirable = arm !reached + progress round
+                        #   None otherwise
+                        if is_progress is True:
+                            kto_label = "desirable" if reached else "undesirable"
+                        else:
+                            kto_label = None
+
+                        samples.append({
+                            "image_path": str(png_path.resolve()),
+                            "level": level,
+                            "task_instruction": instruction,
+                            "active_arm": scored_arm,
+                            "scored_arm": scored_arm,
+                            "other_arm_reached": other_arm_reached,
+                            "state": state,
+                            "critic_feedback": meta_round.get("critic_feedback"),
+                            "target_response": response,
+                            "has_rationale": has_rationale,
+                            "parsed_left_pos": interaction.get("parsed_left_pos"),
+                            "parsed_right_pos": interaction.get("parsed_right_pos"),
+                            "final_dist_l_cm": dist_l,
+                            "final_dist_r_cm": dist_r,
+                            "ep_id": ep_id,
+                            "run_id": run_id,
+                            "round_idx": round_idx,
+                            "round_count_in_ep": n_rounds,
+                            "outcome": ep_outcome,
+                            "is_progress": is_progress,
+                            "d_start_cm": d_start_cm,
+                            "d_end_cm": d_end_cm,
+                            "kto_label": kto_label,
+                        })
+
+    if skipped:
+        logger.info(f"  skipped: {dict(skipped)}")
+    return samples
+
+
 def _print_stats(samples: list[dict]) -> None:
     if not samples:
         logger.info("  no samples")
@@ -591,6 +822,17 @@ def main() -> None:
                              "'native'     (A_ctrl_rat): native THOUGHT + canonical. "
                              "'gist_only'  (D_gist, secondary): PAST_LESSONS gist + canonical. "
                              "'none'       (A_ctrl):   canonical only.")
+    parser.add_argument("--per_arm_l2", action="store_true",
+                        help="L2 Amendment 1 §3: dual-arm 6-DoF pose-reach per-arm mode. "
+                             "Scores each arm independently and emits TWO per-arm sample "
+                             "streams (left-scored, right-scored) with SINGLE-ARM canonical "
+                             "targets and per-arm kto_label. Reached ground truth is read from "
+                             "--per_arm_rescore (NOT recomputed). When off, the script behaves "
+                             "EXACTLY as before (L0a code path unchanged).")
+    parser.add_argument("--per_arm_rescore", type=Path,
+                        default=Path("workspace/l2_audit/per_arm_rescore.json"),
+                        help="Per-episode per-arm reached flags (used only with --per_arm_l2). "
+                             "Default: workspace/l2_audit/per_arm_rescore.json.")
     args = parser.parse_args()
 
     if args.skip_first_round and args.min_round == 1:
@@ -608,20 +850,37 @@ def main() -> None:
         logger.info(f"Rationale  : {len(rationale_map)} eps have retrieved-lessons context")
     logger.info("")
 
-    samples = build_samples(
-        replay_root=args.replay_root,
-        dump_root=args.dump_root,
-        run_ids=args.runs,
-        sim_steps_per_round=args.sim_steps_per_round,
-        min_round=args.min_round,
-        max_active_dist_cm=args.max_active_dist_cm,
-        only_progress_round=args.only_progress_round,
-        include_failures=args.include_failures,
-        progress_threshold_cm=args.progress_threshold_cm,
-        rationale_map=rationale_map,
-        rationale_source=args.rationale_source,
-        restrict_to_retrievable=args.restrict_to_retrievable,
-    )
+    if args.per_arm_l2:
+        per_arm_rescore = load_per_arm_rescore(args.per_arm_rescore)
+        logger.info(f"Per-arm L2 : rescore={args.per_arm_rescore} "
+                    f"({len(per_arm_rescore)} eps) — dual-stream single-arm mode")
+        samples = build_samples_per_arm(
+            replay_root=args.replay_root,
+            dump_root=args.dump_root,
+            run_ids=args.runs,
+            per_arm_rescore=per_arm_rescore,
+            sim_steps_per_round=args.sim_steps_per_round,
+            min_round=args.min_round,
+            only_progress_round=args.only_progress_round,
+            progress_threshold_cm=args.progress_threshold_cm,
+            rationale_map=rationale_map,
+            rationale_source=args.rationale_source,
+        )
+    else:
+        samples = build_samples(
+            replay_root=args.replay_root,
+            dump_root=args.dump_root,
+            run_ids=args.runs,
+            sim_steps_per_round=args.sim_steps_per_round,
+            min_round=args.min_round,
+            max_active_dist_cm=args.max_active_dist_cm,
+            only_progress_round=args.only_progress_round,
+            include_failures=args.include_failures,
+            progress_threshold_cm=args.progress_threshold_cm,
+            rationale_map=rationale_map,
+            rationale_source=args.rationale_source,
+            restrict_to_retrievable=args.restrict_to_retrievable,
+        )
 
     # Amendment 7 §7.1 length-distribution audit — print histograms so
     # any cross-arm length skew is visible before training. Applies only
@@ -647,6 +906,24 @@ def main() -> None:
             fp.write(json.dumps(s) + "\n")
     logger.info(f"Wrote {len(samples)} samples → {args.out}")
     _print_stats(samples)
+
+    # L2 Amendment 1 §3 sanity check: count DESIRABLE per-arm episode-instances
+    # (distinct (ep_id, scored_arm) with ≥1 desirable round). Expected = 56
+    # (28 left + 28 right) across the 100-ep L2 run.
+    if args.per_arm_l2:
+        desirable_instances = {
+            (s["ep_id"], s["scored_arm"])
+            for s in samples
+            if s.get("kto_label") == "desirable"
+        }
+        n_left = sum(1 for (_, arm) in desirable_instances if arm == "left")
+        n_right = sum(1 for (_, arm) in desirable_instances if arm == "right")
+        n_total = len(desirable_instances)
+        logger.info("")
+        logger.info(f"  L2 per-arm desirable episode-instances: {n_total} "
+                    f"({n_left} left + {n_right} right)  [expected 56 = 28+28]")
+        if n_total != 56:
+            logger.warning(f"  SANITY MISMATCH: expected 56 desirable instances, got {n_total}")
 
 
 if __name__ == "__main__":
