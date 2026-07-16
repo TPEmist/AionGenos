@@ -553,6 +553,7 @@ def build_samples_per_arm(
     progress_threshold_cm: float = 0.5,
     rationale_map: Optional[dict[str, list[dict]]] = None,
     rationale_source: str = "native",
+    sft_desirable_only: bool = False,
 ) -> list[dict]:
     """L2 per-arm sample emission (Amendment 1 §3 + 1a).
 
@@ -703,6 +704,15 @@ def build_samples_per_arm(
                         else:
                             kto_label = None
 
+                        # SFT pool = desirable-only behavior cloning (mirrors the
+                        # L0a SFT/KTO two-call split). KTO pool = both. In L2 the
+                        # desirable arm-instances live almost entirely in the
+                        # failure/ dir (joint-success=1), so the pool is selected
+                        # by the per-arm label here, NOT by the replay directory.
+                        if sft_desirable_only and kto_label != "desirable":
+                            skipped[f"sft_drop_nondesirable_{scored_arm}"] += 1
+                            continue
+
                         samples.append({
                             "image_path": str(png_path.resolve()),
                             "level": level,
@@ -833,6 +843,13 @@ def main() -> None:
                         default=Path("workspace/l2_audit/per_arm_rescore.json"),
                         help="Per-episode per-arm reached flags (used only with --per_arm_l2). "
                              "Default: workspace/l2_audit/per_arm_rescore.json.")
+    parser.add_argument("--sft_desirable_only", action="store_true",
+                        help="Per-arm L2 (with --per_arm_l2): emit ONLY desirable "
+                             "(arm-reached + progress) rounds — the SFT behavior-cloning "
+                             "pool. Without it the per-arm stream is desirable+undesirable "
+                             "(the KTO pool). Mirrors the L0a SFT/KTO two-call split; in L2 "
+                             "the desirable arm-instances live mostly in failure/ dir, so the "
+                             "pool is selected by per-arm label, not replay directory.")
     args = parser.parse_args()
 
     if args.skip_first_round and args.min_round == 1:
@@ -865,6 +882,7 @@ def main() -> None:
             progress_threshold_cm=args.progress_threshold_cm,
             rationale_map=rationale_map,
             rationale_source=args.rationale_source,
+            sft_desirable_only=args.sft_desirable_only,
         )
     else:
         samples = build_samples(

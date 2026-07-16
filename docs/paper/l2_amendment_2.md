@@ -71,3 +71,27 @@ Detectable (T4-class, α=0.010, n=100, baseline 15%):
   +20pp → 76% power; +30pp → 99%; +34pp → 100%.
 Not detectable (T1-class, α=0.020, n=100): MDE 12pp (baseline 15%),
 13pp (baseline 20%); L0a bake-in effect was +1pp.
+
+## Addendum (2026-07-16) — per-arm SFT pool selected by label, not directory
+
+Non-obvious per-arm-semantics corollary, surfaced when Step-2.verify
+halted the first launch (SFT prep emitted 1630, pin expected 511):
+
+**In L2, per-arm desirable arm-instances live almost entirely in the
+`failure/` replay directory** — joint-success is 1/100, so every
+single-arm-reached episode was filed as a joint failure. The L0a
+convention "SFT reads the success/ dir" therefore CANNOT select the
+per-arm SFT pool (it would find ~1 episode). The per-arm SFT pool is
+selected by the **per-arm reached label** (`--sft_desirable_only` →
+kto_label=='desirable'), reading BOTH dirs. SFT = 511 desirable
+behavior-cloning rounds; KTO = 1630 (desirable+undesirable). Pins
+(511/1630) unchanged; the prep gained the desirable-only filter (the
+fix was prep semantics, NOT the pin).
+
+Verify-layer note (methods "pipeline integrity"): this is the 2nd time
+the verify layer caught a substantive defect at a "theoretically
+zero-impact" spot (1st: D11 SHA-gate filename drift). Interception rate
+2/2. Had the pin been edited to 1630 to pass, 1119 failed-arm rounds
+would have been behavior-cloned as desirable — silently teaching the
+student to imitate failure. The sentinel caught a training-semantics
+error, not a 3-row miscount.

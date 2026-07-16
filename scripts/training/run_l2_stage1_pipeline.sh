@@ -112,7 +112,7 @@ echo
 run "1.sft.prep" "python3 scripts/training/prep_training_data.py \
   --runs $L2_RUN --out $SFT_RAW \
   --only_progress_round \
-  --rationale_source native --per_arm_l2 \
+  --rationale_source native --per_arm_l2 --sft_desirable_only \
   --per_arm_rescore $PER_ARM_RESCORE"
 run "1.sft.filter" "python3 scripts/training/filter_rationale_deterministic.py \
   --in $SFT_RAW --out $SFT_JSONL --drop_policy flags_only_a6 && rm -f $SFT_RAW"
