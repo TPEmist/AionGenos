@@ -63,6 +63,28 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# A4500 yield-check: the LOCAL A4500 GPU is shared with the LIBERO line
+# (floating schedule: post-fix re-smoke → primitive repair → re-smoke).
+# Any local IsaacLab step (seed smoke, eval collect) must WAIT, not race,
+# if a libero/robosuite process is live or the A4500 is meaningfully
+# occupied. Mechanical, not "I think LIBERO finished".
+wait_for_a4500_idle() {
+  local waited=0
+  while true; do
+    local live_proc a4500_mem
+    live_proc=$(pgrep -f "libero\|robosuite" | head -1 || true)
+    # local GPU 0 = A4500; MiB in use (strip units)
+    a4500_mem=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits 2>/dev/null | head -1 | tr -d ' ')
+    a4500_mem=${a4500_mem:-0}
+    if [ -z "$live_proc" ] && [ "$a4500_mem" -lt 2000 ] 2>/dev/null; then
+      echo "  A4500 idle (mem=${a4500_mem}MiB, no libero/robosuite proc) — proceeding after ${waited}min wait"
+      return 0
+    fi
+    echo "  A4500 busy (mem=${a4500_mem}MiB, libero_proc=${live_proc:-none}) — LIBERO has priority, sleeping 10min (waited ${waited}min)"
+    sleep 600; waited=$((waited + 10))
+  done
+}
+
 run() {
   local step=$1; shift
   echo; echo "════════ Step $step ════════"; echo "$ $*"
@@ -120,11 +142,22 @@ if [ "$DRY_RUN" -eq 0 ] && [ "$SKIP_TO" -lt 5 ]; then
     printf "sft %s\nkto %s\n" "$sft_sha" "$kto_sha" > "$L2_PIN"
     echo "  first run — pinned to $L2_PIN"
   fi
-  [ "$fail" -eq 1 ] && { echo "Step 2.verify FAILED"; exit 2; }
+  [ "$fail" -eq 1 ] && {
+    echo "Step 2.verify FAILED — HALT. Do NOT edit the pin to pass."
+    echo "  A mismatch means one of two things to UNDERSTAND, not bypass:"
+    echo "   (a) filter semantic drift — flags_only_a6 silently dropped rows"
+    echo "       (it must be structural zero-drop; check filter policy), or"
+    echo "   (b) prep non-determinism — investigate before trusting any output."
+    exit 2
+  }
   echo "  ✓ verified"
 fi
 
 # ─────────────── Step 3: seed-determinism smoke (level 2) ───────────────
+# Local A4500 step — yield to LIBERO first.
+if [ "$DRY_RUN" -eq 0 ] && [ "$SKIP_TO" -le 3 ]; then
+  echo; echo "──── A4500 yield-check before Step 3 (seed smoke) ────"; wait_for_a4500_idle
+fi
 SEED_B=$((L2_ENV_SEED_BASE + 1))
 run 3 "/home/control/IsaacLab/isaaclab.sh -p \
   scripts/diagnostics/check_env_seed_determinism.py \
@@ -167,6 +200,11 @@ run "8.buffer_freeze" "mkdir -p $(dirname $FROZEN_BUFFER_TAR) && \
   tar --sort=name -czf $FROZEN_BUFFER_TAR -C $RECAP_BUFFER . && \
   ( cd $RECAP_BUFFER && find . -type f | sort | xargs sha256sum ) | sha256sum | awk '{print \$1}' > workspace/l2_audit/frozen_buffer.sha256 && \
   echo \"frozen L2 buffer tree_hash=\$(cat workspace/l2_audit/frozen_buffer.sha256)\""
+
+# Local A4500 eval steps — yield to LIBERO before the collects.
+if [ "$DRY_RUN" -eq 0 ] && [ "$SKIP_TO" -le 8 ]; then
+  echo; echo "──── A4500 yield-check before Step 8 (eval collects) ────"; wait_for_a4500_idle
+fi
 
 # reload student once with A_ctrl_rat's dual adapters (both protocols share weights)
 run "8.reload" "ssh $REMOTE_HOST 'cd $REMOTE_ROOT && \
