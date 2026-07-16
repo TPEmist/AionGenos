@@ -54,11 +54,12 @@ REMOTE_ROOT="/home/exx/CYTu/AionGenos_server"
 STUDENT_URL="http://10.80.9.148:18889"
 FROZEN_BUFFER_TAR="workspace/frozen_buffers/l2_recaps_frozen.tar.gz"
 
-DRY_RUN=0; SKIP_TO=0
+DRY_RUN=0; SKIP_TO=0; UNTIL=99
 while [[ $# -gt 0 ]]; do
   case $1 in
     --dry-run) DRY_RUN=1; shift ;;
     --skip)    SKIP_TO=$2; shift 2 ;;
+    --until)   UNTIL=$2; shift 2 ;;   # stop after step <= UNTIL (e.g. --until 7 = train+export, no eval)
     *) echo "unknown arg: $1"; exit 1 ;;
   esac
 done
@@ -87,8 +88,9 @@ wait_for_a4500_idle() {
 
 run() {
   local step=$1; shift
-  echo; echo "════════ Step $step ════════"; echo "$ $*"
   local step_num=${step%%.*}
+  if [ "$step_num" -gt "$UNTIL" ]; then return 0; fi   # --until upper bound
+  echo; echo "════════ Step $step ════════"; echo "$ $*"
   if [ "$DRY_RUN" -eq 1 ] || [ "$step_num" -lt "$SKIP_TO" ]; then
     [ "$step_num" -lt "$SKIP_TO" ] && echo "  (skipped, --skip $SKIP_TO)" || echo "  (dry-run)"
     return 0
@@ -202,7 +204,7 @@ run "8.buffer_freeze" "mkdir -p $(dirname $FROZEN_BUFFER_TAR) && \
   echo \"frozen L2 buffer tree_hash=\$(cat workspace/l2_audit/frozen_buffer.sha256)\""
 
 # Local A4500 eval steps — yield to LIBERO before the collects.
-if [ "$DRY_RUN" -eq 0 ] && [ "$SKIP_TO" -le 8 ]; then
+if [ "$DRY_RUN" -eq 0 ] && [ "$SKIP_TO" -le 8 ] && [ 8 -le "$UNTIL" ]; then
   echo; echo "──── A4500 yield-check before Step 8 (eval collects) ────"; wait_for_a4500_idle
 fi
 
