@@ -70,18 +70,26 @@ done
 # if a libero/robosuite process is live or the A4500 is meaningfully
 # occupied. Mechanical, not "I think LIBERO finished".
 wait_for_a4500_idle() {
+  # Idle test = NO live compute-app on the A4500 AND no libero/robosuite
+  # process. This machine idles at ~3000 MiB resident (display server /
+  # leftover CUDA context) with ZERO compute-apps, so a memory-threshold
+  # test is wrong (it read the 3GB baseline as "busy" and spun 22h once).
+  # A real job registers a compute-app; that is the signal to wait on.
   local waited=0
   while true; do
-    local live_proc a4500_mem
+    local live_proc n_apps
     live_proc=$(pgrep -f "libero\|robosuite" | head -1 || true)
-    # local GPU 0 = A4500; MiB in use (strip units)
-    a4500_mem=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits 2>/dev/null | head -1 | tr -d ' ')
-    a4500_mem=${a4500_mem:-0}
-    if [ -z "$live_proc" ] && [ "$a4500_mem" -lt 2000 ] 2>/dev/null; then
-      echo "  A4500 idle (mem=${a4500_mem}MiB, no libero/robosuite proc) — proceeding after ${waited}min wait"
+    n_apps=$(nvidia-smi --query-compute-apps=pid --format=csv,noheader 2>/dev/null | grep -c . || echo 0)
+    if [ -z "$live_proc" ] && [ "${n_apps:-0}" -eq 0 ] 2>/dev/null; then
+      echo "  A4500 idle (0 compute-apps, no libero/robosuite proc) — proceeding after ${waited}min wait"
       return 0
     fi
-    echo "  A4500 busy (mem=${a4500_mem}MiB, libero_proc=${live_proc:-none}) — LIBERO has priority, sleeping 10min (waited ${waited}min)"
+    # Watchdog: a wait is not allowed to be silent (mode-level lesson —
+    # the guard once dead-waited 22h unnoticed). Alarm every 2h of waiting.
+    if [ "$waited" -gt 0 ] && [ $((waited % 120)) -eq 0 ]; then
+      echo "==== ALARM: A4500 yield-check has waited ${waited}min (>2h). Still busy (compute_apps=${n_apps}). Is this expected? ===="
+    fi
+    echo "  A4500 busy (compute_apps=${n_apps}, libero_proc=${live_proc:-none}) — LIBERO has priority, sleeping 10min (waited ${waited}min)"
     sleep 600; waited=$((waited + 10))
   done
 }
