@@ -198,11 +198,28 @@ run 6 "ssh $REMOTE_HOST 'cd $REMOTE_ROOT && \
     2>&1 | tee logs/l2_A_ctrl_rat_kto.log'"
 
 # ─────────────── Step 7: export GGUF ───────────────
+# SFT save (single-adapter) puts adapter_config.json directly in
+# final_adapter/. KTO save is C.3-B composable: save_pretrained(
+# selected_adapters=['kto']) writes NESTED final_adapter/kto/ (config +
+# weights) + final_adapter/sft_frozen/. So the KTO export must point at
+# the kto/ subdir, NOT final_adapter/ (which lacks a top-level config).
+# (L2 2026-07-17: the flat path failed 'adapter_config.json not found';
+# D11 wrote flat, this PEFT version writes nested — export from kto/.)
 run 7 "ssh $REMOTE_HOST 'cd $REMOTE_ROOT && \
   python3 server_side/export_lora_gguf.py \
     --checkpoint-dir $SFT_CKPT/final_adapter --output data/lora_gguf/l2_A_ctrl_rat_sft/adapter.gguf \
   && python3 server_side/export_lora_gguf.py \
-    --checkpoint-dir $KTO_CKPT/final_adapter --output data/lora_gguf/l2_A_ctrl_rat_kto/adapter.gguf'"
+    --checkpoint-dir $KTO_CKPT/final_adapter/kto --output data/lora_gguf/l2_A_ctrl_rat_kto/adapter.gguf'"
+# Step-7 completion assert (confirmation-gate discipline: the watchdog's
+# marker false-positived on the SFT side; verify BOTH GGUFs exist before
+# any eval reload). Halt if either is missing.
+if [ "$DRY_RUN" -eq 0 ] && [ 7 -le "$UNTIL" ] && [ "$SKIP_TO" -le 7 ]; then
+  echo; echo "──── Step 7 assert: both GGUFs exist ────"
+  ssh "$REMOTE_HOST" "test -f $REMOTE_ROOT/data/lora_gguf/l2_A_ctrl_rat_sft/adapter.gguf \
+    && test -f $REMOTE_ROOT/data/lora_gguf/l2_A_ctrl_rat_kto/adapter.gguf" \
+    && echo "  ✓ both SFT + KTO GGUFs present" \
+    || { echo "  ✗ GGUF missing — HALT before eval (KTO export path? check final_adapter/kto/)"; exit 4; }
+fi
 
 # ─────────────── Step 8: 2-protocol eval (A4500 night window) ───────────────
 # Freeze buffer snapshot for C_retrieval (tree-hash gate, Amendment 1a).
