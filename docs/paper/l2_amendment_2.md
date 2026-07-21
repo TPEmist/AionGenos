@@ -95,3 +95,56 @@ zero-impact" spot (1st: D11 SHA-gate filename drift). Interception rate
 would have been behavior-cloned as desirable — silently teaching the
 student to imitate failure. The sentinel caught a training-semantics
 error, not a 3-row miscount.
+
+## Addendum (2026-07-21) — version drift transposed the LoRA storage layout; caught at GGUF-load verify
+
+The 3rd sentinel interception, at the GGUF export/load boundary. The L2
+adapters trained clean (loss healthy, checkpoint-64/204 intact) but the
+exported GGUFs would not load into the student llama-server. Diagnosis
+(full recipe in `server_side/gguf_tools/README.md`):
+
+**Two silent defects in the on-disk llama.cpp checkout** (clone a4e8912d,
+scripts locally edited Jun-3):
+1. **No `GEMMA4` arch constant.** The converter registers
+   `Gemma4ForConditionalGeneration` onto the `Gemma3Model` class
+   (`model_arch = GEMMA3`), so it emits `general.architecture = gemma3`.
+   The base model GGUF is `gemma4` → the adapter is rejected at load.
+2. **Double-transpose.** A working-tree edit added
+   `else: lora_a, lora_b = lora_a.T, lora_b.T`; but `get_lora_A_B()`
+   already returns llama.cpp orientation, so the else re-transposed the
+   ffn/attn LoRA tensors back to raw PEFT layout (`lora_a=[16,in]`
+   instead of `[in,16]`) → "incorrect shape" at load.
+
+Both are **version-drift artifacts** (D11 was converted before the
+else-edit, then arch-byte-patched; L2 hit the drifted converter). The
+fix was **version rollback + a structural byte-patch, NOT binary
+surgery on the tensors**: (i) revert the else-transpose in a stock copy
+of the converter → orientation `[21504,16]` **shape-identical to D11's
+shipped adapter across all 820 tensors** (asymmetric shapes make a
+value-scramble undetectably-wrong impossible); (ii) walk the GGUF KV
+header to the exact `general.architecture` value and swap the 6 ASCII
+bytes `gemma3`→`gemma4` (equal length, asserts exactly one occurrence).
+
+Three verification gates, all green: (a) arch=gemma4 + `[21504,16]`
+matching D11; (b) student loads on :18889, `/health=200`,
+`/lora-adapters` lists both; (c) scale-1 vs scale-0 chat completion —
+text and per-token logprobs differ, adapter text shows the trained
+per-arm behavior ("the left arm must move from its current position"),
+proving the adapter is *applied*, not silently ignored. D11's two
+shipped GGUFs were retro-health-checked on gate (c) the same day and are
+mathematically live — the +34pp D11 headline rests on sound files.
+
+Interception rate **3/3**. The one residual disclosed honestly: a full
+PyTorch+PEFT numeric logit cross-check (against checkpoint-204) was
+scoped out — the orientation risk is closed by the asymmetric-shape
+identity to a *shipped, working* adapter, and a multimodal PyTorch
+harness that mismatched llama.cpp's image preprocessing would test the
+harness, not the adapter. The eval's own success-rate is the final
+arbiter (a mis-mapped adapter collapses SR rather than emitting
+trained-direction text).
+
+Methods sentence: *"A silent version drift in the conversion toolchain
+transposed the LoRA storage layout; it was caught at the GGUF-load
+verify gate and fixed by version rollback plus a structural arch
+byte-patch — not by hand-transposing tensors, whose danger is precisely
+a load that succeeds but silently mis-maps."*

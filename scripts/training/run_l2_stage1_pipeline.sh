@@ -79,8 +79,11 @@ wait_for_a4500_idle() {
   while true; do
     local live_proc n_apps
     live_proc=$(pgrep -f "libero\|robosuite" | head -1 || true)
-    n_apps=$(nvidia-smi --query-compute-apps=pid --format=csv,noheader 2>/dev/null | grep -c . || echo 0)
-    if [ -z "$live_proc" ] && [ "${n_apps:-0}" -eq 0 ] 2>/dev/null; then
+    # count only lines containing a digit (empty output → 0; avoids blank
+    # lines miscounting, and multi-GPU rows are each a real app row).
+    n_apps=$(nvidia-smi --query-compute-apps=pid --format=csv,noheader 2>/dev/null | grep -c '[0-9]' || true)
+    n_apps=${n_apps:-0}
+    if [ -z "$live_proc" ] && [ "$n_apps" -eq 0 ] 2>/dev/null; then
       echo "  A4500 idle (0 compute-apps, no libero/robosuite proc) — proceeding after ${waited}min wait"
       return 0
     fi
@@ -197,28 +200,46 @@ run 6 "ssh $REMOTE_HOST 'cd $REMOTE_ROOT && \
     --epochs 1 --batch-size 2 --lr 5e-5 --auto-balance \
     2>&1 | tee logs/l2_A_ctrl_rat_kto.log'"
 
-# ─────────────── Step 7: export GGUF ───────────────
-# SFT save (single-adapter) puts adapter_config.json directly in
-# final_adapter/. KTO save is C.3-B composable: save_pretrained(
-# selected_adapters=['kto']) writes NESTED final_adapter/kto/ (config +
-# weights) + final_adapter/sft_frozen/. So the KTO export must point at
-# the kto/ subdir, NOT final_adapter/ (which lacks a top-level config).
-# (L2 2026-07-17: the flat path failed 'adapter_config.json not found';
-# D11 wrote flat, this PEFT version writes nested — export from kto/.)
-run 7 "ssh $REMOTE_HOST 'cd $REMOTE_ROOT && \
-  python3 server_side/export_lora_gguf.py \
-    --checkpoint-dir $SFT_CKPT/final_adapter --output data/lora_gguf/l2_A_ctrl_rat_sft/adapter.gguf \
-  && python3 server_side/export_lora_gguf.py \
-    --checkpoint-dir $KTO_CKPT/final_adapter/kto --output data/lora_gguf/l2_A_ctrl_rat_kto/adapter.gguf'"
-# Step-7 completion assert (confirmation-gate discipline: the watchdog's
-# marker false-positived on the SFT side; verify BOTH GGUFs exist before
-# any eval reload). Halt if either is missing.
+# ─────────────── Step 7: export GGUF (STOCK converter + arch patch) ───────────────
+# TWO defects in this llama.cpp checkout (see server_side/gguf_tools/README.md,
+# diagnosed 2026-07-21) mean the plain export_lora_gguf.py produces UNLOADABLE
+# GGUFs (arch=gemma3, transposed lora tensors). The recipe below reproduces
+# D11's known-good orientation:
+#   (1) stock converter — else-transpose reverted (convert_lora_STOCK.py in the
+#       llama.cpp dir so convert_hf_to_gguf imports as sibling). get_lora_A_B()
+#       already returns llama.cpp orientation; the local else re-transposed it.
+#   (2) byte-patch general.architecture gemma3->gemma4 (no GEMMA4 arch constant
+#       exists in this checkout; base model GGUF is gemma4, so adapter must be).
+# KTO save is C.3-B composable → nested final_adapter/kto/ (has top-level
+# config); SFT save is flat in final_adapter/.
+STOCK_CONV="/home/exx/CYTu/llama.cpp/convert_lora_STOCK.py"
+VENV_PY="/home/exx/CYTu/test_zone/gemma3-bbox-finetune/.venv/bin/python"
+GBASE='$(python3 -c "from huggingface_hub import snapshot_download; print(snapshot_download('"'"'google/gemma-4-31b-it'"'"', local_files_only=True))")'
+run 7 "ssh $REMOTE_HOST 'cd $REMOTE_ROOT && GBASE=$GBASE && \
+  $VENV_PY $STOCK_CONV $SFT_CKPT/final_adapter \
+    --outfile data/lora_gguf/l2_A_ctrl_rat_sft/adapter.gguf --base \$GBASE && \
+  $VENV_PY $STOCK_CONV $KTO_CKPT/final_adapter/kto \
+    --outfile data/lora_gguf/l2_A_ctrl_rat_kto/adapter.gguf --base \$GBASE && \
+  python3 server_side/gguf_tools/patch_arch_gemma3to4.py \
+    data/lora_gguf/l2_A_ctrl_rat_sft/adapter.gguf \
+    data/lora_gguf/l2_A_ctrl_rat_kto/adapter.gguf'"
+# Step-7 completion assert — NOT just existence: verify arch=gemma4 AND
+# ffn_down.lora_a=[21504,16] (the exact failure this step fixes). A gemma3 tag
+# or [16,21504] orientation means the recipe regressed → HALT before eval.
 if [ "$DRY_RUN" -eq 0 ] && [ 7 -le "$UNTIL" ] && [ "$SKIP_TO" -le 7 ]; then
-  echo; echo "──── Step 7 assert: both GGUFs exist ────"
-  ssh "$REMOTE_HOST" "test -f $REMOTE_ROOT/data/lora_gguf/l2_A_ctrl_rat_sft/adapter.gguf \
-    && test -f $REMOTE_ROOT/data/lora_gguf/l2_A_ctrl_rat_kto/adapter.gguf" \
-    && echo "  ✓ both SFT + KTO GGUFs present" \
-    || { echo "  ✗ GGUF missing — HALT before eval (KTO export path? check final_adapter/kto/)"; exit 4; }
+  echo; echo "──── Step 7 assert: both GGUFs gemma4 + correct orientation ────"
+  ok=$(ssh "$REMOTE_HOST" "cd $REMOTE_ROOT && for g in data/lora_gguf/l2_A_ctrl_rat_sft/adapter.gguf data/lora_gguf/l2_A_ctrl_rat_kto/adapter.gguf; do \
+      python3 server_side/gguf_tools/read_gguf_meta.py \$g; done" 2>&1)
+  echo "$ok" | grep -E '###|arch=|ffn_down'
+  n_g4=$(echo "$ok" | grep -c 'arch=gemma4')
+  n_orient=$(echo "$ok" | grep -c 'ffn_down.weight.lora_a  dims=\[21504, 16\]')
+  if [ "$n_g4" = "2" ] && [ "$n_orient" = "2" ]; then
+    echo "  ✓ both GGUFs gemma4 + [21504,16] (matches D11)"
+  else
+    echo "  ✗ GGUF arch/orientation wrong (gemma4=$n_g4/2, orient=$n_orient/2) — HALT."
+    echo "    See server_side/gguf_tools/README.md. Do NOT eval broken adapters."
+    exit 4
+  fi
 fi
 
 # ─────────────── Step 8: 2-protocol eval (A4500 night window) ───────────────
