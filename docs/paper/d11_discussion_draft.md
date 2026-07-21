@@ -101,7 +101,43 @@ changes) would provide the mechanical account of the 23 pp gap —
 "context content is read, self-produced content is ignored". We flag
 this as the paper-2 target, not a claimed result.
 
-### 5.3 The open problem: consolidating a conditional function, not a marginal prior
+### 5.3 Why this does not extend to contact-rich manipulation (a bounded feasibility probe)
+
+Before extending the memory result to contact-rich tasks we ran a
+bounded feasibility gate, porting the identical prompted-VLM-teacher
+interface to LIBERO and asking whether it clears the task before
+committing a full study. It did not, and the value is in the precision
+of the negative result. Across grasping (three objects) and non-grasping
+(push, knob-twist) tasks the teacher's *spatial reasoning stayed intact*
+— round-0 targets matched true object positions to within millimetres
+and phase identification was correct throughout — yet success was 0 in
+every task. A staged intervention (adding oracle-sourced subgoal
+vectors, then a hover-descend-grasp primitive, then raising camera
+resolution 128→256 px; details and per-stage success in the
+supplementary feasibility branch) cleared every candidate cause above
+the point of contact while success remained pinned at zero, localising
+the failure to two separable boundaries. The first is a
+**contact-precision ceiling**: on free-object contact (grasp and push
+alike) the open-loop position servo drives the end-effector into the
+object and the rigid-body contact impulse ejects it, so the same wall
+that blocks grasping also blocks pushing. The second is a
+**primitive-expressivity gap**: the "turn on the stove" success
+predicate is satisfied by rotating a hinged knob past ~0.5 rad, a
+degree of freedom our macro vocabulary (reach / grasp / release) does
+not express, so a position servo to the knob applies zero moment about
+the hinge and cannot actuate it even with perfect targeting. Both
+boundaries are properties of *this interface paradigm — integer-
+coordinate subgoals over an OSC position servo with a fixed macro-
+primitive set — not of the prompted-VLM teacher*, whose reasoning layer
+was sound in every failure; the walls sit at the control-stack and
+primitive-vocabulary layers, the layers this single-manipulator study
+does not claim to solve. This bounds the contribution cleanly and points
+forward: **closed-loop contact control and an expanded primitive
+vocabulary are the two unlocks** a richer task suite would require — the
+same enrichment an expert-iteration loop (paper 2) would need to
+generate contact-rich experience worth externalising.
+
+### 5.4 The open problem: consolidating a conditional function, not a marginal prior
 
 The deepest reading connects back to the study's motivating question —
 whether the knowledge a system reads can be folded, through embodiment,
