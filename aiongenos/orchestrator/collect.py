@@ -128,6 +128,7 @@ def run_collect_loop(
     eval_template_variant: Optional[str] = None,
     recap_buffer_readonly: bool = False,
     env_seed_base: Optional[int] = None,
+    eval_scored_arm: Optional[str] = None,
 ) -> CollectStats:
     """Run the 4-stage cognitive evolution collect loop.
 
@@ -283,6 +284,13 @@ def run_collect_loop(
             r1_preamble_text = memory_preamble_text if round_idx == 0 else None
             r1_preamble_imgs = memory_preamble_images_b64 if round_idx == 0 else None
 
+            # L2 Amendment 3: per-arm eval. The scored arm is the single arm
+            # the student was trained to emit; the other is frozen (below) and
+            # success is gated on the scored arm only. eval_scored_arm takes
+            # precedence over the level-name-derived active arm (L0a); when
+            # unset, behaviour is byte-identical to before.
+            scored_arm = eval_scored_arm or _active_arm_for_level(level_config)
+
             stage1_result, stage1_latency, stage1_error = run_stage1(
                 level_config=level_config,
                 teacher_url=config.teacher_url,
@@ -294,6 +302,7 @@ def run_collect_loop(
                 memory_preamble_text=r1_preamble_text,
                 memory_preamble_images_b64=r1_preamble_imgs,
                 eval_template_variant=eval_template_variant,
+                scored_arm=eval_scored_arm,
             )
             stats.total_vlm_latency_ms += stage1_latency
 
@@ -317,7 +326,9 @@ def run_collect_loop(
             prev_predicted_left = (stage1_result.left.position.x, stage1_result.left.position.y, stage1_result.left.position.z)
             prev_predicted_right = (stage1_result.right.position.x, stage1_result.right.position.y, stage1_result.right.position.z)
 
-            active_arm = _active_arm_for_level(level_config)
+            # Freeze the non-scored arm (Amendment 3: hold-in-place mask). For
+            # L2 this is eval_scored_arm; for L0a it is the level-derived arm.
+            active_arm = scored_arm
             attempt = env.execute_command(
                 command,
                 level_config.sim_steps_per_subgoal,

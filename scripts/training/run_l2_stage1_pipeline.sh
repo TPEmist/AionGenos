@@ -249,6 +249,19 @@ run "8.buffer_freeze" "mkdir -p $(dirname $FROZEN_BUFFER_TAR) && \
   ( cd $RECAP_BUFFER && find . -type f | sort | xargs sha256sum ) | sha256sum | awk '{print \$1}' > workspace/l2_audit/frozen_buffer.sha256 && \
   echo \"frozen L2 buffer tree_hash=\$(cat workspace/l2_audit/frozen_buffer.sha256)\""
 
+# ── Permanent format-contract gate (Amendment 3 §7) ──
+# BEFORE the simulator boots, prove the EVAL parser accepts the TRAINING
+# target. This kills the train/eval-format-mismatch bug family (4th incident:
+# L2 eval parsed both arms for a single-arm-trained model) at dry-run instead
+# of at episode 1. Resident step; runs for every eval config.
+if [ "$DRY_RUN" -eq 0 ] && [ "$SKIP_TO" -le 8 ] && [ 8 -le "$UNTIL" ]; then
+  echo; echo "──── Step 8.contract — eval parser accepts training target? (scored_arm=left) ────"
+  python3 scripts/diagnostics/check_eval_format_contract.py \
+    --sft-jsonl "$SFT_JSONL" --level "$L2_LEVEL" \
+    --scored-arm left --variant rationale --n 3 \
+    || { echo "  ✗ format-contract FAILED — HALT (see Amendment 3 §7). Fix eval parser/template, not training data."; exit 5; }
+fi
+
 # Local A4500 eval steps — yield to LIBERO before the collects.
 if [ "$DRY_RUN" -eq 0 ] && [ "$SKIP_TO" -le 8 ] && [ 8 -le "$UNTIL" ]; then
   echo; echo "──── A4500 yield-check before Step 8 (eval collects) ────"; wait_for_a4500_idle
@@ -260,24 +273,32 @@ run "8.reload" "ssh $REMOTE_HOST 'cd $REMOTE_ROOT && \
     data/lora_gguf/l2_A_ctrl_rat_sft/adapter.gguf \
     data/lora_gguf/l2_A_ctrl_rat_kto/adapter.gguf'"
 
-# Protocol 1: A_ctrl_rat bare (no retrieval)
+# NOTE (sequencing bug fixed): isaaclab.sh forks its python child and returns
+# early, so the previous `nohup ... && echo` fired both protocols CONCURRENTLY
+# (two Isaac sims racing one A4500 + interleaving on the --parallel 1 student).
+# Both protocols now run FOREGROUND (no nohup, no &) so `run` blocks until each
+# python truly exits — Protocol 2 cannot start until Protocol 1's 100 episodes
+# finish. Amendment 3: --eval_scored_arm left (per-arm eval; right arm frozen).
+
+# Protocol 1: A_ctrl_rat bare (no retrieval), left-scored
 run "8.A_ctrl_rat.collect" "mkdir -p data/100ep-l2-A_ctrl_rat && \
-  nohup /home/control/IsaacLab/isaaclab.sh -p scripts/run_collect.py \
+  /home/control/IsaacLab/isaaclab.sh -p scripts/run_collect.py \
     --level $L2_LEVEL --num_episodes $L2_NUM_EPISODES \
     --teacher_url $STUDENT_URL --dump_images_root data/collect_dumps --freeze_level \
     --env_seed_base $L2_ENV_SEED_BASE --eval_template_variant rationale \
-    --headless --enable_cameras > logs/l2_eval_A_ctrl_rat_\$(date +%Y%m%d_%H%M%S).log 2>&1 && \
+    --eval_scored_arm left \
+    --headless --enable_cameras 2>&1 | tee logs/l2_eval_A_ctrl_rat_\$(date +%Y%m%d_%H%M%S).log && \
   echo 'L2 A_ctrl_rat eval done'"
 
-# Protocol 2: C_retrieval (same weights + frozen re-tagged buffer, arm-aligned floor)
+# Protocol 2: C_retrieval (same weights + frozen re-tagged buffer, arm-aligned floor), left-scored
 run "8.C_retrieval.collect" "mkdir -p data/100ep-l2-C_retrieval && \
-  nohup /home/control/IsaacLab/isaaclab.sh -p scripts/run_collect.py \
+  /home/control/IsaacLab/isaaclab.sh -p scripts/run_collect.py \
     --level $L2_LEVEL --num_episodes $L2_NUM_EPISODES \
     --teacher_url $STUDENT_URL --dump_images_root data/collect_dumps --freeze_level \
     --env_seed_base $L2_ENV_SEED_BASE --eval_template_variant rationale_with_retrieval \
     --recap_buffer_root $RECAP_BUFFER --use_memory --recap_buffer_readonly \
-    --memory_success_label_arm left \
-    --headless --enable_cameras > logs/l2_eval_C_retrieval_\$(date +%Y%m%d_%H%M%S).log 2>&1 && \
+    --memory_success_label_arm left --eval_scored_arm left \
+    --headless --enable_cameras 2>&1 | tee logs/l2_eval_C_retrieval_\$(date +%Y%m%d_%H%M%S).log && \
   echo 'L2 C_retrieval eval done'"
 
 echo; echo "═══════════════════════════════════════════════════════════"

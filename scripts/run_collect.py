@@ -113,6 +113,20 @@ parser.add_argument(
          "Only POSITION_ONLY (L0) is supported in Phase 4.",
 )
 parser.add_argument(
+    "--eval_scored_arm",
+    type=str,
+    default=None,
+    choices=(None, "left", "right"),
+    help="L2 Amendment 3: per-arm eval. On a POSITION_RPY_2DOF level, the "
+         "student was trained to emit ONLY the scored arm (position-only); "
+         "this selects which arm is scored — the prompt asks for that arm's "
+         "slot only, the parser tolerates the absent arm, the non-scored arm "
+         "is frozen at its initial pose, and success is gated on the scored "
+         "arm alone. Main L2 eval uses 'left' (retrieval anchored left per "
+         "Amendment 1a). Unset → legacy bimanual behaviour (L0a uses the "
+         "level-name-derived active arm instead).",
+)
+parser.add_argument(
     "--freeze_level", action="store_true",
     help="When set, curriculum never auto-advances even if SR ≥ threshold. "
          "Required for single-task paper-quality collects: ext-5 auto-advanced "
@@ -213,6 +227,7 @@ def main():
             eval_template_variant=args_cli.eval_template_variant,
             recap_buffer_readonly=args_cli.recap_buffer_readonly,
             env_seed_base=args_cli.env_seed_base,
+            eval_scored_arm=args_cli.eval_scored_arm,
         )
         logger.info("Collect loop execution complete.")
         logger.info(f"Stats summary: {stats}")

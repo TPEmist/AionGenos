@@ -180,6 +180,58 @@ STAGE1_TEMPLATES_BY_VARIANT: Final[dict[str, dict[ControlMode, str]]] = {
 }
 
 # ─────────────────────────────────────────────────────────────────────────
+# L2 Amendment 3 — per-arm eval templates for POSITION_RPY_2DOF.
+#
+# The L2 A_ctrl_rat student was trained (Amendment 1 §3) to emit the SCORED
+# ARM ONLY, position-only, headed by the intrinsic-rationale block. The eval
+# prompt must ask for exactly that shape (train==eval output contract). The
+# non-scored arm is frozen by the env's active_arm hold-mask, so it has no
+# output slot here. RPY appears in the STATE readout (the student sees it) but
+# NOT in the output — matching the single-arm training target byte-for-byte.
+#
+# Header mirrors the training target from `format_native_rationale_gist`:
+#   "INTRINSIC_RATIONALE (this attempt's own reasoning):"
+# ─────────────────────────────────────────────────────────────────────────
+_S1_RPY2_STATE: Final[str] = (
+    "TASK: {instruction}\nCONTROL_MODE: end_effector_pose_with_2dof_rpy\n\n"
+    "CURRENT STATE:\n"
+    "  LEFT_EE_POS  = (X={left_x}, Y={left_y}, Z={left_z})\n"
+    "  LEFT_EE_RPY  = (P={left_p}, Y={left_yaw})\n"
+    "  RIGHT_EE_POS = (X={right_x}, Y={right_y}, Z={right_z})\n"
+    "  RIGHT_EE_RPY = (P={right_p}, Y={right_yaw})\n"
+    "  LEFT_EE_TO_RED_CUBE  = {dist_red_cm} cm\n"
+    "  RIGHT_EE_TO_BLUE_CUBE = {dist_blue_cm} cm\n\n"
+)
+_S1_RPY2_RATIONALE_HEAD: Final[str] = (
+    "INTRINSIC_RATIONALE (this attempt's own reasoning): "
+    "<one paragraph physics reasoning>\n"
+)
+# Single-arm output tails (scored arm only + STOP; position-only, no RPY).
+_S1_RPY2_TAIL_LEFT: Final[str] = (
+    "LEFT_TARGET_POS:  X=<int> Y=<int> Z=<int>\n"
+    "STOP: <true|false>"
+)
+_S1_RPY2_TAIL_RIGHT: Final[str] = (
+    "RIGHT_TARGET_POS: X=<int> Y=<int> Z=<int>\n"
+    "STOP: <true|false>"
+)
+
+# Per-arm variant map: variant -> scored_arm -> template. Only the two eval
+# variants A_ctrl_rat (`rationale`) and C_retrieval (`rationale_with_retrieval`)
+# are wired for L2; both share the same output shape (C_retrieval's PAST_LESSONS
+# enter as a preamble, not a slot — identical to L0a).
+STAGE1_RPY2_PER_ARM_BY_VARIANT: Final[dict[str, dict[str, str]]] = {
+    "rationale": {
+        "left":  _S1_RPY2_STATE + _S1_RPY2_RATIONALE_HEAD + _S1_RPY2_TAIL_LEFT,
+        "right": _S1_RPY2_STATE + _S1_RPY2_RATIONALE_HEAD + _S1_RPY2_TAIL_RIGHT,
+    },
+    "rationale_with_retrieval": {
+        "left":  _S1_RPY2_STATE + _S1_RPY2_RATIONALE_HEAD + _S1_RPY2_TAIL_LEFT,
+        "right": _S1_RPY2_STATE + _S1_RPY2_RATIONALE_HEAD + _S1_RPY2_TAIL_RIGHT,
+    },
+}
+
+# ─────────────────────────────────────────────────────────────────────────
 # P5: Stage 3 system prompt
 # ─────────────────────────────────────────────────────────────────────────
 STAGE3_SYSTEM: Final[str] = (
@@ -266,6 +318,7 @@ def get_stage1_prompt(
     level_config: LevelConfig,
     state: dict,
     eval_template_variant: Optional[str] = None,
+    scored_arm: Optional[str] = None,
 ) -> str:
     """Build Stage 1 user prompt.
 
@@ -277,9 +330,26 @@ def get_stage1_prompt(
             "rationale_with_retrieval"}. If None, falls back to the legacy
             teacher template (with THOUGHT slot) — kept for D6/D10 replay
             compatibility so old scripts don't break.
+        scored_arm: L2 Amendment 3 — when ``"left"``/``"right"`` on a
+            POSITION_RPY_2DOF level, select the single-arm per-arm eval
+            template (scored arm's POS + STOP only, matching the single-arm
+            training target). Ignored for POSITION_ONLY (L0a is single-active-
+            arm by level name, not by this flag).
     """
     if eval_template_variant is None:
         return STAGE1_TEMPLATES[level_config.control_mode].format_map(state)
+
+    # L2 Amendment 3: per-arm eval on POSITION_RPY_2DOF.
+    if scored_arm in ("left", "right") and level_config.control_mode == ControlMode.POSITION_RPY_2DOF:
+        per_arm = STAGE1_RPY2_PER_ARM_BY_VARIANT.get(eval_template_variant)
+        if per_arm is None:
+            raise NotImplementedError(
+                f"per-arm L2 eval not wired for variant={eval_template_variant!r}. "
+                f"Wired: {sorted(STAGE1_RPY2_PER_ARM_BY_VARIANT)} (Amendment 3 scopes "
+                f"L2 eval to A_ctrl_rat + C_retrieval)."
+            )
+        return per_arm[scored_arm].format_map(state)
+
     variant_map = STAGE1_TEMPLATES_BY_VARIANT.get(eval_template_variant)
     if variant_map is None:
         raise ValueError(

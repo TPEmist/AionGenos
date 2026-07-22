@@ -39,6 +39,7 @@ def run_stage1(
     memory_preamble_text: Optional[str] = None,
     memory_preamble_images_b64: Optional[list[str]] = None,
     eval_template_variant: Optional[str] = None,
+    scored_arm: Optional[str] = None,
 ) -> tuple[Optional[Stage1Response], float, Optional[str]]:
     """Execute Stage 1: VLM Reasoning.
 
@@ -63,7 +64,8 @@ def run_stage1(
     """
     system_prompt = get_stage1_system_prompt()
     user_prompt = get_stage1_prompt(
-        level_config, state, eval_template_variant=eval_template_variant
+        level_config, state, eval_template_variant=eval_template_variant,
+        scored_arm=scored_arm,
     )
 
     if critic_feedback:
@@ -115,6 +117,7 @@ def run_stage1(
                 has_rpy=has_rpy,
                 has_gripper=has_gripper,
                 rpy_2dof=rpy_2dof,
+                scored_arm=scored_arm,
             )
             logger.info(
                 f"Stage 1 OK (attempt {attempt + 1}): "

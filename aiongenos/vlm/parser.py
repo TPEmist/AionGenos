@@ -87,7 +87,13 @@ def _extract(pattern: str, text: str, label: str) -> re.Match:
     return m
 
 
-def parse_stage1(text: str, has_rpy: bool = False, has_gripper: bool = False, rpy_2dof: bool = False) -> Stage1Response:
+def parse_stage1(
+    text: str,
+    has_rpy: bool = False,
+    has_gripper: bool = False,
+    rpy_2dof: bool = False,
+    scored_arm: Optional[str] = None,
+) -> Stage1Response:
     """Parse a Stage 1 VLM response.
 
     Args:
@@ -95,6 +101,15 @@ def parse_stage1(text: str, has_rpy: bool = False, has_gripper: bool = False, rp
         has_rpy: Whether RPY fields are expected.
         has_gripper: Whether gripper fields are expected.
         rpy_2dof: If True, RPY is 2-DoF (pitch, yaw only).
+        scored_arm: L2 Amendment 3 — when ``"left"``/``"right"``, the model
+            was trained to emit ONLY the scored arm's ``*_TARGET_POS`` + STOP,
+            position-only (no RPY, no non-scored-arm line). Parse only that
+            arm; fill the non-scored arm with a hold sentinel (0,0,0) that
+            ``execute_command(active_arm=...)`` overrides with hold-in-place.
+            RPY/gripper extraction is skipped for the single-arm target
+            regardless of ``has_rpy`` (the single-arm training target has no
+            RPY slot). ``None`` (default) → legacy bimanual parse, byte-
+            identical to before (L0a/L3/L4 untouched).
 
     Returns:
         Validated Stage1Response.
@@ -102,6 +117,28 @@ def parse_stage1(text: str, has_rpy: bool = False, has_gripper: bool = False, rp
     # Thought
     thought_m = re.search(r"THOUGHT:\s*(.+?)(?=\n(?:LEFT_TARGET|$))", text, re.DOTALL | re.IGNORECASE)
     thought = thought_m.group(1).strip() if thought_m else ""
+
+    # ── L2 Amendment 3: single-arm scored target ──
+    # Extract ONLY the scored arm's position; the non-scored arm is a hold
+    # sentinel (the env freezes it via active_arm). No RPY (the single-arm
+    # training target is position-only). STOP is still required.
+    if scored_arm in ("left", "right"):
+        _HOLD = PositionTarget(x=0, y=0, z=0)  # overridden by execute_command hold-mask
+        if scored_arm == "left":
+            m = _extract(rf"LEFT_TARGET_POS:\s*{_POS}", text, "LEFT_TARGET_POS")
+            left_pos = PositionTarget(x=int(m.group(1)), y=int(m.group(2)), z=int(m.group(3)))
+            right_pos = _HOLD
+        else:
+            m = _extract(rf"RIGHT_TARGET_POS:\s*{_POS}", text, "RIGHT_TARGET_POS")
+            right_pos = PositionTarget(x=int(m.group(1)), y=int(m.group(2)), z=int(m.group(3)))
+            left_pos = _HOLD
+        stop_m = _extract(rf"STOP:\s*{_BOOL}", text, "STOP")
+        return Stage1Response(
+            thought=thought,
+            left=VLMAction(position=left_pos, rpy=None, gripper=None),
+            right=VLMAction(position=right_pos, rpy=None, gripper=None),
+            stop=stop_m.group(1).lower() == "true",
+        )
 
     # Left position
     left_pos_m = _extract(rf"LEFT_TARGET_POS:\s*{_POS}", text, "LEFT_TARGET_POS")
