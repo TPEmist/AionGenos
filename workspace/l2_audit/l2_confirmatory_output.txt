@@ -1,0 +1,56 @@
+======================================================================
+L2 Stage-1 confirmatory analysis (per-arm left-scored, Amendment 3)
+verdict framework is LOCKED in workspace/l2_audit/PRE_ANALYSIS_LOCK.md
+======================================================================
+  A_ctrl_rat   run=8384a740  log=l2_eval_A_ctrl_rat_20260722_133446.log
+               episodes=100  successes=14  SR=14.0%
+  C_retrieval  run=2154e57e  log=l2_eval_C_retrieval_20260722_195917.log
+               episodes=100  successes=20  SR=20.0%
+
+----------------------------------------------------------------------
+PAIRING-INTEGRITY GATE (frozen right-arm fingerprint, eps=1e-04)
+----------------------------------------------------------------------
+  common ep_idx across both protocols: 100
+  ✗ GATE FAILED — 17 mismatches (first 10):
+    ep_idx=3: frozen-arm fp (18, -98, -11, 0.16124683618545532) != (17, -98, -11, 0.16188371181488037)
+    ep_idx=18: frozen-arm fp (26, -90, -4, 0.16156505048274994) != (26, -90, -4, 0.16187670826911926)
+    ep_idx=19: frozen-arm fp (26, -100, 15, 0.2722967863082886) != (26, -100, 15, 0.27249136567115784)
+    ep_idx=20: frozen-arm fp (31, -69, -7, 0.1691053956747055) != (31, -69, -7, 0.16923053562641144)
+    ep_idx=30: frozen-arm fp (25, -73, -5, 0.09804312139749527) != (25, -73, -5, 0.09792446345090866)
+    ep_idx=34: frozen-arm fp (4, -70, -28, 0.27201002836227417) != (4, -70, -28, 0.27187544107437134)
+    ep_idx=51: frozen-arm fp (16, -98, -13, 0.24599377810955048) != (16, -98, -13, 0.2458530217409134)
+    ep_idx=52: frozen-arm fp (23, -80, -2, 0.1897127628326416) != (23, -80, -2, 0.18983396887779236)
+    ep_idx=57: frozen-arm fp (24, -89, 1, 0.14085322618484497) != (24, -89, 1, 0.1410239189863205)
+    ep_idx=62: frozen-arm fp (16, -79, -13, 0.11343886703252792) != (16, -79, -13, 0.1132277101278305)
+
+  Seed-effectiveness + pairing-reality diagnostic (n=100):
+    seed identical (pairwise):              100/100
+    frozen right-arm INT pos identical @t0: 95/100
+    frozen right-arm RPY identical @t0:     98/100
+    frozen right-arm INT+RPY identical:     94/100
+    scored left-arm identical @ t0:         16/100
+    → Interpretation: seed IS effective (100% seed match). The
+      frozen arm matches at integer/RPY resolution for the large
+      majority; the float-fingerprint gate fails only on ~1e-4
+      drift because trajectory[0] is already servo'd one step and
+      the scored (left) arm's differing first action perturbs the
+      shared sim's float state. Pairing is physically real but not
+      machine-verifiable from persisted replay → A14 §14.2 z fallback.
+
+  primary test = Z  (mechanical fallback — pairing gate failed, per A14 §14.2)
+
+======================================================================
+CONFIRMATORY CONTRAST — C_retrieval − A_ctrl_rat (identical-weights)
+  (two-sided; α per Amendment 2 T4-class = 0.010)
+======================================================================
+  SR: 20.0% vs 14.0%   Δ = +6.0 pp
+  Newcombe 95% CI for Δ: [-4.5, +16.4] pp
+  discordant cells: C_retrieval-only=9  A_ctrl_rat-only=3
+  two-prop z (PRIMARY, fallback): z=1.129 p=0.2587 (α=0.01) → n.s.
+
+----------------------------------------------------------------------
+  LOCKED prediction (PRE_ANALYSIS_LOCK.md §a): +6pp is below the
+  +20pp MDE (76% power) → predicted n.s. → 'not-significant →
+  DIAGNOSE' branch. This script does not set the verdict; it reports
+  the number next to the locked frame.
+======================================================================
