@@ -43,3 +43,32 @@ confirmatory claim.**
 The headroom-normalized ≈43% gap-closed uses a lock-time teacher-per-arm
 SR estimate ≈28%. If the chapter wants it exact, isaac can compute the
 per-arm teacher SR from a6e6c917 on request. Currently reported as ≈.
+
+## UPDATE 2026-07-29 — report revised (4 surgical edits, all landed)
+
+The report was sharpened per PI direction; re-read
+`docs/paper/l2_confirmatory_report.md` before drafting:
+
+1. **Two-level separation (§3a/§synthesis):** pre-empts the reviewer's
+   "similarity explains attenuation but not rescue" objection. Coverage
+   (3a) = between-task correlate of effect SIZE, n=2, consistent-with (no
+   causal ∝). Start-distance (3c) = within-task conversion gate; match
+   quality does NOT predict within-L2 success. Two levels, no contradiction.
+   Plus the D11 recovery-timing-null two-paper thread (front-loaded
+   correction; range set by how far the corrected trajectory travels).
+2. **§3b dose-dependent marginal (EXPLORATORY):** L0a distilled R1 hit the
+   teacher (−16.7≈−15.8); L2 only −4.8 vs −17.1 (~72% short) — even the
+   marginal didn't transfer fully; candidate = training dose (56 ep/511
+   rounds vs 992). "marginal transfer is cheap but not free."
+3. **Teacher per-arm SR PINNED:** left_reached 28/100 → **28.0%**;
+   gap-closed **42.9%** (was "≈"). Provenance
+   `workspace/l2_audit/TEACHER_PERARM_SR_PINNED.md`. Exploratory label
+   unchanged, only the "≈" removed.
+4. **Minimum-viable-competence law (§4b, paper-2 seed):** ONE Discussion
+   sentence, three faces (teacher/buffer/student-4c). Not a paper-1 claim.
+
+Verified fact underpinning "single/front-loaded correction" wording:
+C_retrieval retrieves ONCE per episode (init_L_EE anchor, round-0-only
+injection) — confirmed in code 2026-07-29, not per-round.
+
+The §4 may/may-not list was updated to match all four.
