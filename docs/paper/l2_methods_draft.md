@@ -1,14 +1,15 @@
 # L2 Methods — draft skeleton (v1.1)
 
 *Mechanical translation of the L2 pre-registration chain (l2_prereg.md +
-Amendments 1/1a/2, and — pending — isaac's Amendment 3). Same discipline
-as D11 Methods: every design choice traces to a pre-reg section or a
-numbered, dated, SHA-anchored amendment. This is the **skeleton**: the
-Methods that are a pure translation of the (already-frozen) plan are
+Amendments 1/1a/2/3, all frozen before any L2 eval number). Same
+discipline as D11 Methods: every design choice traces to a pre-reg
+section or a numbered, dated, SHA-anchored amendment. This is the
+**skeleton**: the Methods that are a pure translation of the plan are
 written now; Results/Discussion are left as placeholders pending isaac's
-five-protocol → (Stage-1: two-protocol) eval and its audit-log verdict.
-Per the session split, paper translates isaac's audit documents and does
-not self-interpret numbers.*
+Stage-1 two-protocol eval and its audit-log verdict. Per the session
+split, paper translates isaac's audit documents and does not
+self-interpret numbers — including numbers mentioned only in passing in
+an amendment's provenance block (those await the formal analysis package).*
 
 *Scope note: L2 reuses the entire D11 apparatus (teacher/memory pipeline,
 LoRA recipe, seed-paired design, McNemar/z machinery, `flags_only_a6`
@@ -21,12 +22,18 @@ Cross-references "D11 §3.x" point to the frozen v1.0 Methods.*
 
 ### 4.1 Task: dual-arm 6-DoF pose-reach (Amendment 1 §2)
 
-L2 is a **dual-arm 6-DoF pose-reach** (renamed from the working title
-"dual_push"; Amendment 1 §2). Both end-effectors are actuated toward
-per-arm pose targets — `left_ee_pose` / `right_ee_pose` command tracking
-under `end_effector_position_tracking` rewards; the goal cubes are
-pose-target visualizers, not pushable objects (l2_diagnosis.md Step 1).
-The paper wording is fixed as **"a second, harder task in the same
+L2 is a **dual-arm position-goal reaching task in a 6-DoF control space**
+(renamed from the working title "dual_push"; Amendment 1 §2). Both
+end-effectors are actuated toward per-arm goals — `left_ee_pose` /
+`right_ee_pose` command tracking under `end_effector_position_tracking`
+rewards; the goal cubes are target visualizers, not pushable objects
+(l2_diagnosis.md Step 1). **Naming discipline (Amendment 3 §4):** although
+the control space is 6-DoF and the state carries RPY, the trained output
+slot and the success gate are **position-only** (‖EE−target‖ < 0.05 m; no
+RPY term is scored). The paper must not let "6-DoF / pose" imply a
+rotational success dimension that is not measured — hence "position-goal
+reaching in a 6-DoF control space", not "6-DoF pose-reach". The paper
+wording is otherwise fixed as **"a second, harder task in the same
 primitive family"** — not "push", not "a different skill"; a genuine push
 (cube as a tracked, displaceable object) is L3 scope. This is the harder
 second task on which the D11 headline is tested for cross-task replication.
@@ -128,28 +135,54 @@ Paper claim locked a half-grade down: **"the identical-weights retrieval
 effect replicates on a second, harder task in the same primitive
 family"** — not "the full 2×2 replicates".
 
-### 4.5 Per-arm evaluation specification (Amendment 3 — PENDING isaac)
+### 4.5 Per-arm evaluation: single-arm inference matches single-arm training (Amendment 3)
 
-> **STUB — do not treat as authoritative.** The five-point per-arm eval
-> specification is L2 pre-registration content (master = isaac territory).
-> It will be filed by isaac as **L2 Amendment 3**; this section is the
-> mechanical translation slot, to be filled *from that filed document*
-> once it lands, per the session split (paper translates isaac's audit
-> docs, does not self-author pre-reg). Expected content to calibrate
-> against Amendment 3 when filed (recorded here so it is not lost, NOT as
-> the authority):
-> 1. non-scored arm frozen at its initial pose during eval;
-> 2. primary eval = left-scored only, ×2 protocols (A_ctrl_rat +
->    C_retrieval), n=100;
-> 3. eval seed base = **4600** (shared across the two protocols → paired
->    design, distinct from collect's 4500);
-> 4. success = scored arm ‖EE−target‖ < 0.05 m;
-> 5. task naming corrected to **position-goal reaching**.
->
-> On Amendment 3 landing: verify these five against the filed text, adjust
-> to match, cite `l2_amendment_3.md` + its SHA, and fold the seed-paired
-> design into the Analysis-rules subsection (below) the same way D11 §3.4
-> cites the 4500 base.
+*Mechanical translation of `l2_amendment_3.md` (decided 2026-07-22 before
+any L2 eval number existed; re-filed to master 2026-07-28). Amendment 1 §3
+defined the per-arm **training** target (scored arm only); Amendment 3
+completes the **eval** side to match, under the principle applied
+throughout the program: **the student is evaluated in the shape it was
+trained to emit.***
+
+The eval was initially wired to parse, step, and gate on **both** arms
+(`_active_arm_for_level("L2_dual_push") → None`), i.e. the joint
+definition that produced SR = 1/100 and motivated the per-arm re-score.
+Asking a single-arm-trained model to emit both arms measures
+*format-adaptation, not task competence* — an out-of-distribution probe.
+The per-arm eval resolves this:
+
+1. **Prompt** asks for the scored arm's slot only, matching the training
+   target in structure (position-only, no RPY line, no non-scored-arm
+   line).
+2. **Non-scored arm frozen at its initial pose** via the existing V4
+   `active_arm` hold-in-place mask.
+3. **Success gates on the scored arm only** (‖EE_scored − target_scored‖
+   < 0.05 m), reusing the L0a single-arm success branch.
+
+**Freezing the non-scored arm is a structural advantage, not a
+workaround (§2.1).** A left-scored L2 episode (left moves, right frozen)
+is *isomorphic to the L0a-Left layout*, making the L2↔L0a cross-task
+comparison cleaner — the same single-active-arm control structure on a
+harder task. **Disclosed delta (honest):** at training time the
+non-scored arm was in motion; at eval it is frozen. This is defensible
+for pose-reach *specifically* because the two arms drive to two
+**separate** goals with minimal inter-arm coupling, so freezing one does
+not change the physics the scored arm must solve; it would **not** be
+defensible on a contact-coupled cooperative task — which L2 is not (§4.1
+naming).
+
+**Scope: main eval = LEFT-scored only, 2 protocols × n=100, seed_base
+4600 shared** (paired McNemar design preserved). Left-only is a *scope
+decision, not a compute shortcut*: Amendment 1a already anchored the
+retrieval side to the left arm (`success_label_arm='left'`, retrieval
+query keyed on the initial left-EE state), so a right-scored C_retrieval
+would need a *different retrieval anchor* — a new degree of freedom and a
+new amendment, which L2 does not open. The left-scored contrast is a
+complete, valid test of the identical-weights retrieval question
+(Amendment 2). Right-scored eval, if ever run, is restricted to an
+**exploratory bare-arm re-check** (A_ctrl_rat only, no anchor change),
+after the main numbers and only in idle windows — explicitly not part of
+the confirmatory contrast.
 
 ### 4.6 Analysis rules (carried from D11 §3.6, per-arm generalisation)
 
@@ -162,7 +195,10 @@ two-sided). L2 generalisations, pre-specified in l2_analysis_adaptation.md
   reads the scored arm's `dist_red < thr` (already in collect.py
   `active_arm=None` branch); binary success-count machinery unchanged.
 - **Pairing gate**: seed-based init fingerprint now includes both arms
-  (richer `allclose`, still valid).
+  (richer `allclose`, still valid). L2 eval seed base = **4600** (shared
+  across both protocols → episode *k* starts from the same world config
+  in A_ctrl_rat and C_retrieval; paired design, Amendment 3 §3), distinct
+  from the collect base 4500.
 - **R1-bias probe (L2)** — pre-specified redefinition (§4.7).
 
 ### 4.7 R1-bias probe, L2 redefinition (l2_analysis_adaptation.md, locked pre-data)
@@ -195,6 +231,19 @@ GGUF-load verify gate and fixed by version rollback + a structural arch
 byte-patch — not by hand-transposing tensors, whose danger is a load that
 succeeds but silently mis-maps (Amendment 2 addendum 2026-07-21). Methods
 sentence for each is in l2_amendment_2.md.
+
+A fourth interception (Amendment 3 §7) closes a recurring family: the L2
+eval initially parsed both arms for a single-arm-trained model — the
+fourth train/eval output-format mismatch caught in the program, but the
+fourth caught *reactively* (crashing at episode 1). The permanent fix is
+a **format-contract assert** resident in the driver *before* any eval
+collect: verbatim training-target rows from the SFT JSONL are fed through
+the eval parser configured exactly as eval will configure it (control
+mode + variant + `scored_arm`), and every row must parse clean. A
+single-arm target fed to a both-arms parser fails this at dry-run — the
+whole bug family dies before the simulator boots. This makes the
+train/eval-contract interception rate 4/4 and, from here, prospective
+rather than reactive.
 
 ---
 
@@ -233,4 +282,11 @@ teacher fingerprint; (iv) conditional-expansion criterion outcome
 | L2-2 | 07-15 | Scope to answerable question (T4-class only); Stage-1 A_ctrl_rat; T1 not run (MDE design choice) | l2_amendment_2.md |
 | L2-2 add | 07-16 | Per-arm SFT pool selected by label not directory (verify-layer 2/2) | l2_amendment_2.md |
 | L2-2 add | 07-21 | GGUF conversion version-drift caught at load gate; rollback + arch byte-patch (verify-layer 3/3) | l2_amendment_2.md |
-| **L2-3** | **pending** | **Per-arm eval spec (5-point) — to be filed by isaac; §4.5 translates on landing** | `l2_amendment_3.md` (pending) |
+| L2-3 | 07-22 (decided) / 07-28 (re-filed to master) | Per-arm EVAL: single-arm inference matches single-arm training; non-scored arm frozen; left-scored ×2 protocols n=100, seed 4600; position-only success; format-contract gate (verify-layer 4/4) | l2_amendment_3.md (`5447112`; orig `6cf31b7`) |
+
+*L2-3 note: decided 2026-07-22 before any L2 eval number existed
+(Step-8 crashed at episode 1 on a missing `POSITION_RPY_2DOF` template);
+first committed as a stray `6cf31b7` on `paper-v1.1-wip`, re-filed to
+master as `5447112` in the 2026-07-28 worktree untangle. Pre-result
+timestamp integrity rests on the 2026-07-22 conversation record + the
+`6cf31b7` commit time, both preceding the eval restart.*
