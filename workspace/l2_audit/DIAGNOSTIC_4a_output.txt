@@ -1,0 +1,26 @@
+========================================================================
+Diagnostic 4a — retrieval similarity distributions (L0a vs L2 eval)
+  metric = retriever α-weighted score (img_w=0.4), identical config
+========================================================================
+
+── L0a (D11, buffer=547)  (n=100 episodes) ──
+  top-1 similarity: median=0.900  mean=0.902  IQR=[0.890,0.920]  min=0.830 max=0.940
+  top-3 mean sim  : median=0.883  mean=0.883  IQR=[0.873,0.900]  min=0.817 max=0.923
+
+── L2  (buffer=100/~28)  (n=100 episodes) ──
+  top-1 similarity: median=0.870  mean=0.865  IQR=[0.850,0.880]  min=0.730 max=0.950
+  top-3 mean sim  : median=0.827  mean=0.827  IQR=[0.813,0.847]  min=0.727 max=0.927
+
+------------------------------------------------------------------------
+SIDE-BY-SIDE (L0a − L2):
+  top-1  median: 0.900 vs 0.870  Δ=+0.030
+  top-3  median: 0.883 vs 0.827  Δ=+0.057
+  top-1  mean:   0.902 vs 0.865  Δ=+0.037
+
+  top-1 Mann-Whitney: U=8435 z=8.393 p=4.737e-17
+  top-3 Mann-Whitney: U=9369 z=10.675 p=1.33e-26
+
+------------------------------------------------------------------------
+top-1 similarity histogram (bin=0.05):
+  L0a (D11,  0.50:  0 0.55:  0 0.60:  0 0.65:  0 0.70:  0 0.75:  0 0.80:  4 0.85: 48 0.90: 48 0.95:  0 1.00:  0 
+  L2  (buffe 0.50:  0 0.55:  0 0.60:  0 0.65:  0 0.70:  1 0.75:  1 0.80: 29 0.85: 61 0.90:  8 0.95:  0 1.00:  0 
