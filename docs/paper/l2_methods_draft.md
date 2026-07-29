@@ -394,12 +394,17 @@ bound to the report's §4 list. Connects three ways:*
   (two-boundary anatomy: contact-precision ceiling + primitive-expressivity
   gap), independent of the L2 numbers.
 
-*Pending isaac's revised report (two items flagged for sync): (i) the
-two-levels separation (coverage=between-task size correlate vs
-start-distance=within-task conversion gate) may gain a sharper statement;
-(ii) the "marginal transfer is dose-dependent" sentence may be refined.
-Both are already reflected above at the current report's wording; re-sync
-on the revision.*
+*Synced to the FINAL report `l2_confirmatory_report.md` (isaac `fe17349`,
+"report surgery"; confirmed final by handoff
+`2026-07-28_isaac-L2-confirmatory-ready.md` UPDATE 2026-07-29). All four
+surgical edits are reflected above: (1) two-level separation
+(coverage=between-task SIZE correlate, n=2, no causal ∝ / start-distance=
+within-task INCIDENCE gate) §5.3(a),(c) + synthesis; (2) dose-dependent
+marginal −4.8 vs −17.1 (~72% short), exploratory §5.3(b); (3) pinned
+teacher per-arm 28.0% → 42.9% gap-closed, "≈" removed, exploratory label
+kept §5.4; (4) minimum-viable-competence law as ONE Discussion sentence,
+front-loaded framing §6. Wording taken from the report's §4 may/may-not
+list.*
 
 ---
 
