@@ -245,6 +245,16 @@ correction's range). **Frame as paper-2 foreshadowing — the unifying
 observation, not a paper-1 result.** Do not over-develop; one sentence
 noting the three instances converge on a minimum-viable-competence law.
 
+**Why one sentence, not a section (structural, not modesty):** the three
+instances sit at MIXED evidence tiers — a literature citation + qualitative
+event (teacher, 1% SR), a qualitative buffer observation, and an n=9
+exploratory diagnostic (4c). A standalone "law" section would be the single
+place in the paper where the evidence discipline (pre-registered, MDE-gated,
+exploratory-labelled everywhere else) is loosened — the reviewer's easiest
+target. Its home is the **paper-2 pre-registration**, where it converts from
+a post-hoc thread into an a-priori hypothesis with matched-tier evidence
+designed in. paper session: keep it a one-liner; do not build it out.
+
 ## 5. Reproducibility pointers
 - Confirmatory: `scripts/analysis/l2_confirmatory.py` →
   `workspace/l2_audit/l2_confirmatory_output.txt`.
