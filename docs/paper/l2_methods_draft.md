@@ -247,29 +247,159 @@ rather than reactive.
 
 ---
 
-## 5. Results (L2) — PLACEHOLDER
+## 5. Results (L2)
 
-*Pending isaac Stage-1 eval (A_ctrl_rat + C_retrieval, n=100) and its
-audit-log verdict. To be translated mechanically from isaac's analysis
-package per the session split — paper does not self-interpret the numbers.
-Fill: (i) per-arm baseline SR (→ pins the MDE from §4.4's formula);
-(ii) C_retrieval − A_ctrl_rat contrast (McNemar/z, direction + significance
-vs the pinned α=0.010); (iii) R1 (ΔX_L, ΔX_R) per-arm signature vs the L2
-teacher fingerprint; (iv) conditional-expansion criterion outcome
-(Amendment 2) — headline-secured vs diagnosis branch.*
+*Mechanical translation of `l2_confirmatory_report.md` (isaac, verdict
+authority bound to `PRE_ANALYSIS_LOCK.md`, committed `65d70c1` before any
+p-value). Every claim below is on that report's §4 "may say" list; the
+verdict is translated, not re-interpreted. Confirmatory analysis:
+`scripts/analysis/l2_confirmatory.py`; run_ids A_ctrl_rat=`8384a740`,
+C_retrieval=`2154e57e`, L2-teacher=`a6e6c917`.*
 
-## 6. Discussion (L2 additions) — PLACEHOLDER
+### 5.1 Confirmatory contrast — the identical-weights retrieval effect
 
-*Slots already drafted elsewhere, to fold in once Results land:*
-- *Cross-task replication (or not) of the marginal/conditional split —
-  connects to D11 §5.1.*
-- *Success-floor boundary condition (v1.1_notes.md): the marginal/
-  conditional criterion presupposes the teacher clears a task-competence
-  floor; L2 at 1% joint SR sits near it. "You cannot externalise a
-  competence the teacher does not have."*
-- *Contact-rich extension boundary is already written as §5.3
+Per-arm eval (Amendment 3: left-scored, n=100 paired, seed_base 4600):
+
+| protocol | successes / n | SR |
+|---|---|---|
+| A_ctrl_rat (bare) | 14 / 100 | 14% |
+| C_retrieval (same weights + frozen re-tagged buffer) | 20 / 100 | 20% |
+
+The identical-weights contrast is **C_retrieval − A_ctrl_rat = +6.0 pp**
+(Newcombe 95% CI **[−4.5, +16.4] pp**). Primary test: two-proportion
+z = 1.129, **p = 0.259, n.s.** at the pre-registered α=0.010 (T4-class).
+The paired McNemar was the intended primary; the pairing-integrity gate
+fell back to z per Amendment 14 §14.2 (§5.2), and McNemar's discordant
+cells (9 vs 3) give the same n.s. conclusion.
+
+**Locked verdict (verbatim from the pre-analysis lock):** *the point
+estimate is below the pre-registered MDE (+20 pp for 76% power, Amendment
+2); the direction agrees with L0a; the confidence interval simultaneously
+admits zero and a moderate effect.* Per Amendment 2's pinned rule, a
+sub-MDE point estimate triggers the **diagnosis branch** (§5.3), not more
+arms — and the +6 pp result was predicted n.s. in advance and is. We do
+**not** call +6 pp a positive replication of the effect *size*; it is n.s.
+and sub-MDE. What replicates is examined mechanistically below.
+
+### 5.2 Pairing integrity (why z, not McNemar)
+
+The environment seed was identical across the two protocols on 100/100
+episodes, and the frozen right arm (Amendment 3 hold-in-place) matched at
+integer + RPY resolution on 94/100. The float fingerprint gate (ε=1e-4)
+failed on 17 episodes at ~1e-4 drift because `trajectory[0]` is already
+one servo-step in and the scored (left) arm's differing first action
+perturbs the shared-sim float state. Pairing is *physically real but not
+machine-verifiable from the persisted replay*, so the mechanical rule
+(Amendment 14 §14.2) selected the two-proportion z — the same fallback
+D11 disclosed, and n.s. either way. No discretion was exercised.
+
+### 5.3 Diagnostic appendix — why the effect is small, not absent
+
+Three pre-registered diagnostics, each prediction committed before its
+result; all three findings are **exploratory** and none is a sole-cause
+claim (report §3, §4).
+
+**(a) Retrieval quality — a cross-task correlate (n=2 tasks, not a
+within-task predictor).** L2 retrieves systematically less-similar
+neighbours than L0a under an identical retriever (top-1 median 0.900 →
+0.870, MW p=4.7e-17; top-3 0.883 → 0.827, p=1.3e-26), consistent with a
+5.5× thinner buffer (547 vs 100 recaps, ~28 usable left-aligned). Stated
+at the level it holds: *the L2 attenuation is consistent with reduced
+buffer coverage* — a correlation across two tasks, not a causal "∝", and
+explicitly **not** the claim that match quality predicts which L2 episodes
+succeed (see (c), where it does not).
+
+**(b) Retrieval restores the teacher's round-1 bias.** Round-1 left-arm
+lateral bias ΔX_L (against the L2-teacher's *own* R1, not L0a's
+transplant): teacher −17.1, A_ctrl_rat (distilled) **−4.8**, C_retrieval
+**−17.2**. The pre-registered σ test did not fire (σ 15.5 vs 17.3,
+F=1.25 — reported plainly); the informative signal is the **mean**:
+distillation collapses to a magnitude-deficient prior (~28% of teacher
+displacement), and the retrieval preamble on identical weights restores
+the teacher's magnitude almost exactly (−4.8 → −17.2 ≈ −17.1). This is the
+L2 analogue of the L0a static-prior collapse (D11 §4.3), on the mean axis
+(mean finding post-hoc/exploratory; σ test was the registered one).
+
+*Exploratory cross-task note — even the marginal transfer appears
+dose-dependent.* On L0a the distilled arm's R1 sat on the teacher's
+(−16.7 ≈ −15.8); on L2 the distilled prior reaches only −4.8 against
+−17.1 (~72% short). The ready candidate is training dose (L2's per-arm
+distillation saw 56 episodes / 511 rounds vs L0a's 992), suggesting
+**marginal transfer is cheap but not free** — below some data floor even
+the static prior is under-learned. Labelled exploratory (n=2 tasks, a
+single before/after point, no dose-response curve).
+
+**(c) Rescue is gated by start distance, not memory match (surprise).**
+The +6 pp = 9 rescues (C✓A✗) − 3 regressions (A✓C✗). Rescues share a
+sharp init-pose signature: rescue init `dist_red` mean 13.9 cm vs
+both-fail 21.6 cm (MW z=−3.88, p=1e-4) — retrieval rescues almost only
+episodes that start close. Rescue retrieval-similarity is *not* higher
+(0.847 vs 0.868, p=0.03), so start distance, not match quality, is the
+decisive within-L2 variable.
+
+**Synthesis (licensed for the combined picture).** The identical-weights
+retrieval effect replicates on L2 in **mechanism** (the R1 correction, (b))
+and in **direction** (+6 pp), but its conversion to end-task success is
+**competence-gated**: the retrieved correction is injected **once per
+episode** (anchored on `init_L_EE`, round-0 only — verified literal, not
+metaphor), biasing the initial direction with nothing re-aiming it
+mid-trajectory, so it converts only where the start is already within
+reach of the 0.05 m gate (c). Far-start episodes fire the correction yet
+miss the goal. The effect is therefore **small (+6 pp, n.s.), not
+absent.** Two levels, kept separate to pre-empt the "similarity explains
+attenuation but not rescue" objection: *between tasks* (a, n=2) thinner
+buffer co-occurs with a smaller effect (its **size**); *within L2* (c)
+conversion is gated by start distance (its **incidence**).
+
+### 5.4 Headroom-normalized cross-task framing (post-hoc, exploratory)
+
+Raw pp understates the effect across tasks of different achievable
+headroom. On a gap-to-teacher basis, L0a retrieval closed ≈100% of the
+parity gap; **L2 retrieval closes 42.9%** of the per-arm gap (A_ctrl_rat
+14% → L2 per-arm teacher **28.0%**, pinned from `per_arm_rescore.json`;
+headroom 14 pp, +6 pp recovered = 6/14). This framing is **post-hoc /
+exploratory** (introduced after the raw SR was known); pinning the 28.0%
+denominator removes the "≈", not the exploratory label, and the raw
++6 pp n.s. is always reported alongside.
+
+## 6. Discussion (L2 additions)
+
+*To fold into §5 (Discussion) alongside the D11 material; every claim
+bound to the report's §4 list. Connects three ways:*
+
+- **Cross-task replication of the marginal/conditional split (D11 §5.1).**
+  L2 corroborates the *mechanism* — distillation transfers a
+  magnitude-deficient marginal prior (R1 −4.8), retrieval on identical
+  weights restores the teacher's conditional correction (−17.2 ≈ −17.1) —
+  while the end-task effect stays sub-MDE (+6 pp, n.s.). The substrate
+  story replicates in mechanism and direction; the effect *size* does not
+  reach significance on this harder, thinner-buffer task, and we say so.
+- **Marginal transfer is dose-dependent (exploratory extension of §5.1).**
+  L2's ~72%-short marginal (§5.3b) adds a dimension to the marginal/
+  conditional frame: even the static prior has a data floor below which it
+  is under-learned — cheap but not free.
+- **The memory success-floor / minimum-viable-competence law
+  (v1.1_notes.md).** L2 at 1% joint SR sits near the floor: memory
+  conditions the correction but does not manufacture the multi-step
+  competence to execute it from far configurations (§5.3c). *You cannot
+  externalise a competence the teacher does not have* — here sharpened to
+  *retrieval sets the initial direction; whether that cashes out depends on
+  how far the corrected trajectory still has to travel.*
+- **Two-paper thread (one sentence).** This dovetails with D11's
+  recovery-timing null: both datasets say retrieval's value is
+  **front-loaded** — it sets the initial direction (L2's start-distance
+  gate is its range limit; D11's monotonic-from-R1 convergence is its
+  timing signature).
+- **Contact-rich extension boundary** is already written as §5.3
   (two-boundary anatomy: contact-precision ceiling + primitive-expressivity
-  gap), independent of the L2 numbers.*
+  gap), independent of the L2 numbers.
+
+*Pending isaac's revised report (two items flagged for sync): (i) the
+two-levels separation (coverage=between-task size correlate vs
+start-distance=within-task conversion gate) may gain a sharper statement;
+(ii) the "marginal transfer is dose-dependent" sentence may be refined.
+Both are already reflected above at the current report's wording; re-sync
+on the revision.*
 
 ---
 
