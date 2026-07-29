@@ -390,9 +390,13 @@ bound to the report's §4 list. Connects three ways:*
   **front-loaded** — it sets the initial direction (L2's start-distance
   gate is its range limit; D11's monotonic-from-R1 convergence is its
   timing signature).
-- **Contact-rich extension boundary** is already written as §5.3
-  (two-boundary anatomy: contact-precision ceiling + primitive-expressivity
-  gap), independent of the L2 numbers.
+- **Contact-rich extension boundary** is already written as the D11
+  Discussion's contact-rich subsection (`d11_discussion_draft.md` §5.3,
+  two-boundary anatomy: contact-precision ceiling + primitive-expressivity
+  gap), independent of the L2 numbers. [SECTION-NUMBER NOTE: this L2
+  chapter's own §5.3 is its Results diagnostic appendix; the two collide
+  under the working draft numbering — resolve at integration when the L2
+  chapter's final section number is fixed. See triage.]
 
 *Synced to the FINAL report `l2_confirmatory_report.md` (isaac `fe17349`,
 "report surgery"; confirmed final by handoff
