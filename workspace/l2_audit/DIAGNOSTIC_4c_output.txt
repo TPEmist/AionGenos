@@ -1,0 +1,36 @@
+========================================================================
+Diagnostic 4c — rescue init-pose profile
+========================================================================
+cells: rescue=9 regress=3 both_fail=77 both_succ=11
+
+── RESCUE episodes (C✓ A✗), init-pose + R1 + retrieval sim ──
+  ep13: init_L=[9, 23, -31] dist_red=15.7cm  R1ΔX A=-11 C=16  top1_sim=None
+  ep24: init_L=[17, 16, -20] dist_red=17.8cm  R1ΔX A=3 C=13  top1_sim=None
+  ep30: init_L=[25, 12, -21] dist_red=11.8cm  R1ΔX A=8 C=-10  top1_sim=None
+  ep42: init_L=[28, 20, -9] dist_red=12.1cm  R1ΔX A=5 C=-4  top1_sim=None
+  ep57: init_L=[25, 27, -14] dist_red=8.0cm  R1ΔX A=8 C=-3  top1_sim=None
+  ep60: init_L=[32, 27, -7] dist_red=14.7cm  R1ΔX A=2 C=-7  top1_sim=None
+  ep78: init_L=[8, 24, -24] dist_red=14.2cm  R1ΔX A=-28 C=-28  top1_sim=None
+  ep92: init_L=[1, 11, -33] dist_red=20.4cm  R1ΔX A=-15 C=-26  top1_sim=None
+  ep93: init_L=[31, 28, -6] dist_red=10.4cm  R1ΔX A=10 C=-16  top1_sim=None
+
+── init dist_red_cm 分佈:rescue vs both_fail(branch 1 檢定) ──
+  rescue    : n=9 mean=13.9 median=14.2 σ=3.6 range=[8.0,20.4]
+  both_fail : n=77 mean=21.6 median=21.8 σ=4.6 range=[11.4,32.5]
+
+── 檢索 top-1 sim:rescue vs both_fail(branch 3 檢定) ──
+  rescue    : n=0
+  both_fail : n=0
+
+── REGRESSION episodes (A✓ C✗) ──
+  ep 9: init_L=[33, 28, -8] dist_red=15.7cm  top1_sim=None
+  ep50: init_L=[17, 27, -20] dist_red=18.4cm  top1_sim=None
+  ep74: init_L=[21, 36, -16] dist_red=9.8cm  top1_sim=None
+
+  dist_red rescue-vs-bothfail MW: z=-3.88 p=0.000105
+
+
+── [branch-3 修正] 檢索 top-1 sim:rescue vs both_fail ──
+  rescue    : n=9 mean=0.847 median=0.850 range=[0.810,0.890]
+  both_fail : n=77 mean=0.868 median=0.870 range=[0.780,0.950]
+  MW: z=-2.16 p=0.0309
