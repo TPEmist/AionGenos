@@ -371,5 +371,7 @@ the §5.1 thesis sentence. The mechanism slogan (*Distillation Moves the
 Average, Retrieval Supplies the Situation*) demotes to abstract
 sentence 2 and the §4.3 heading — not wasted. Risk of an
 imperative title: reading as single-task overclaim; the "Pre-Registered"
-subtitle is the armour, and the L2/L3 cross-task replication (in
-progress) converts the recipe from observation to regularity.
+subtitle is the armour, and the L2 cross-task result (§5.3/L2 chapter:
+direction agrees, n.s./sub-MDE, mechanism replicates) begins converting
+the recipe from single-task observation toward regularity — a second data
+point, honestly sub-significance, not yet a law.

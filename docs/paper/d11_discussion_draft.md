@@ -41,7 +41,8 @@ weights; conditional knowledge — the correction that depends on the
 situation — belongs in context, because weights approximate it with a
 constant and context conditions on it for free.** This is the criterion
 D11 was ultimately built to test, and it is the transferable claim we
-carry out of a single-task, single-recipe study: not "retrieval beats
+carry out of a single-recipe study across two tasks (the L0a reach and
+the harder L2 pose-reach, §5.3/L2 chapter): not "retrieval beats
 baking-in" as a law, but a decomposition of *which* component of an
 experience each substrate can hold.
 
