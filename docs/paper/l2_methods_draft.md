@@ -131,9 +131,13 @@ headline secured, then optionally add A_action_only (Stage 2) for the L2
 reversed → that is itself a finding (the effect does not cross tasks), and
 the response is DIAGNOSIS, not more arms.
 
-Paper claim locked a half-grade down: **"the identical-weights retrieval
-effect replicates on a second, harder task in the same primitive
-family"** — not "the full 2×2 replicates".
+Paper claim scoped a half-grade down, pre-registered as a **conditional**:
+Amendment 2 pre-specified that *a significant, same-direction contrast
+would constitute cross-task replication of the identical-weights retrieval
+effect* (not of the full 2×2). The observed contrast (§5.1) did **not**
+meet this criterion — direction agrees, significance does not — routing to
+Amendment 2's diagnostic branch (§5.3). What the paper claims is therefore
+the mechanism-and-direction reading of §5.3, not effect-size replication.
 
 ### 4.5 Per-arm evaluation: single-arm inference matches single-arm training (Amendment 3)
 
@@ -323,11 +327,13 @@ L2 analogue of the L0a static-prior collapse (D11 §4.3), on the mean axis
 *Exploratory cross-task note — even the marginal transfer appears
 dose-dependent.* On L0a the distilled arm's R1 sat on the teacher's
 (−16.7 ≈ −15.8); on L2 the distilled prior reaches only −4.8 against
-−17.1 (~72% short). The ready candidate is training dose (L2's per-arm
+−17.1 (~72% short). Training dose is one candidate (L2's per-arm
 distillation saw 56 episodes / 511 rounds vs L0a's 992), suggesting
 **marginal transfer is cheap but not free** — below some data floor even
-the static prior is under-learned. Labelled exploratory (n=2 tasks, a
-single before/after point, no dose-response curve).
+the static prior is under-learned; but task difficulty and buffer
+composition are confounded with dose at n=2, so no single cause is
+isolable. Labelled exploratory (n=2 tasks, a single before/after point,
+no dose-response curve).
 
 **(c) Rescue is gated by start distance, not memory match (surprise).**
 The +6 pp = 9 rescues (C✓A✗) − 3 regressions (A✓C✗). Rescues share a
@@ -370,10 +376,11 @@ bound to the report's §4 list. Connects three ways:*
 - **Cross-task replication of the marginal/conditional split (D11 §5.1).**
   L2 corroborates the *mechanism* — distillation transfers a
   magnitude-deficient marginal prior (R1 −4.8), retrieval on identical
-  weights restores the teacher's conditional correction (−17.2 ≈ −17.1) —
-  while the end-task effect stays sub-MDE (+6 pp, n.s.). The substrate
-  story replicates in mechanism and direction; the effect *size* does not
-  reach significance on this harder, thinner-buffer task, and we say so.
+  weights restores the teacher's conditional correction (−17.2 ≈ −17.1;
+  post-hoc, as the registered σ test was null, §5.3b) — while the end-task
+  effect stays sub-MDE (+6 pp, n.s.). The substrate story replicates in
+  mechanism and direction; the effect *size* does not reach significance
+  on this harder, thinner-buffer task, and we say so.
 - **Marginal transfer is dose-dependent (exploratory extension of §5.1).**
   L2's ~72%-short marginal (§5.3b) adds a dimension to the marginal/
   conditional frame: even the static prior has a data floor below which it
@@ -384,9 +391,11 @@ bound to the report's §4 list. Connects three ways:*
   competence to execute it from far configurations (§5.3c). *You cannot
   externalise a competence the teacher does not have* — here sharpened to
   *retrieval sets the initial direction; whether that cashes out depends on
-  how far the corrected trajectory still has to travel.*
-- **Two-paper thread (one sentence).** This dovetails with D11's
-  recovery-timing null: both datasets say retrieval's value is
+  how far the corrected trajectory still has to travel.* (Exploratory;
+  stated as a paper-2 foreshadowing hypothesis — the unifying observation
+  across the teacher/buffer/student faces, not a paper-1 result.)
+- **Two-paper thread (one sentence, exploratory).** This dovetails with
+  D11's recovery-timing null: both datasets suggest retrieval's value is
   **front-loaded** — it sets the initial direction (L2's start-distance
   gate is its range limit; D11's monotonic-from-R1 convergence is its
   timing signature).

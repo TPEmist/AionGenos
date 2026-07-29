@@ -27,11 +27,19 @@ probe localises the mechanism: behavioural distillation transfers the
 *marginal* correction (a static prior every arm adopts) but not the
 *conditional*, situation-specific correction that prompt-retrieved
 memory supplies. The recipe that follows: distil the competence,
-externalise the memory.
+externalise the memory. On a second, harder task in the same family, the
+retrieval advantage points the same direction but falls short of
+significance (+6 pp, 95% CI [−4.5, +16.4]); exploratory diagnostics tie
+the attenuation to memory coverage and a distance-gated conversion
+threshold, suggesting the effect scales with the amount of retrievable
+success experience.
 
-*(~200 words. Sentence 2 of a shorter version can carry the mechanism
-slogan "distillation moves the average, retrieval supplies the
-situation" if length permits.)*
+*(~200 words for the L0a core; the L2 sentence adds ~40. The L2 clause
+stays inside the confirmatory report's §4 "may say" list: direction-agrees
++ n.s./sub-MDE + exploratory diagnostics, no bare "replicates"/"confirms".
+Sentence 2 of a shorter version can carry the mechanism slogan
+"distillation moves the average, retrieval supplies the situation" if
+length permits.)*
 
 ---
 
