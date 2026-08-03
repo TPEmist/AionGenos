@@ -1,0 +1,466 @@
+% Converted from l2_methods_draft.md — mechanical markdown->LaTeX (format only).
+% Source draft H1 title: L2 Methods — draft skeleton (v1.1)
+% NOTE: per the conversion brief, the WHOLE l2 draft is converted here as one
+% coherent .tex. This file therefore contains §4 (L2 Methods), §5 (L2 Results)
+% and §6 (L2 Discussion additions) plus the L2 amendment-chain appendix. At
+% integration these §5/§6 blocks feed the results_l2 and discussion inputs;
+% they are kept intact here (not duplicated into separate files).
+
+\tmlrnote{Mechanical translation of the L2 pre-registration chain (l2\_prereg.md +
+Amendments 1/1a/2/3, all frozen before any L2 eval number). Same
+discipline as D11 Methods: every design choice traces to a pre-reg
+section or a numbered, dated, SHA-anchored amendment. This is the
+\textbf{skeleton}: the Methods that are a pure translation of the plan are
+written now; Results/Discussion are left as placeholders pending isaac's
+Stage-1 two-protocol eval and its audit-log verdict. Per the session
+split, paper translates isaac's audit documents and does not
+self-interpret numbers --- including numbers mentioned only in passing in
+an amendment's provenance block (those await the formal analysis package).}
+
+\tmlrnote{Scope note: L2 reuses the entire D11 apparatus (teacher/memory pipeline,
+LoRA recipe, seed-paired design, McNemar/z machinery, \texttt{flags\_only\_a6}
+filter) unchanged. \S\S below pin only what is NEW or task-specific for L2.
+Cross-references ``D11 \S3.x'' point to the frozen v1.0 Methods.}
+
+\section*{4. Methods (L2 extension)}
+
+\subsection*{4.1 Task: dual-arm 6-DoF pose-reach (Amendment 1 \S2)}
+
+L2 is a \textbf{dual-arm position-goal reaching task in a 6-DoF control space}
+(renamed from the working title ``dual\_push''; Amendment 1 \S2). Both
+end-effectors are actuated toward per-arm goals --- \texttt{left\_ee\_pose} /
+\texttt{right\_ee\_pose} command tracking under \texttt{end\_effector\_position\_tracking}
+rewards; the goal cubes are target visualizers, not pushable objects
+(l2\_diagnosis.md Step 1). \textbf{Naming discipline (Amendment 3 \S4):} although
+the control space is 6-DoF and the state carries RPY, the trained output
+slot and the success gate are \textbf{position-only} ($\|$EE$-$target$\|$ $<$ 0.05 m; no
+RPY term is scored). The paper must not let ``6-DoF / pose'' imply a
+rotational success dimension that is not measured --- hence ``position-goal
+reaching in a 6-DoF control space'', not ``6-DoF pose-reach''. The paper
+wording is otherwise fixed as \textbf{``a second, harder task in the same
+primitive family''} --- not ``push'', not ``a different skill''; a genuine push
+(cube as a tracked, displaceable object) is L3 scope. This is the harder
+second task on which the D11 headline is tested for cross-task replication.
+
+\subsection*{4.2 Per-arm scoring (Amendment 1 \S1) --- disclosed post-hoc}
+
+Joint success (both arms within tolerance simultaneously at episode end)
+was \textbf{1/100} on the L2 collect; per-arm success was \textbf{28/100 left,
+28/100 right}. The joint metric compounds two $\approx$28\% events down to $\approx$1\%,
+so the primary L2 metric is \textbf{per-arm} success. Promotion of per-arm
+scoring to primary is stated plainly as a \textbf{post-hoc} change (Amendment
+1 \S1, same immunisation standard as D11 Amendment 14): its motivation is
+a \emph{structural} discovery about the success definition, not selection on a
+protocol result --- no L2 arm was trained or evaluated at filing time. The
+joint-success SR is still reported as the originally-registered metric;
+per-arm is \emph{added, not substituted}.
+
+\begin{itemize}
+\item \textbf{A per-arm episode is desirable for arm X} iff arm X's end-effector
+  reached its pose goal (best-in-episode $\|$EE$-$target$\|$ $<$ 0.05 m, the
+  registered threshold) $\rightarrow$ $\approx$28 desirable-arm instances per arm.
+\item \textbf{SFT target} = the progress-rounds of the desirable arm, canonical
+  action lines emitted \textbf{single-arm} (only the scored arm's target line +
+  STOP), so the SFT target matches what a single-arm-scored student should
+  emit; the non-scored arm's outcome is recorded as a flag
+  (\texttt{other\_arm\_reached}), not folded into the target.
+\item \textbf{KTO pairing} is per-arm-instance: desirable = the scored arm's
+  progress-rounds in arm-reached episodes, undesirable = its rounds in
+  arm-failed episodes --- mirroring D11's desirable/undesirable split, one
+  arm at a time. Both arms contribute instances (left-scored and
+  right-scored episodes both enter the pool).
+\end{itemize}
+
+\subsection*{4.3 Buffer re-tag: arm-aligned success-floor (Amendment 1a)}
+
+The 100 L2 recaps were tagged \texttt{is\_success} by JOINT outcome at collect
+time (1 True / 99 False). Full-population re-score: 46/100 episodes have
+$\ge$1 arm reaching goal, of which \textbf{45 carry \texttt{is\_success=False} despite
+holding a goal-reaching arm trajectory} --- so under per-arm scoring the
+buffer's labels are wrong for $\approx$45\% of episodes, and the naive fix
+(\texttt{is\_success = left OR right}) reintroduces cross-arm contamination (a
+``right-reached, left-failed'' episode whose failure lesson is about the
+LEFT arm would be served as a success to a LEFT-arm student). Fix, two
+minimal layers:
+
+\begin{enumerate}
+\item \textbf{Data layer} --- each recap gains \texttt{left\_reached} / \texttt{right\_reached}
+   bool fields from replay GT (re-score in
+   \texttt{workspace/l2\_audit/per\_arm\_rescore.json}); joint \texttt{is\_success} kept for
+   reference. Retrieval \emph{similarity is untouched} (image + full-state
+   anchor as before).
+\item \textbf{Retriever logic} --- the success-floor FILTER reads the label
+   corresponding to the arm the student is currently scored on
+   (\texttt{left\_reached} when the canonical action line is the left arm's, else
+   \texttt{right\_reached}), a lookup of an existing per-round variable, not new
+   retrieval logic.
+\end{enumerate}
+
+Disclosed residual (one-line paper limitation): \emph{lesson text remains
+episode-level natural language and may reference either arm; only the
+success-floor label is arm-aligned, not the lesson prose.} Order of
+operations was locked (Amendment 1a): re-tag $\rightarrow$ 3--5-line retriever change $\rightarrow$
+re-pin buffer SHA $\rightarrow$ \textbf{then} C\_retrieval-L2 unlocked. Pins recorded:
+pre-retag tree-hash \texttt{83337879\ldots}, post-retag \texttt{a79581cd\ldots}, 100/100 recaps
+dual-labelled. The teacher's joint-labelled \emph{growing} buffer vs eval's
+re-tagged \emph{frozen} buffer asymmetry is disclosed in
+l2\_memory\_world\_asymmetry.md.
+
+\subsection*{4.4 Scope: L2 tests the answerable question (Amendment 2)}
+
+L2's desirable pool is 56 per-arm episode-instances (vs L0a's 992). The
+two D11 headlines have opposite detectability at this n; L2 therefore
+tests \textbf{one} question, not a symmetric 2$\times$2 (Amendment 2):
+
+\begin{itemize}
+\item \textbf{T4-class (identical-weights retrieval, C\_retrieval $-$ A\_ctrl\_rat)} ---
+  D11's strongest result (+34 pp, z=5.15). At L2 baseline $\approx$15\%, power at
+  n=100, $\alpha$=0.010 is \textbf{76\% (+20 pp) / 99\% (+30 pp) / 100\% (+34 pp)}.
+  Detectable --- this is the question L2 can answer.
+\item \textbf{T1-class (bake-in)} --- L0a effect +1 pp; L2 MDE at $\alpha$=0.020, n=100 is
+  \textbf{12--13 pp}. A $\approx$1 pp effect on a 12 pp-MDE instrument with 1/17 the
+  training data is a guaranteed uninformative null. \textbf{Not run on L2} ---
+  stated as an MDE-driven \emph{design choice} (the \textcircled{1} lesson used
+  prospectively to decide what not to run), not an omission.
+\end{itemize}
+
+\textbf{Stage 1} (the window's scope): train ONE adapter, \textbf{A\_ctrl\_rat}, on
+all 56 desirable episode-instances. Training adequacy (distinct from eval
+power --- not conflated): the 56 desirable episode-instances expand to
+\textbf{511 desirable / 1119 undesirable per-arm ROUNDS} (KTO trains on
+rounds; SFT = 511 behavior-cloning rounds, KTO = 511 + 1119). Two eval
+protocols: A\_ctrl\_rat bare + C\_retrieval (A\_ctrl\_rat's weights + frozen
+re-tagged buffer, \texttt{success\_label\_arm='left'}). Primary L2 contrast =
+\textbf{C\_retrieval $-$ A\_ctrl\_rat} (identical-weights), two-sided, McNemar/z per
+the D11 machinery.
+
+Conditional-expansion criterion (pinned pre-data, Amendment 2): if
+C\_ret $-$ A\_ctrl\_rat is significant and same direction as L0a $\rightarrow$ cross-task
+headline secured, then optionally add A\_action\_only (Stage 2) for the L2
+``rationale tax''; D\_gist not run in either stage. If not significant or
+reversed $\rightarrow$ that is itself a finding (the effect does not cross tasks), and
+the response is DIAGNOSIS, not more arms.
+
+Paper claim scoped a half-grade down, pre-registered as a \textbf{conditional}:
+Amendment 2 pre-specified that \emph{a significant, same-direction contrast
+would constitute cross-task replication of the identical-weights retrieval
+effect} (not of the full 2$\times$2). The observed contrast (\S5.1) did \textbf{not}
+meet this criterion --- direction agrees, significance does not --- routing to
+Amendment 2's diagnostic branch (\S5.3). What the paper claims is therefore
+the mechanism-and-direction reading of \S5.3, not effect-size replication.
+
+\subsection*{4.5 Per-arm evaluation: single-arm inference matches single-arm training (Amendment 3)}
+
+\tmlrnote{Mechanical translation of \texttt{l2\_amendment\_3.md} (decided 2026-07-22 before
+any L2 eval number existed; re-filed to master 2026-07-28). Amendment 1 \S3
+defined the per-arm \textbf{training} target (scored arm only); Amendment 3
+completes the \textbf{eval} side to match, under the principle applied
+throughout the program: \textbf{the student is evaluated in the shape it was
+trained to emit.}}
+
+The eval was initially wired to parse, step, and gate on \textbf{both} arms
+(\texttt{\_active\_arm\_for\_level("L2\_dual\_push") $\rightarrow$ None}), i.e. the joint
+definition that produced SR = 1/100 and motivated the per-arm re-score.
+Asking a single-arm-trained model to emit both arms measures
+\emph{format-adaptation, not task competence} --- an out-of-distribution probe.
+The per-arm eval resolves this:
+
+\begin{enumerate}
+\item \textbf{Prompt} asks for the scored arm's slot only, matching the training
+   target in structure (position-only, no RPY line, no non-scored-arm
+   line).
+\item \textbf{Non-scored arm frozen at its initial pose} via the existing V4
+   \texttt{active\_arm} hold-in-place mask.
+\item \textbf{Success gates on the scored arm only} ($\|$EE\_scored $-$ target\_scored$\|$
+   $<$ 0.05 m), reusing the L0a single-arm success branch.
+\end{enumerate}
+
+\textbf{Freezing the non-scored arm is a structural advantage, not a
+workaround (\S2.1).} A left-scored L2 episode (left moves, right frozen)
+is \emph{isomorphic to the L0a-Left layout}, making the L2$\leftrightarrow$L0a cross-task
+comparison cleaner --- the same single-active-arm control structure on a
+harder task. \textbf{Disclosed delta (honest):} at training time the
+non-scored arm was in motion; at eval it is frozen. This is defensible
+for pose-reach \emph{specifically} because the two arms drive to two
+\textbf{separate} goals with minimal inter-arm coupling, so freezing one does
+not change the physics the scored arm must solve; it would \textbf{not} be
+defensible on a contact-coupled cooperative task --- which L2 is not (\S4.1
+naming).
+
+\textbf{Scope: main eval = LEFT-scored only, 2 protocols $\times$ n=100, seed\_base
+4600 shared} (paired McNemar design preserved). Left-only is a \emph{scope
+decision, not a compute shortcut}: Amendment 1a already anchored the
+retrieval side to the left arm (\texttt{success\_label\_arm='left'}, retrieval
+query keyed on the initial left-EE state), so a right-scored C\_retrieval
+would need a \emph{different retrieval anchor} --- a new degree of freedom and a
+new amendment, which L2 does not open. The left-scored contrast is a
+complete, valid test of the identical-weights retrieval question
+(Amendment 2). Right-scored eval, if ever run, is restricted to an
+\textbf{exploratory bare-arm re-check} (A\_ctrl\_rat only, no anchor change),
+after the main numbers and only in idle windows --- explicitly not part of
+the confirmatory contrast.
+
+\subsection*{4.6 Analysis rules (carried from D11 \S3.6, per-arm generalisation)}
+
+Unchanged in form from D11 (two-timestamp discipline; pairing-integrity
+gate $\rightarrow$ McNemar primary on pass, two-proportion z on fail; all tests
+two-sided). L2 generalisations, pre-specified in l2\_analysis\_adaptation.md
+(Debt \#1 dry-run, timestamped before any L2 five-protocol result):
+
+\begin{itemize}
+\item \textbf{Success gate} generalises to per-arm: \texttt{outcome=='success'} extraction
+  reads the scored arm's \texttt{dist\_red < thr} (already in collect.py
+  \texttt{active\_arm=None} branch); binary success-count machinery unchanged.
+\item \textbf{Pairing gate}: seed-based init fingerprint now includes both arms
+  (richer \texttt{allclose}, still valid). L2 eval seed base = \textbf{4600} (shared
+  across both protocols $\rightarrow$ episode \emph{k} starts from the same world config
+  in A\_ctrl\_rat and C\_retrieval; paired design, Amendment 3 \S3), distinct
+  from the collect base 4500.
+\item \textbf{R1-bias probe (L2)} --- pre-specified redefinition (\S4.7).
+\end{itemize}
+
+\subsection*{4.7 R1-bias probe, L2 redefinition (l2\_analysis\_adaptation.md, locked pre-data)}
+
+The L0a R1 probe measured the round-1 lateral (X) bias of the single
+active arm. For L2 the pre-registered equivalent is the \textbf{per-arm round-1
+signed displacement toward each arm's own target, reported as a
+two-component vector ($\Delta$X\_L, $\Delta$X\_R), plus a pooled magnitude $\|\Delta$R1$\|$} (mean
+over both arms of $|$round-1 target $-$ init EE$|$ along the task-relevant
+axis). The marginal-vs-conditional test R1 served in L0a carries over
+unchanged in form (does the distilled arm's per-arm R1 collapse to a
+static prior while retrieval's varies per episode?). References are the
+\textbf{L2 memory-teacher's own} R1 distribution (task-matched, measured from
+the L2 teacher buffer), \textbf{not} the transplanted L0a $-$23.5/$-$15.8 cm
+fingerprints. Locked now so it is not a picked metric post-results.
+
+\subsection*{4.8 Pipeline integrity (verify-layer interceptions, carried from D11)}
+
+The D11 Step-2 row-count sentinel and SHA gates carry over. Recorded for
+the Methods ``pipeline integrity'' note: the L2 run exercised the verify
+layer twice more (interception rate 3/3 across the program) ---
+(i) the per-arm SFT pool lives almost entirely in the \texttt{failure/} replay
+dir (joint-success 1/100), so pool selection is by per-arm \emph{label}
+(\texttt{--sft\_desirable\_only}, kto\_label=='desirable') reading BOTH dirs, not by
+directory; the sentinel caught a would-be training-semantics error (1119
+failed-arm rounds nearly behavior-cloned as desirable), not a miscount
+(Amendment 2 addendum 2026-07-16); and (ii) a version-drift in the GGUF
+conversion toolchain transposed the LoRA storage layout, caught at the
+GGUF-load verify gate and fixed by version rollback + a structural arch
+byte-patch --- not by hand-transposing tensors, whose danger is a load that
+succeeds but silently mis-maps (Amendment 2 addendum 2026-07-21). Methods
+sentence for each is in l2\_amendment\_2.md.
+
+A fourth interception (Amendment 3 \S7) closes a recurring family: the L2
+eval initially parsed both arms for a single-arm-trained model --- the
+fourth train/eval output-format mismatch caught in the program, but the
+fourth caught \emph{reactively} (crashing at episode 1). The permanent fix is
+a \textbf{format-contract assert} resident in the driver \emph{before} any eval
+collect: verbatim training-target rows from the SFT JSONL are fed through
+the eval parser configured exactly as eval will configure it (control
+mode + variant + \texttt{scored\_arm}), and every row must parse clean. A
+single-arm target fed to a both-arms parser fails this at dry-run --- the
+whole bug family dies before the simulator boots. This makes the
+train/eval-contract interception rate 4/4 and, from here, prospective
+rather than reactive.
+
+\section*{5. Results (L2)}
+
+\tmlrnote{Mechanical translation of \texttt{l2\_confirmatory\_report.md} (isaac, verdict
+authority bound to \texttt{PRE\_ANALYSIS\_LOCK.md}, committed \texttt{65d70c1} before any
+p-value). Every claim below is on that report's \S4 ``may say'' list; the
+verdict is translated, not re-interpreted. Confirmatory analysis:
+\texttt{scripts/analysis/l2\_confirmatory.py}; run\_ids A\_ctrl\_rat=\texttt{8384a740},
+C\_retrieval=\texttt{2154e57e}, L2-teacher=\texttt{a6e6c917}.}
+
+\subsection*{5.1 Confirmatory contrast --- the identical-weights retrieval effect}
+
+Per-arm eval (Amendment 3: left-scored, n=100 paired, seed\_base 4600):
+
+\begin{table}[h]
+\centering
+\begin{tabular}{l l l}
+\toprule
+protocol & successes / n & SR \\
+\midrule
+A\_ctrl\_rat (bare) & 14 / 100 & 14\% \\
+C\_retrieval (same weights + frozen re-tagged buffer) & 20 / 100 & 20\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The identical-weights contrast is \textbf{C\_retrieval $-$ A\_ctrl\_rat = +6.0 pp}
+(Newcombe 95\% CI \textbf{[$-$4.5, +16.4] pp}). Primary test: two-proportion
+z = 1.129, \textbf{p = 0.259, n.s.} at the pre-registered $\alpha$=0.010 (T4-class).
+The paired McNemar was the intended primary; the pairing-integrity gate
+fell back to z per Amendment 14 \S14.2 (\S5.2), and McNemar's discordant
+cells (9 vs 3) give the same n.s. conclusion.
+
+\textbf{Locked verdict (verbatim from the pre-analysis lock):} \emph{the point
+estimate is below the pre-registered MDE (+20 pp for 76\% power, Amendment
+2); the direction agrees with L0a; the confidence interval simultaneously
+admits zero and a moderate effect.} Per Amendment 2's pinned rule, a
+sub-MDE point estimate triggers the \textbf{diagnosis branch} (\S5.3), not more
+arms --- and the +6 pp result was predicted n.s. in advance and is. We do
+\textbf{not} call +6 pp a positive replication of the effect \emph{size}; it is n.s.
+and sub-MDE. What replicates is examined mechanistically below.
+
+\subsection*{5.2 Pairing integrity (why z, not McNemar)}
+
+The environment seed was identical across the two protocols on 100/100
+episodes, and the frozen right arm (Amendment 3 hold-in-place) matched at
+integer + RPY resolution on 94/100. The float fingerprint gate ($\varepsilon$=1e-4)
+failed on 17 episodes at $\approx$1e-4 drift because \texttt{trajectory[0]} is already
+one servo-step in and the scored (left) arm's differing first action
+perturbs the shared-sim float state. Pairing is \emph{physically real but not
+machine-verifiable from the persisted replay}, so the mechanical rule
+(Amendment 14 \S14.2) selected the two-proportion z --- the same fallback
+D11 disclosed, and n.s. either way. No discretion was exercised.
+
+\subsection*{5.3 Diagnostic appendix --- why the effect is small, not absent}
+
+Three pre-registered diagnostics, each prediction committed before its
+result; all three findings are \textbf{exploratory} and none is a sole-cause
+claim (report \S3, \S4).
+
+\textbf{(a) Retrieval quality --- a cross-task correlate (n=2 tasks, not a
+within-task predictor).} L2 retrieves systematically less-similar
+neighbours than L0a under an identical retriever (top-1 median 0.900 $\rightarrow$
+0.870, MW p=4.7e-17; top-3 0.883 $\rightarrow$ 0.827, p=1.3e-26), consistent with a
+5.5$\times$ thinner buffer (547 vs 100 recaps, $\approx$28 usable left-aligned). Stated
+at the level it holds: \emph{the L2 attenuation is consistent with reduced
+buffer coverage} --- a correlation across two tasks, not a causal ``$\propto$'', and
+explicitly \textbf{not} the claim that match quality predicts which L2 episodes
+succeed (see (c), where it does not).
+
+\textbf{(b) Retrieval restores the teacher's round-1 bias.} Round-1 left-arm
+lateral bias $\Delta$X\_L (against the L2-teacher's \emph{own} R1, not L0a's
+transplant): teacher $-$17.1, A\_ctrl\_rat (distilled) \textbf{$-$4.8}, C\_retrieval
+\textbf{$-$17.2}. The pre-registered $\sigma$ test did not fire ($\sigma$ 15.5 vs 17.3,
+F=1.25 --- reported plainly); the informative signal is the \textbf{mean}:
+distillation collapses to a magnitude-deficient prior ($\approx$28\% of teacher
+displacement), and the retrieval preamble on identical weights restores
+the teacher's magnitude almost exactly ($-$4.8 $\rightarrow$ $-$17.2 $\approx$ $-$17.1). This is the
+L2 analogue of the L0a static-prior collapse (D11 \S4.3), on the mean axis
+(mean finding post-hoc/exploratory; $\sigma$ test was the registered one).
+
+\emph{Exploratory cross-task note --- even the marginal transfer appears
+dose-dependent.} On L0a the distilled arm's R1 sat on the teacher's
+($-$16.7 $\approx$ $-$15.8); on L2 the distilled prior reaches only $-$4.8 against
+$-$17.1 ($\approx$72\% short). Training dose is one candidate (L2's per-arm
+distillation saw 56 episodes / 511 rounds vs L0a's 992), suggesting
+\textbf{marginal transfer is cheap but not free} --- below some data floor even
+the static prior is under-learned; but task difficulty and buffer
+composition are confounded with dose at n=2, so no single cause is
+isolable. Labelled exploratory (n=2 tasks, a single before/after point,
+no dose-response curve).
+
+\textbf{(c) Rescue is gated by start distance, not memory match (surprise).}
+The +6 pp = 9 rescues (C\checkmark A$\times$) $-$ 3 regressions (A\checkmark C$\times$). Rescues share a
+sharp init-pose signature: rescue init \texttt{dist\_red} mean 13.9 cm vs
+both-fail 21.6 cm (MW z=$-$3.88, p=1e-4) --- retrieval rescues almost only
+episodes that start close. Rescue retrieval-similarity is \emph{not} higher
+(0.847 vs 0.868, p=0.03), so start distance, not match quality, is the
+decisive within-L2 variable.
+
+\textbf{Synthesis (licensed for the combined picture).} The identical-weights
+retrieval effect replicates on L2 in \textbf{mechanism} (the R1 correction, (b))
+and in \textbf{direction} (+6 pp), but its conversion to end-task success is
+\textbf{competence-gated}: the retrieved correction is injected \textbf{once per
+episode} (anchored on \texttt{init\_L\_EE}, round-0 only --- verified literal, not
+metaphor), biasing the initial direction with nothing re-aiming it
+mid-trajectory, so it converts only where the start is already within
+reach of the 0.05 m gate (c). Far-start episodes fire the correction yet
+miss the goal. The effect is therefore \textbf{small (+6 pp, n.s.), not
+absent.} Two levels, kept separate to pre-empt the ``similarity explains
+attenuation but not rescue'' objection: \emph{between tasks} (a, n=2) thinner
+buffer co-occurs with a smaller effect (its \textbf{size}); \emph{within L2} (c)
+conversion is gated by start distance (its \textbf{incidence}).
+
+\subsection*{5.4 Headroom-normalized cross-task framing (post-hoc, exploratory)}
+
+Raw pp understates the effect across tasks of different achievable
+headroom. On a gap-to-teacher basis, L0a retrieval closed $\approx$100\% of the
+parity gap; \textbf{L2 retrieval closes 42.9\%} of the per-arm gap (A\_ctrl\_rat
+14\% $\rightarrow$ L2 per-arm teacher \textbf{28.0\%}, pinned from \texttt{per\_arm\_rescore.json};
+headroom 14 pp, +6 pp recovered = 6/14). This framing is \textbf{post-hoc /
+exploratory} (introduced after the raw SR was known); pinning the 28.0\%
+denominator removes the ``$\approx$'', not the exploratory label, and the raw
++6 pp n.s. is always reported alongside.
+
+\section*{6. Discussion (L2 additions)}
+
+\tmlrnote{To fold into \S5 (Discussion) alongside the D11 material; every claim
+bound to the report's \S4 list. Connects three ways:}
+
+\begin{itemize}
+\item \textbf{Cross-task replication of the marginal/conditional split (D11 \S5.1).}
+  L2 corroborates the \emph{mechanism} --- distillation transfers a
+  magnitude-deficient marginal prior (R1 $-$4.8), retrieval on identical
+  weights restores the teacher's conditional correction ($-$17.2 $\approx$ $-$17.1;
+  post-hoc, as the registered $\sigma$ test was null, \S5.3b) --- while the end-task
+  effect stays sub-MDE (+6 pp, n.s.). The substrate story replicates in
+  mechanism and direction; the effect \emph{size} does not reach significance
+  on this harder, thinner-buffer task, and we say so.
+\item \textbf{Marginal transfer is dose-dependent (exploratory extension of \S5.1).}
+  L2's $\approx$72\%-short marginal (\S5.3b) adds a dimension to the marginal/
+  conditional frame: even the static prior has a data floor below which it
+  is under-learned --- cheap but not free.
+\item \textbf{The memory success-floor / minimum-viable-competence law
+  (v1.1\_notes.md).} L2 at 1\% joint SR sits near the floor: memory
+  conditions the correction but does not manufacture the multi-step
+  competence to execute it from far configurations (\S5.3c). \emph{You cannot
+  externalise a competence the teacher does not have} --- here sharpened to
+  \emph{retrieval sets the initial direction; whether that cashes out depends on
+  how far the corrected trajectory still has to travel.} (Exploratory;
+  stated as a paper-2 foreshadowing hypothesis --- the unifying observation
+  across the teacher/buffer/student faces, not a paper-1 result.)
+\item \textbf{Two-paper thread (one sentence, exploratory).} This dovetails with
+  D11's recovery-timing null: both datasets suggest retrieval's value is
+  \textbf{front-loaded} --- it sets the initial direction (L2's start-distance
+  gate is its range limit; D11's monotonic-from-R1 convergence is its
+  timing signature).
+\item \textbf{Contact-rich extension boundary} is already written as the D11
+  Discussion's contact-rich subsection (\texttt{d11\_discussion\_draft.md} \S5.3,
+  two-boundary anatomy: contact-precision ceiling + primitive-expressivity
+  gap), independent of the L2 numbers. \tmlrnote{SECTION-NUMBER NOTE: this L2
+  chapter's own \S5.3 is its Results diagnostic appendix; the two collide
+  under the working draft numbering --- resolve at integration when the L2
+  chapter's final section number is fixed. See triage.}
+\end{itemize}
+
+\tmlrnote{Synced to the FINAL report \texttt{l2\_confirmatory\_report.md} (isaac \texttt{fe17349},
+``report surgery''; confirmed final by handoff
+\texttt{2026-07-28\_isaac-L2-confirmatory-ready.md} UPDATE 2026-07-29). All four
+surgical edits are reflected above: (1) two-level separation
+(coverage=between-task SIZE correlate, n=2, no causal $\propto$ / start-distance=
+within-task INCIDENCE gate) \S5.3(a),(c) + synthesis; (2) dose-dependent
+marginal $-$4.8 vs $-$17.1 ($\approx$72\% short), exploratory \S5.3(b); (3) pinned
+teacher per-arm 28.0\% $\rightarrow$ 42.9\% gap-closed, ``$\approx$'' removed, exploratory label
+kept \S5.4; (4) minimum-viable-competence law as ONE Discussion sentence,
+front-loaded framing \S6. Wording taken from the report's \S4 may/may-not
+list.}
+
+\section*{Appendix --- L2 amendment chain (extends D11 Appendix A1)}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{l l p{7.6cm} l}
+\toprule
+\# & Date & Change & Anchor \\
+\midrule
+L2-1 & 07-15 & Per-arm scoring (post-hoc, disclosed); SFT single-arm target; task rename & l2\_amendment\_1.md \\
+L2-1a & 07-15 & Buffer re-tag (dual label) + arm-aligned success-floor; pins 83337879$\rightarrow$a79581cd & l2\_amendment\_1.md \S1a \\
+L2-2 & 07-15 & Scope to answerable question (T4-class only); Stage-1 A\_ctrl\_rat; T1 not run (MDE design choice) & l2\_amendment\_2.md \\
+L2-2 add & 07-16 & Per-arm SFT pool selected by label not directory (verify-layer 2/2) & l2\_amendment\_2.md \\
+L2-2 add & 07-21 & GGUF conversion version-drift caught at load gate; rollback + arch byte-patch (verify-layer 3/3) & l2\_amendment\_2.md \\
+L2-3 & 07-22 (decided) / 07-28 (re-filed to master) & Per-arm EVAL: single-arm inference matches single-arm training; non-scored arm frozen; left-scored $\times$2 protocols n=100, seed 4600; position-only success; format-contract gate (verify-layer 4/4) & l2\_amendment\_3.md (\texttt{5447112}; orig \texttt{6cf31b7}) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\tmlrnote{L2-3 note: decided 2026-07-22 before any L2 eval number existed
+(Step-8 crashed at episode 1 on a missing \texttt{POSITION\_RPY\_2DOF} template);
+first committed as a stray \texttt{6cf31b7} on \texttt{paper-v1.1-wip}, re-filed to
+master as \texttt{5447112} in the 2026-07-28 worktree untangle. Pre-result
+timestamp integrity rests on the 2026-07-22 conversation record + the
+\texttt{6cf31b7} commit time, both preceding the eval restart.}

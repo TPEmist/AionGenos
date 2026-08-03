@@ -1,0 +1,164 @@
+% Converted from d11_discussion_draft.md — mechanical markdown->LaTeX (format only).
+% Source draft H1 title: D11 Discussion — draft v1 (for narrative review)
+
+\tmlrnote{Same claim discipline as Results: every outward-facing positioning
+sentence points to a specific number (T1/T4/R1); every ``cannot'' carries
+the recipe/task scope; the J-lens paragraph says ``is the instrument to
+test'', never ``will show''.}
+
+\section*{5. Discussion}
+
+\subsection*{5.1 What the results say to a system builder: distil the competence, externalise the memory}
+
+The two headline results are one finding seen from two sides. Baking
+the memory-augmented teacher's behaviour into student weights bought
++1 pp over an action-only control (T1, null); attaching an
+inference-time retrieval context to a \emph{fixed} set of student weights
+bought +34 pp (identical-weights contrast, z=5.15; the registered
+protocol contrast agrees, +23 pp, z=3.36) and recovered the teacher's
+own success rate (49\% vs $\approx$49.3\%) at roughly 50--75$\times$ lower inference
+cost. Competence tracks the teacher at each memory rung (\S4.2); what
+distillation fails to move into weights is specifically the memory
+advantage.
+
+We resist reading this as ``distillation fails''. The mechanism probe
+(\S4.3) shows \emph{why} the split is principled rather than incidental, and
+turns it into a design criterion. Memory's operational value here is a
+\emph{conditional} correction --- a different adjustment for each episode's
+situation (the C\_retrieval R1 $\Delta$X signature: mean near zero, $\sigma$=14.4,
+per-episode variable). Baking a conditional function into a fixed
+weight delta forces a single static approximation of it --- the four
+distilled arms all collapsed onto one $-$16.7 cm prior regardless of the
+episode in front of them. A context channel, by contrast, is a natural
+conditioning pathway: it can present a different retrieved lesson per
+situation at inference with no parameter change.
+
+So ``where should this knowledge live'' is not a matter of taste but a
+function of the knowledge's own structure. \textbf{Marginal knowledge --- the
+average correction that holds across situations --- transfers into
+weights; conditional knowledge --- the correction that depends on the
+situation --- belongs in context, because weights approximate it with a
+constant and context conditions on it for free.} This is the criterion
+D11 was ultimately built to test, and it is the transferable claim we
+carry out of a single-recipe study across two tasks (the L0a reach and
+the harder L2 pose-reach, \S5.3/L2 chapter): not ``retrieval beats
+baking-in'' as a law, but a decomposition of \emph{which} component of an
+experience each substrate can hold.
+
+\subsection*{5.2 Positioning against three frontiers}
+
+\textbf{ASPIRE (external memory as the substrate) --- we supply supporting
+evidence.} The retrieval-augmented pole, in which competence is
+distilled and experience is kept external and looked up, is the
+world-view our results support: on \emph{fixed} student weights, attaching
+retrieval added +34 pp (identical-weights contrast, z=5.15; the
+registered protocol contrast agrees at +23 pp). Embodied
+retrieval-augmented policies already exist --- behaviour/skill retrieval
+and episodic-memory agents (Voyager, ExpeL, AWM) show external-memory
+gains --- so we do not claim primacy for the idea. What we add is a
+\emph{pre-registered} embodied comparison that isolates substrate: the same
+retrieved memory routed into weights vs into context, with the mechanism
+probe showing \emph{why} the routing matters (marginal vs conditional). Scope
+guard: ASPIRE's code-as-reusable-skill and our lesson-retrieval are two
+instantiations of external memory; our data support the pole, not any
+single implementation.
+
+\textbf{Provenance caveat (an honest open question).} C\_retrieval is fed the
+\emph{teacher's} frozen experience buffer, not the student's own. For the
+question D11 actually asks --- the \emph{same} memory, routed to weights vs
+context --- buffer source is a controlled constant (B\_main was distilled
+from, and C\_retrieval retrieves, the same teacher lessons), so the
+substrate contrast is clean. What we do \emph{not} test is whether a student
+retrieving its \emph{own} self-generated buffer would win by the same margin;
+self-produced recap quality is unknown and connects to the epiphenomenal
+self-gist finding (\S4.3). We flag this as future work, not a resolved
+claim --- externalisation-as-mechanism and teacher-memory-quality are
+deconfounded only by a student-own-buffer arm we have not run.
+
+\textbf{Titans (memory$\rightarrow$weights at the architecture level) --- we bound our
+null and leave the door open.} Our T1 null is a statement about a
+\emph{behavioural distillation recipe} (single-round SFT + composable-KTO,
+LoRA), not about parametric memory in general. Titans-style
+architectural writing --- surprise-gated updates that write only the
+unexpected, with decay --- is precisely a mechanism our recipe lacks: it
+consolidates \emph{conditionally} (what to write depends on the situation's
+surprise), which is exactly the component \S4.3 shows our recipe drops.
+Whether such a mechanism can bake the conditional structure that flat
+distillation could not is untested here and is the most direct
+architectural follow-up our null points to.
+
+\textbf{J-Space / J-lens (interpretability of the internal workspace) --- we
+have the behavioural half, this is the instrument for the mechanical
+half.} Our R1 $\mu$-branch result (\S4.3) already establishes behaviourally
+that the correction's carrier is the action distribution, not the
+memory content: \texttt{B\_main} still emits PAST\_LESSONS text at inference,
+yet that text bought +1 pp, suggesting it is epiphenomenal --- produced
+but not read by the downstream action tokens. J-lens is the instrument
+to test that suggestion directly: ablating or swapping \texttt{B\_main}'s
+self-produced gist tokens (prediction: action distribution unchanged)
+against ablating \texttt{C\_retrieval}'s injected lessons (prediction: action
+changes) would provide the mechanical account of the 23 pp gap ---
+``context content is read, self-produced content is ignored''. We flag
+this as the paper-2 target, not a claimed result.
+
+\subsection*{5.3 Why this does not extend to contact-rich manipulation (a bounded feasibility probe)}
+
+Before extending the memory result to contact-rich tasks we ran a
+bounded feasibility gate, porting the identical prompted-VLM-teacher
+interface to LIBERO and asking whether it clears the task before
+committing a full study. It did not, and the value is in the precision
+of the negative result. Across grasping (three objects) and non-grasping
+(push, knob-twist) tasks the teacher's \emph{spatial reasoning stayed intact}
+--- round-0 targets matched true object positions to within millimetres
+and phase identification was correct throughout --- yet success was 0 in
+every task. A staged intervention (adding oracle-sourced subgoal
+vectors, then a hover-descend-grasp primitive, then raising camera
+resolution 128$\rightarrow$256 px; details and per-stage success in the
+supplementary feasibility branch) cleared every candidate cause above
+the point of contact while success remained pinned at zero, localising
+the failure to two separable boundaries. The first is a
+\textbf{contact-precision ceiling}: on free-object contact (grasp and push
+alike) the open-loop position servo drives the end-effector into the
+object and the rigid-body contact impulse ejects it, so the same wall
+that blocks grasping also blocks pushing. The second is a
+\textbf{primitive-expressivity gap}: the ``turn on the stove'' success
+predicate is satisfied by rotating a hinged knob past $\approx$0.5 rad, a
+degree of freedom our macro vocabulary (reach / grasp / release) does
+not express, so a position servo to the knob applies zero moment about
+the hinge and cannot actuate it even with perfect targeting. Both
+boundaries are properties of \emph{this interface paradigm --- integer-
+coordinate subgoals over an OSC position servo with a fixed macro-
+primitive set --- not of the prompted-VLM teacher}, whose reasoning layer
+was sound in every failure; the walls sit at the control-stack and
+primitive-vocabulary layers, the layers this single-manipulator study
+does not claim to solve. This bounds the contribution cleanly and points
+forward: \textbf{closed-loop contact control and an expanded primitive
+vocabulary are the two unlocks} a richer task suite would require --- the
+same enrichment an expert-iteration loop (paper 2) would need to
+generate contact-rich experience worth externalising.
+
+\subsection*{5.4 The open problem: consolidating a conditional function, not a marginal prior}
+
+The deepest reading connects back to the study's motivating question ---
+whether the knowledge a system reads can be folded, through embodiment,
+into its parameters. Human skill automation is the existence proof that
+it can: a fluent pianist's playing is automatic yet still \emph{conditional},
+responding note-by-note to what is in front of them. Automation
+preserves the conditional structure; it does not collapse the skill to
+its average. Our distillation product kept only the average.
+
+That reframes the open problem. It is not ``baked-in vs retrieved'' ---
+that dichotomy is what T4 appears to settle, but it settles only the
+question of substrate under one consolidation recipe. The real problem
+underneath is \textbf{how to consolidate a conditional function rather than a
+marginal prior}. That single question explains all three of our
+results at once: T1 died because flat distillation consolidates the
+marginal; T4 won because context still carries the conditional; and the
+paths beyond --- surprise-gated writing, per-round distillation targets
+that supervise the situation-specific correction rather than its
+average, and workspace-readout probes that check whether a consolidated
+correction is actually used --- are all attempts on that same problem.
+A null on substrate is thus not a dead end; it is the reformulation
+that turns ``where should memory live'' into ``what would it take to
+consolidate memory's conditional structure at all'' --- the question the
+next decade of embodied continual learning has to answer.
