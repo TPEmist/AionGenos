@@ -59,9 +59,14 @@ Experience Should Live}
 \input{sections/abstract}
 \input{sections/intro}
 \input{sections/methods_d11}
-\input{sections/methods_l2}
 \input{sections/results_d11}
-\input{sections/results_l2}
+% NOTE: the L2 chapter — its Methods (§4), Results (§5), AND Discussion
+% (§6) — all live in ONE file, methods_l2.tex (it is one coherent draft).
+% So it is \input as a single block here, AFTER D11 results, reading as
+% "Experiment 2". At integration (T-INT) this may be split into a proper
+% Experiment-2 section; for now it is one \input, and there is no separate
+% results_l2.tex.
+\input{sections/methods_l2}
 \input{sections/discussion}
 \input{sections/related_work}
 
