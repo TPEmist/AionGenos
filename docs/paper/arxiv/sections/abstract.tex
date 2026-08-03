@@ -1,0 +1,32 @@
+% ---- Abstract (headline face — converted verbatim from d11_abstract_related_draft.md) ----
+\begin{abstract}
+Should an embodied agent's accumulated experience be baked into its
+policy weights, or kept external and retrieved at inference? We test
+this directly. A memory-augmented teacher (a VLM that retrieves lessons
+from its own past attempts) produces trajectories on a
+vision-conditioned single-arm reach task; from the \emph{same} trajectories
+we distil LoRA student policies and evaluate them under matched
+protocols, including one that re-attaches the teacher's frozen
+retrieval buffer to a fixed set of student weights --- a clean parametric-%
+vs-contextual-memory contrast on identical weights. Because the
+headline result is a null, we pre-registered the hypotheses, arms,
+tests, and analysis rules before training and before any $p$-value.
+Distilling the memory-augmented behaviour into weights beat an
+action-only control by only $+1$ pp (n.s.); the registered test proves
+underpowered for its own minimum effect, so we withdraw --- rather than
+refute --- the memory-in-weights claim. By contrast, attaching retrieval
+to a \emph{fixed} set of student weights added $+34$ pp ($z=5.15$), matching the
+memory-augmented teacher's own 49\% success rate at ${\sim}50$--$75\times$ lower
+inference cost; the pre-registered protocol contrast agrees
+($+23$ pp, $z=3.36$). A pre-registered behavioural
+probe localises the mechanism: behavioural distillation transfers the
+\emph{marginal} correction (a static prior every arm adopts) but not the
+\emph{conditional}, situation-specific correction that prompt-retrieved
+memory supplies. The recipe that follows: distil the competence,
+externalise the memory. On a second, harder task in the same family, the
+retrieval advantage points the same direction but falls short of
+significance ($+6$ pp, 95\% CI $[-4.5, +16.4]$); exploratory diagnostics tie
+the attenuation to memory coverage and a distance-gated conversion
+threshold, suggesting the effect scales with the amount of retrievable
+success experience.
+\end{abstract}

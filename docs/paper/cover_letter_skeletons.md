@@ -6,7 +6,7 @@ submission week starts from a paragraph, not a blank page.*
 
 ---
 
-## TMLR version (correctness + methodological stance)
+## TMLR version (correctness + methodological stance) — v1.1 finalised
 
 We submit a pre-registered study of a single, sharply-scoped question:
 when an embodied agent's experience is supplied as retrievable memory,
@@ -19,10 +19,17 @@ registered test was under-powered for its own minimum effect, and we
 therefore *withdraw rather than refute* the memory-in-weights claim. A
 mechanism probe (also pre-registered) and an identical-weights
 retrieval contrast (+34 pp, z=5.15) turn the null into a positive,
-mechanistic account. We believe the value to TMLR is precisely the
-methodology: a full amendment-tracked pre-registration, analysis rules
-locked before any p-value, and negative results reported as evidence
-rather than buried.
+mechanistic account. We extend the study to a second, harder task in the
+same family (a 6-DoF pose-reach): the identical-weights retrieval
+advantage points the same direction but does not reach significance
+(+6 pp, 95% CI [−4.5, +16.4], sub-MDE), while the round-1 correction
+*mechanism* replicates — a result we report at its honest strength, with
+the same pre-registered discipline (a per-arm eval amendment locked
+before the eval, analysis rules before any p-value) and with exploratory
+diagnostics labelled as such. We believe the value to TMLR is precisely
+the methodology: a full amendment-tracked pre-registration across both
+experiments, analysis rules locked before any p-value, and negative /
+sub-significance results reported as evidence rather than buried.
 
 ---
 
@@ -54,5 +61,10 @@ cross-task regularity.
   the mislabeled +23 pp as the headline.
 - ICRA version's last sentence is a promissory note on L2; only ship
   it if L2 is in the submission (else soften to "future work").
+  UPDATE 2026-08-03: venue = TMLR (not ICRA/ICLR); L2 is IN the
+  submission with a realised n.s. result (task = pose-reach, NOT "push").
+  TMLR version above updated to carry the honest L2 result; the ICRA
+  version's "extending to push (future work)" line is now stale — do not
+  ship it.
 - Neither claims "first controlled" (⑦ fix); both claim only the
   pre-registration is explicit + amendment-tracked.

@@ -1,0 +1,99 @@
+% ---- Introduction (headline face — converted verbatim from d11_intro_draft.md) ----
+\section*{1. Introduction}
+
+\subsection*{Opening problem}
+
+When an embodied agent accumulates experience, where should that
+experience live --- folded into the policy's parameters, or kept outside
+and retrieved when needed? The question is old and unresolved. The
+parametric view is seductive: a fluent agent, like a fluent human,
+should not have to look things up mid-task; skill that has been
+practised enough becomes automatic, and automaticity feels like
+something written into the substrate. The contextual view is
+pragmatic: retrieval systems that keep experience external and look it
+up have repeatedly matched or beaten parametric memorisation in
+language tasks, at a fraction of the training cost. For embodied agents
+the stakes are concrete --- a policy that must run at control rate cannot
+carry a growing context window, so ``bake it into the weights'' is not
+just philosophically appealing but architecturally convenient. Whether
+it \emph{works} is an empirical question that, for embodied skill, has --- to
+our knowledge --- not been asked under controlled conditions.
+
+\subsection*{Why this test bed answers it}
+
+We ask it with a design that isolates the one variable that matters. A
+memory-augmented teacher --- a VLM that retrieves lessons from its own
+past attempts --- produces trajectories on a vision-conditioned
+single-arm reach task (an Isaac Lab bimanual rig with the right arm
+frozen). From those \emph{same} trajectories we distil student policies
+whose training targets differ only in whether retrieved-lesson content
+is present, and we evaluate them under matched protocols --- including
+one that re-attaches inference-time retrieval to a fixed set of student
+weights. The critical pair shares identical adapter weights and differs
+only in protocol: memory supplied by baking it into those weights
+during distillation, versus memory supplied through a retrieval context
+at inference. This turns ``parametric vs contextual memory'' from a
+slogan into a controlled contrast on one axis.
+
+\subsection*{Pre-registration as a stance}
+
+Because the headline outcome is a null --- and nulls are the most easily
+disbelieved result in machine learning --- we pre-registered in two
+locked layers. The hypotheses, comparison arms, primary tests, and
+their directionality were registered \emph{before any adapter trained}; the
+final analysis rules (the pairing-integrity gate and its mechanical
+test-selection fallback) were locked \emph{after collection but before any
+$p$-value was computed} --- the raw success counts, visible in collect
+logs, were frozen out of the test-selection decision by that locked
+rule. The pre-registration is not decoration: it is what lets a reader
+take the null as evidence rather than as a failure to find an effect we
+wanted. Every result below is tagged confirmatory or exploratory
+against that registered plan.
+
+\subsection*{Contributions}
+
+\begin{enumerate}
+\item \textbf{A design criterion for where experience should live}: marginal
+knowledge --- the correction that holds on average across situations ---
+transfers into weights, while conditional knowledge --- the correction
+that depends on the current situation --- belongs in context, because
+weights can only approximate a conditional function with a constant
+whereas context conditions on it for free. We name and operationalise
+this marginal/conditional distinction and show it predicts the split
+we observe. \emph{(This is the transferable takeaway; the results below
+are its evidence.)}
+\item \textbf{A pre-registered null on parametric memory} (T1): distilling the
+memory-augmented teacher's behaviour into student weights beat an
+action-only control by $+1$ pp (n.s.), and we withdrew the
+memory-in-weights claim per the registered falsification clause ---
+scoped to this recipe (single-round SFT + composable-KTO), this
+task, this data scale, and this adapter capacity (LoRA rank-16). A
+no-training diagnostic (\S4.4b) finds no conditional trace that more
+data of the same kind could amplify.
+\item \textbf{A reversal}: on a \emph{fixed} set of student weights, attaching
+inference-time retrieval added $+34$ pp (identical-weights contrast,
+C\_retrieval vs A\_ctrl\_rat, $z=5.15$, exploratory); the pre-registered
+protocol contrast (T4, C\_retrieval vs B\_main, each with its own
+adapter) agrees at $+23$ pp ($z=3.36$, confirmatory). Retrieval matches
+the teacher's own 49\% success rate at ${\sim}50$--$75\times$ lower inference cost.
+\item \textbf{A mechanism} (R1 $\Delta$X probe, pre-registered per-arm prediction):
+distillation transfers the \emph{marginal} distribution shift (a static
+prior all arms adopt regardless of situation) but not the
+\emph{conditional} structure (the situation-specific correction that
+retrieval supplies), cleanly selecting the registered H\_behavior
+branch --- the correction's carrier is the action distribution, not
+the memory content.
+\end{enumerate}
+
+\tmlrnote{v1.1 consistency flag (integration): the contribution list is
+L0a-only; the abstract now carries an L2 cross-task sentence. At merge,
+decide whether to add a 5th contribution for the L2 result (must stay
+behind the n.s. line: ``a cross-task probe on a harder task --- direction
+agrees, effect n.s./sub-MDE, mechanism replicates'') or leave L2 to the
+Experiment-2 section only. PI decision; not silently added here.}
+
+\subsection*{One-sentence preview}
+
+The two headline results are one finding: distillation moves the
+average, retrieval supplies the situation --- so the recipe is to distil
+the competence and externalise the memory.

@@ -1,0 +1,48 @@
+% ---- Related Work (verbatim from d11_abstract_related_draft.md) ----
+% TODO(bib pass): every [bracketed cite] below must become a real \citep{}
+% bibkey in refs.bib before submission. Named systems are in the project log.
+\section*{2. Related Work}
+
+\tmlrnote{Coverage map --- distinct from the Discussion's three-frontier
+positioning, which states where we stand. Here: what the landscape is.}
+
+\paragraph{Parametric vs.\ retrieved knowledge in language models.} A large line
+compares injecting knowledge into weights (fine-tuning) against keeping
+it external and retrieving it (RAG), repeatedly finding retrieval
+competitive or superior at lower cost \tmlrnote{[RAG-vs-FT studies]}; recent work
+on self-editing / self-adapting weights (e.g.\ SEAL) pushes the
+parametric pole. Our contribution is the embodied, controlled analogue
+of this comparison --- same weights, memory supplied two ways.
+
+\paragraph{Agent memory and experiential learning.} Voyager, ExpeL, and
+Agent-Workflow-Memory accumulate and reuse experience as external,
+retrievable artifacts (skills, lessons, workflows); this is the
+external-memory pole our T4 result supports. We differ in isolating,
+under pre-registration, whether that experience can instead be
+consolidated into weights.
+
+\paragraph{VLA post-training and RL.} Recent vision-language-action work
+refines pretrained policies with RL and preference signals (e.g.\
+SimpleVLA-RL and related); our students are distilled+KTO-refined VLAs,
+and our null speaks to what such post-training does and does not move
+into parameters.
+
+\paragraph{Lifelong / continual LoRA.} CORAL, TAIL, and related study adapter-%
+based continual adaptation; our marginal/conditional distinction
+offers a lens on \emph{what} such adapters can absorb --- a static prior
+readily, a conditional map not (at this recipe and capacity).
+
+\paragraph{Reasoning distillation.} Distilling Step-by-Step, Embodied-CoT, and
+fast/slow thinking-action work distil chain-of-thought into cheaper
+students; our rationale-in-target arms (A\_ctrl\_rat, B\_main) are
+instances of this, and our finding --- that self-produced rationale at
+inference did not help ($+1$ pp) while retrieved content did ($+23$ pp) ---
+qualifies when rationale externalisation pays.
+
+\paragraph{Pre-registration in ML.} We adopt pre-registration \tmlrnote{[pre-reg
+advocacy refs]} as a methodological stance: registering hypotheses,
+tests, and analysis rules before seeing outcomes is what converts a
+null from a non-result into evidence. We do not claim primacy; we claim
+only that the study is explicitly pre-registered with a full,
+amendment-tracked chain, which is uncommon in embodied learning and is
+what licenses the null's interpretation.

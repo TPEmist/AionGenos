@@ -1,0 +1,82 @@
+% ============================================================
+%  AionGenos D11 (+ L2 extension) — TMLR / arXiv manuscript
+%  v1.1 assembly. Compile on Overleaf.
+%
+%  TEMPLATE SWAP (do on Overleaf before submitting to TMLR):
+%    - This preamble uses a MINIMAL TMLR-compatible fallback so the
+%      document compiles anywhere. For the actual TMLR submission,
+%      drop in the official `tmlr.sty` from the TMLR site / OpenReview
+%      and replace the \usepackage{tmlr_fallback} line with
+%      \usepackage{tmlr}  (accepted camera-ready) or
+%      \usepackage[preprint]{tmlr}  (arXiv preprint).
+%    - The official style sets the correct margins, fonts, and the
+%      "Published in TMLR" banner. Our fallback only approximates layout.
+%
+%  AUTHOR BLOCK: currently a TODO placeholder — fill real
+%  name/email/affiliation before arXiv upload (TMLR is non-anonymous).
+% ============================================================
+\documentclass[11pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+\usepackage[textwidth=6.5in,textheight=9in]{geometry}
+\usepackage{natbib}
+\usepackage{xcolor}
+\usepackage{enumitem}
+
+% ---- minimal TMLR-compatible fallback (SWAP on Overleaf, see header) ----
+\newcommand{\tmlrnote}[1]{\textcolor{gray}{\small [#1]}}
+\title{Distil the Competence, Externalise the Memory:\\
+A Pre-Registered Study of Where an Embodied Agent's\\
+Experience Should Live}
+
+% ---- AUTHOR BLOCK ----
+% Name + email confirmed by author 2026-08-03. AFFILIATION UNCONFIRMED:
+% email domain is nikon.com; using "Nikon Corporation" as the likely
+% affiliation but the author must confirm before arXiv upload (and confirm
+% whether this work is filed under a Nikon affiliation at all, vs
+% independent — a corp-affiliation may need internal sign-off). OpenReview
+% has BOTH emails registered (chengyin.tu@nikon.com and
+% tuchengyin0916@gmail.com); pick the submitting identity on OpenReview.
+\author{%
+  Cheng-Yin Tu\\
+  Nikon Corporation \tmlrnote{AFFILIATION UNCONFIRMED --- author to confirm}\\
+  \texttt{chengyin.tu@nikon.com}%
+}
+\date{}
+
+\begin{document}
+\maketitle
+
+% ============================================================
+\input{sections/abstract}
+\input{sections/intro}
+\input{sections/methods_d11}
+\input{sections/methods_l2}
+\input{sections/results_d11}
+\input{sections/results_l2}
+\input{sections/discussion}
+\input{sections/related_work}
+
+% ------------------------------------------------------------
+%  Appendices
+% ------------------------------------------------------------
+\appendix
+\input{sections/appendix_amendments}
+\input{sections/appendix_teacher_provenance}
+
+% ------------------------------------------------------------
+\bibliographystyle{plainnat}
+\bibliography{refs}
+% NOTE: refs.bib currently a stub — bracketed [cite] markers in the
+% markdown (Related Work) must be converted to real bibkeys at the bib
+% pass. See sections/related_work.tex TODO markers.
+
+\end{document}
