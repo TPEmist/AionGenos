@@ -52,11 +52,28 @@ dual_push_cfg.py:74`);(2) IsaacLab 原生有 `OperationalSpaceControllerActionCf
 | ② learned grasp | 中(推論環境 + frame 外參 + GPU 調度) | 短(獨立,橋接已知) | 否(用預訓練權重;Edge-Grasp 附 MIT 權重) |
 | ③ twist/press | 中–高(schema + 解析 + format-contract + 力控整合) | 最長(gated on ①) | 可能(VLM 需學新自由度參數化;視 distill 策略) |
 
-## 開工裁決前 PI 須拍板的未決問題
+## 開工裁決 — PI 已拍板(2026-08-03)
 
-1. **控制器換裝範圍**:全 curriculum (L0–L3) 一次換 OSC,還是只在新接觸任務 (L4+) 引入、保留位置任務的 IK servo?這決定要不要重跑既有 level 的 teacher provenance 與 format-contract。
-2. **grasp 模組授權路線**:接受 AnyGrasp/GraspNet 的非商用/license-key 限制以換效能,還是綁定 MIT 的 Edge-Grasp/GIGA 以保商用與 fine-tune 自由度?(影響 Paper 2 可否宣稱端到端可複現。)
-3. **twist 的力控深度**:「轉旋鈕」驗收標準是幾何達成 (Δθ>0.5rad 幾何軌跡) 還是物理達成 (實際克服鉸鏈力矩把爐轉開)?前者純運動學即可交差,後者硬綁 ① 的 wrench 閉環 — 這一刀定義了 ③ 是否真依賴 ①。
+**Q1(控制器換裝範圍)→ 只在新接觸任務(L4+/LIBERO 類)引入 OSC;
+L0–L3 保持 DiffIK,不回換。**
+理由:P1 全部數字綁 DiffIK provenance,回換作廢可比性、重跑 provenance
+零科學收益;position 任務不需力控,按任務族分配控制器是正當設計。
+**配套規則(寫死):** 任何新任務**收第一筆資料前,控制器選擇先 pin 進
+provenance**,不允許「先跑跑看」的懸置。→ 控制器選擇進 format-contract /
+provenance gate,與 train/eval 契約同級。
+
+**Q2(grasp 授權)→ MIT Edge-Grasp,帶預先承諾的升級規則。**
+Edge-Grasp 先行,**gate smoke 定生死**;若 fail **且診斷指向 grasp 模組
+本身(非介面/frame transform)**,AnyGrasp 作為 **disclosed exception**
+重議。理由:端到端可複現是本研究線的品牌資產,license-gated 閉權重元件
+與之相斥;但 minimum-competence floor 的風險真實,故升級路徑**現在寫死
+而非到時即興**([[minimum-viable-competence-law]] 的 grasp 面)。
+
+**Q3(twist 驗收)→ 物理達成。**
+驗收判準 = **環境自身的 success predicate**(hinge joint qpos 變化,如爐子
+的 ≥0.5 rad),**不用幾何軌跡替代**。理由:Gate 2 驗屍的教訓正是「EE 幾何
+到位、力矩為零、hinge 不動」—— 幾何驗收會在 primitive 層重演它。**接受 ③
+真正 gated on ①(wrench 通道),不用驗收定義鬆動去繞。**
 
 ---
 

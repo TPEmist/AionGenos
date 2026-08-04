@@ -1,10 +1,13 @@
 # Paper 2 Pre-Registration — SKELETON (draft, pre-data)
 
-**Status**: SKELETON. Structure + locked criteria + a-priori hypotheses +
-MDE/power method are fixed here; items marked **[TBD-R2]** await the second
-read-through (per-generation N, exact iteration count, task suite) before
-the prereg is sealed. No P2 data exists at skeleton time.
+**Status**: SKELETON, partially sealed. Structure + locked criteria +
+a-priori hypotheses + MDE/power method fixed. **[TBD-R2] wording/scope items
+CLOSED** by the second read-through + WP1 decision (§7). Remaining opens are
+**[PWR-SIM]** — task-data-dependent (Δr prior, G, n, dose grid, stopping
+rule); these are the pre-flight work-list (§8), executed before gen 0, and
+explicitly NOT sealable by a read-through. No P2 data exists yet.
 **Date drafted**: 2026-08-03 (isaac session, master).
+**Sealed-so-far update**: 2026-08-03 (WP1 3-decision + R2 read-through).
 **Carries over from P1**: the pre-registration discipline (numbered
 amendments, SHA anchors, MDE-before-results, mechanical verify gates,
 exploratory-label rules) applies unchanged. This page pins only what is
@@ -85,7 +88,10 @@ The three P1 instances become falsifiable P2 predictions:
 - **P-MVC-teacher**: below a teacher task-competence floor, iteration
   cannot start (no successful self-collected data to distil). Predict a
   **cold-start threshold**: gens started below floor SR_teacher* show no
-  r-climb. **[TBD-R2]** floor value from L2 (~28% per-arm) as the prior.
+  r-climb. **Floor prior SEALED (R2):** use L2's pinned per-arm teacher SR
+  **28.0%** (`workspace/l2_audit/TEACHER_PERARM_SR_PINNED.md`) as the
+  order-of-magnitude cold-start prior; the exact P2 floor is task-dependent
+  and re-estimated per task suite, but 28% is the registered starting bet.
 - **P-MVC-buffer**: the self-collected buffer must accumulate successes for
   retrieval to amplify; predict r-climb rate correlates with buffer
   success density per generation.
@@ -98,9 +104,15 @@ The three P1 instances become falsifiable P2 predictions:
 P1/L2 showed even the marginal under-transferred at low training dose
 (L0a 992 rounds → full; L2 511 → 72% short). P2 predicts a **dose-response
 curve**: parametric-transfer completeness rises with per-generation
-training volume. Design: **[TBD-R2]** vary per-gen data volume (or measure
-it observationally across gens) to trace completeness vs dose — turning the
+training volume. Design: vary per-gen data volume (or measure it
+observationally across gens) to trace completeness vs dose — turning the
 2-point observation into a curve with matched-tier evidence.
+**R2 caveat SEALED:** the v1.1 read-through (P5 ruling) flagged that at n=2
+"dose" is confounded with task/buffer/contact; the P2 curve is the designed
+de-confounder (dose varied *within* one task suite, holding those fixed),
+which is exactly why this belongs in P2 not P1. The specific dose grid is a
+design choice fixed alongside (G, n) in the pre-flight (§8), not a prose
+item.
 
 ### 3c. J-lens / logit-lens mechanism probe (was: P1 "the instrument to test")
 The mechanism chapter includes an **interpretability probe** to test
@@ -113,9 +125,13 @@ behavioural:
   the same conditional behaviour becomes weight-resident.
 - Ties to P1's epiphenomenal-gist finding (B_main emitted PAST_LESSONS but
   it bought +1pp — produced, not read). J-lens is the direct instrument.
-- **[TBD-R2]** exact probe (logit-lens on the action tokens vs a trained
-  J-lens); scope to the mechanism chapter, exploratory-labelled until the
-  probe's own validity is established.
+- **Scope SEALED (R2 rebuttal):** the v1.1 rebuttal notes schedule this
+  interpretability measurement "once closed-loop contact control lands
+  (paper 2)" — so J-lens is gated on WP1-① (OSC), the same root node the
+  contact task suite needs. It is a P2 mechanism-chapter probe,
+  exploratory-labelled until the probe's own validity is established. The
+  exact probe (logit-lens on action tokens vs a trained J-lens) is a
+  mechanism-chapter design item, not a confirmatory-spine [PWR-SIM].
 
 ## 4. MDE / power — computed BEFORE data (muscle, not lesson)
 
@@ -127,29 +143,74 @@ This time the event-driven power analysis is prospective by default (P1's
   Power depends on (G, n, the true per-gen Δr, and r's sampling variance).
   **Method locked**: simulate the r-estimator's null band at candidate
   (G, n) to get the MDE on the per-generation slope Δr; pick (G, n) so a
-  plausible Δr clears the band with ≥80% power. **[TBD-R2]** the plausible
-  Δr prior (from gen-0 r≈0 and the retrieval ceiling's implied end-r).
+  plausible Δr clears the band with ≥80% power. The plausible **Δr prior**
+  (from gen-0 r≈0 and the retrieval ceiling's implied end-r) is
+  **[PWR-SIM]** — see the boundary note below.
 - **Secondary (SR climb) power**: per-gen SR contrast reuses the L2
   MDE machinery (n=100 → ~12-13pp MDE at these baselines). A per-gen SR
   step below MDE is expected early; r-tracking is why SR is secondary.
 - **Anti-p-hacking on the trend**: the monotonicity test + its α are
   locked before gen 0; generations are NOT peeked-at to decide when to
-  stop (or a stopping rule is pre-registered). **[TBD-R2]** stopping rule
+  stop (or a stopping rule is pre-registered). **[PWR-SIM]** stopping rule
   (fixed G vs sequential with corrected α).
 
+> **Boundary note (honesty rule, 2026-08-03).** Two kinds of open item are
+> now separated. **[TBD-R2]** = wording/scope items the second read-through
+> could seal — those are closed below (§7). **[PWR-SIM]** = items that
+> require the actual power simulation + a real gen-0 r estimate; these
+> **cannot be "sealed" by a read-through** and are NOT closed here.
+> Pretending a read-through can fix a Δr prior would betray the very "MDE
+> is muscle, computed from data" discipline this section exists to enforce.
+> The [PWR-SIM] items are the P2 pre-flight work-list (§8), to be executed
+> before gen 0, not before sealing this skeleton's prose.
+
 ## 5. What is explicitly NOT claimed at skeleton stage
-- No generation count, per-gen n, or task suite is final (**[TBD-R2]**).
+- Generation count G, per-gen n, per-gen dose grid, and the stopping rule
+  are **[PWR-SIM]** (need the power simulation), not sealed here.
 - No mechanism attribution before the J-lens probe's validity is shown.
 - r-tracking is the confirmatory spine; everything in §3 is
   hypothesis-with-designed-evidence, not a result.
 
-## 6. Open items for the second read-through (to seal the prereg)
-1. Lock the r-estimator + chance-band construction (upgrade of
-   d11_exploratory.py) and its MDE simulation.
-2. Fix (G, n, per-gen data volume) from the power sim + the WP1 task suite.
-3. Decide task suite: does P2 stay on L2-family reach/push, or does it
-   require the WP1 contact-control unlocks (closed-loop contact + expanded
-   primitives) to have a task where conditional structure is rich enough to
-   need consolidating? — depends on the WP1 technical-route decision
-   (parallel deliverable).
-4. Seal §3 predictions' matched-tier evidence designs.
+## 6. Task suite — SEALED (from WP1 recon + PI decision 2026-08-03)
+
+**P2 runs on a contact-rich task suite reached via the WP1 unlocks, NOT on
+the L2-family reach/push.** Rationale: r-tracking needs a task whose
+conditional structure is rich enough to have signal to climb; L2 already
+showed reach/push's conditional component is thin (the +6pp/competence-gate
+story). Contact tasks — where required force direction depends on contact
+geometry, not just target position — are where consolidating a conditional
+function is a non-trivial claim. Per PI decision Q1, these are **new L4+
+tasks with the OSC controller**; L0–L3 stay on DiffIK, untouched. This also
+resolves the earlier "does P2 need the contact unlock?" open item: **yes,
+and WP1-① (OSC) is the root-node prerequisite**, now authorised to start.
+
+## 7. [TBD-R2] items — CLOSED by the second read-through + WP1 decision
+- **Task suite direction** → §6 (contact-rich, L4+/OSC).
+- **§3a cold-start floor prior** → 28.0% (L2 pinned), §3a.
+- **§3b dose confound** → sealed with the P5 de-confounder caveat, §3b.
+- **§3c J-lens scope** → P2 mechanism chapter, gated on WP1-① (R2 rebuttal),
+  §3c.
+- **Mechanism-wording consistency** (R2 F1/P1/P2/P5): the L2 chapter's
+  pre-data-conditional framing, MVC-law one-liner, R1-restoration post-hoc
+  hedge, dose n=2 caveat are all applied in the paper worktree
+  (`l2_methods_draft.md`, commit 7abb841); P2 prose inherits that register.
+
+## 8. [PWR-SIM] pre-flight work-list — before gen 0 (NOT sealable by prose)
+These require actual computation / a gen-0 estimate and are the P2
+pre-flight, executed before the loop starts:
+1. Upgrade `d11_exploratory.py` residual-corr → a per-generation r-tracker
+   (r_g + CI_g + monotonicity test); lock the estimator + chance-band
+   construction.
+2. Estimate gen-0 r on the chosen contact task (needs WP1-① + a gen-0
+   collect) → the Δr prior.
+3. Power-simulate (G, n, dose grid) from that Δr prior → pick values with
+   ≥80% power on the slope MDE.
+4. Lock the stopping rule (fixed G vs sequential + α correction) from the sim.
+Sealing the skeleton's prose does NOT close these; they are the muscle,
+computed from data, not decided by a read-through.
+
+## 9. Venue note (no action — pinned for later)
+**CoRL 2026 LEAP workshop** (code-as-abstraction, skill-library
+applicability boundaries) is the ASPIRE-worldview home crowd; P2's
+external-library-vs-parametric-consolidation positioning has a natural
+audience there. Recorded as a venue candidate; no action now.
