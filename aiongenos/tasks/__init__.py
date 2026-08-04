@@ -59,3 +59,14 @@ gym.register(
         "env_cfg_entry_point": "aiongenos.tasks.L3_pick_place_close.pick_place_cfg:L3PickPlaceEnvCfg",
     },
 )
+
+# Register the WP1 contact test-bed (Paper 2, OSC controller). NEW task
+# family; does NOT touch L0-L3 (which stay on DifferentialIK per Q1).
+gym.register(
+    id="Isaac-AionGenos-WP1-Contact-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": "aiongenos.tasks.WP1_contact_testbed.osc_testbed_cfg:WP1ContactTestbedEnvCfg",
+    },
+)
