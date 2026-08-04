@@ -57,14 +57,82 @@ Ran `scripts/diagnostics/wp1_osc_smoke.py` (IsaacLab, A4500, headless
   computing) → a solver/tick dead-wait, not a crash (first run's "silent
   death" was the same hang + a kit timeout-cleanup, misread as a crash).
 
-**Diagnosis hypothesis (for the next work session, NOT yet fixed):** the
-OSC controller's first solve hangs. Candidate causes, cheapest first:
-1. zero-action ambiguity: feeding an all-zero `pose_abs` target may be
-   ill-posed for OSC (unlike DiffIK it may need a *valid* absolute pose,
-   not zeros) → try seeding the action with the current EE pose.
-2. missing `nullspace`/`task_frame` wiring the OSC term expects but the
-   reach base cfg does not provide.
-3. camera-render + OSC tick interaction (accept #2/#3 need the render on).
-Acceptance #2 (motion-equivalence) and #3 (seed determinism) are BLOCKED on
-resolving this hang — not started. WP1-① is **partially green (static
-swap), runtime open**; contact (③) stays gated behind a working ① step.
+### Step-0 stack dump (2026-08-04) — RELOCATES the hang, refutes earlier guess
+
+Per PI direction, before H1-H3 guessing, dumped the hung process's Python
+stacks (faulthandler `dump_traceback_later`, since py-spy is unavailable
+here). Two runs (with and without the faulthandler timer as a control):
+
+**The main thread hangs at `simulation_app._start_app`**
+(`.../simulation_app/simulation_app.py:534` ← `_create_app`
+`app_launcher.py:823` ← `wp1_osc_smoke.py:43` AppLauncher). Other threads
+are idle `concurrent.futures` workers. So the hang is at **Isaac Sim app
+init**, NOT at OSC reset/step (this refutes the earlier "hangs at reset /
+first solve" reading — that was a misattribution; the process never got
+past app launch on these runs).
+
+**Environment control (decisive): L2 seed-smoke PASSES.** The known-good
+L2 task (DiffIK, same `--enable_cameras`, same base cfg — differs ONLY in
+action term) boots, resets, runs both seed trials, VERDICT PASS. So the
+machine / kit / GPU is healthy; the hang is **WP1-OSC-task-specific**,
+surfacing during the app-init⇄env-cfg-parse window (IsaacLab interleaves
+`gym.make` cfg parsing with app startup). The OSC action term's build has
+a side-effect that stalls app init on this task, though the same
+`_start_app` completes fine for the DiffIK L2 task.
+
+**Revised diagnosis plan (timebox: one working day):**
+- Cheapest-first candidates now re-scoped to "what in the OSC cfg stalls
+  app-init build" (NOT reset/solve): H1 the OSC controller cfg triggers a
+  synchronous asset/extension load that never returns; H2 a required OSC
+  wiring the base cfg lacks (nullspace / task_frame_rel_path) makes the
+  action-term build block; H3 render-tick⇄OSC-build interaction.
+- If unresolved by timebox → **minimal reproduction by bisection**:
+  single-arm, NO camera, one OSC target — strip variables until it either
+  boots or pins the offending cfg field. + search IsaacLab GitHub issues
+  for known OSC action-term / app-init hangs.
+
+Acceptance #1 (boots) is therefore NOT actually passing (earlier
+"gym.make completes / env made" on prior runs is now suspect — those may
+have been different flaky outcomes; the reproducible result is the
+app-init hang). #2/#3 remain BLOCKED. WP1-① is **runtime-blocked at
+app-init; OSC swap is written but unproven at runtime**; contact (③)
+stays gated behind a booting ① step.
+
+### Diagnosis session 2026-08-04 — 4 hypotheses tested, ALL refuted
+
+Reproducible hang at `_start_app` every run. Tested and REFUTED:
+1. **actuator gain** — zeroed the `openarm_arm` stiffness/damping +
+   disable_gravity (matching the official OSC reach env, which is the
+   *correct* OSC prerequisite regardless) → still hangs. So while zeroing
+   gains is a needed OSC fix, it is NOT the hang cause.
+2. **multithread freeze (`PXR_WORK_THREAD_LIMIT=1`, cf. issue #6464)** →
+   still hangs. Refuted.
+3. **faulthandler timer interfering with app init** — a fully
+   faulthandler-free smoke variant → still hangs. Refuted (also confirms
+   the `_start_app` stack dump is the real block, not a timer-thread
+   artefact).
+4. **leftover-GPU-process accumulation** — cleared all stray isaac PIDs,
+   ran on a fully idle GPU → still hangs. Refuted. (NB: this session DID
+   leave 2 stray hung PIDs on the A4500 because `pkill -f 'wp1_osc_smoke.py'`
+   missed the job-tmp path variant and single-PID `kill` only got one —
+   cleanup lesson: kill by `env_isaaclab/bin/python` match, verify GPU
+   empty after every hung run.)
+
+**Control that stands: L2 (DiffIK, same base cfg, same --enable_cameras)
+boots + runs + PASSES.** So the hang is OSC-task-specific, not the
+machine.
+
+**Investigation agent (IsaacLab issue search) key finding:** no known OSC
+app-init-hang issue exists; and the `_start_app` frame is architecturally
+INCONSISTENT with "OSC term inits after scene build" — the real block may
+be elsewhere (all-threads dump needed, not just main frame). Agent's
+first-priority next step (NOT yet done, the decisive fork):
+
+**NEXT (do first, before any more cfg guessing):** run the OFFICIAL OSC
+example to isolate install-vs-our-cfg —
+`isaaclab.sh -p scripts/tutorials/05_controllers/run_osc.py --headless`
+and/or the `Isaac-Reach-Franka-OSC-v0` task. If the official OSC example
+ALSO hangs → Isaac Sim / PhysX install problem (unrelated to our cfg,
+cf. #6220). If it runs → the problem is in our bimanual OSC cfg, then
+bisect (single-arm, no camera, one OSC target). Timebox for this session
+spent; WP1-① stays in_progress, runtime-blocked, next step pinned.

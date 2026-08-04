@@ -42,6 +42,18 @@ class WP1ContactTestbedEnvCfg(AionGenosReachEnvBaseCfg):
         # DiffIK difference is attributable to the controller, not the robot).
         self.scene.robot = OPENARM_BI_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
+        # ── OSC effort-control prerequisite (2026-08-04 root-cause fix) ──
+        # OSC is an operational-space EFFORT/torque controller: it computes
+        # joint torques directly, so the arm actuators must NOT also run a
+        # stiff position-PD loop (HIGH_PD) or the two fight and app-init
+        # hangs. The official OSC reach env (isaaclab_tasks .../reach/config/
+        # franka/osc_env_cfg.py) zeroes the arm actuators' stiffness/damping
+        # and disables gravity. Mirror that for the openarm ARM actuator
+        # (leave the gripper actuator as-is; OSC does not control it).
+        self.scene.robot.actuators["openarm_arm"].stiffness = 0.0
+        self.scene.robot.actuators["openarm_arm"].damping = 0.0
+        self.scene.robot.spawn.rigid_props.disable_gravity = True
+
         # Command / reward body names — same hands as L2.
         self.commands.left_ee_pose.body_name = "openarm_left_hand"
         self.commands.right_ee_pose.body_name = "openarm_right_hand"
@@ -53,34 +65,44 @@ class WP1ContactTestbedEnvCfg(AionGenosReachEnvBaseCfg):
         self.rewards.right_end_effector_orientation_tracking.params["asset_cfg"].body_names = ["openarm_right_hand"]
 
         # ── The one substantive change: OSC action terms (was DiffIK) ──
-        # ① smoke: motion-only. target_types pose_abs; all 6 motion axes
-        # controlled; ZERO contact-wrench axes (pure position/orientation
-        # tracking, DiffIK-equivalent behaviour to validate the swap before
-        # contact). Wrench axes are enabled in WP1-③, re-pinning provenance.
-        _osc_smoke = OperationalSpaceControllerCfg(
-            target_types=["pose_abs"],
-            motion_control_axes_task=(1, 1, 1, 1, 1, 1),
-            contact_wrench_control_axes_task=(0, 0, 0, 0, 0, 0),
-            impedance_mode="fixed",
-            motion_stiffness_task=(100.0, 100.0, 100.0, 100.0, 100.0, 100.0),
-            motion_damping_ratio_task=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0),
-        )
+        # ① smoke: motion-only (target_types pose_abs, no contact wrench).
+        # Controller params mirror the OFFICIAL OSC reach env verbatim
+        # (variable_kp + inertial decoupling + nullspace position control) —
+        # the config IsaacLab ships as a working OSC-on-reach example, so we
+        # do not invent parameters. Contact-wrench axes stay OFF here;
+        # enabling them is WP1-③ and re-pins provenance.
+        def _osc_cfg() -> OperationalSpaceControllerCfg:
+            return OperationalSpaceControllerCfg(
+                target_types=["pose_abs"],
+                impedance_mode="variable_kp",
+                inertial_dynamics_decoupling=True,
+                partial_inertial_dynamics_decoupling=False,
+                gravity_compensation=False,
+                motion_stiffness_task=100.0,
+                motion_damping_ratio_task=1.0,
+                motion_stiffness_limits_task=(50.0, 200.0),
+                nullspace_control="position",
+            )
 
         self.actions.left_arm_action = OperationalSpaceControllerActionCfg(
             asset_name="robot",
             joint_names=["openarm_left_joint.*"],
             body_name="openarm_left_hand",
-            controller_cfg=_osc_smoke,
+            controller_cfg=_osc_cfg(),
+            nullspace_joint_pos_target="center",
             position_scale=1.0,
             orientation_scale=1.0,
+            stiffness_scale=100.0,
         )
         self.actions.right_arm_action = OperationalSpaceControllerActionCfg(
             asset_name="robot",
             joint_names=["openarm_right_joint.*"],
             body_name="openarm_right_hand",
-            controller_cfg=_osc_smoke,
+            controller_cfg=_osc_cfg(),
+            nullspace_joint_pos_target="center",
             position_scale=1.0,
             orientation_scale=1.0,
+            stiffness_scale=100.0,
         )
 
         self.scene.num_envs = 1

@@ -14,13 +14,31 @@ Usage (A4500, IsaacLab python):
 from __future__ import annotations
 
 import argparse
+import faulthandler
+import sys
+
+# Step-0 diagnosis (2026-08-04): if reset/step blocks (python alive, GPU
+# idle = a blocking wait, not compute), dump_traceback_later fires after
+# `--hang-timeout` s and prints EVERY thread's Python stack to stderr — the
+# blocked line, no external PID / py-spy needed (py-spy unavailable here).
+# repeat=True → keeps dumping so we see if it's truly stuck vs just slow.
+faulthandler.enable()
 
 from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--steps", type=int, default=20)
+parser.add_argument("--hang-timeout", type=int, default=45,
+                    help="seconds before faulthandler dumps all thread stacks")
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
+
+# Arm the watchdog dump BEFORE building the env, so a hang anywhere
+# (make/reset/step) is caught.
+faulthandler.dump_traceback_later(args_cli.hang_timeout, repeat=True, file=sys.stderr)
+
+app_launcher = AppLauncher(args_cli)
+simulation_app = app_launcher.app
 
 app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
