@@ -35,9 +35,11 @@ remote unblocked).
 2. **TMLR style swap:** replace the fallback preamble with official
    `tmlr.sty` (`\usepackage[preprint]{tmlr}` for arXiv; plain for
    camera-ready). See main.tex header.
-3. **Author affiliation confirm** — main.tex flags it UNCONFIRMED
-   (nikon.com domain → "Nikon Corporation" guessed; confirm + check corp
-   sign-off).
+3. **Author affiliation confirm** — main.tex carries an "affiliation TBD"
+   placeholder + personal gmail on the public wip (an unconfirmed employer
+   association is kept off the public repo). Author is deciding the
+   affiliation; set it (and, if institutional, the institutional email) at
+   the definitive tag, before arXiv upload.
 4. **Bib pass** — refs.bib is a stub; convert every `\tmlrnote{[cite]}` in
    related_work.tex (and the ASPIRE/Titans/J-Space names in discussion) to
    real entries + `\citep{}`.
