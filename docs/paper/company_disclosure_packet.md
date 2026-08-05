@@ -1,29 +1,39 @@
-# Company Disclosure Packet — external publication of independent research
+# Disclosure & Publication-Permission Request — personal research using company resources
 
 **Author:** Cheng-Yin Tu
-**Date:** 2026-08-04 (draft v1)
-**Purpose:** disclosure to employer ahead of external publication of
-personal research, for review/clearance. Three parts: (1) non-confidential
+**To:** [manager / NRCA IP or legal contact — AUTHOR: fill]
+**Date:** 2026-08-04 (draft v2 — reframed)
+**Purpose:** This is a **proactive disclosure and request for permission
+to publish** externally. The research was carried out **using NRCA
+(Nikon Research Corporation of America) hardware, partly during working
+hours**. I am disclosing it in full and asking (1) permission to publish,
+(2) clarification of IP / authorship attribution, and (3) any required
+affiliation / acknowledgement wording. Three parts: (1) non-confidential
 content summary, (2) disclosure list (venues, nature, public timing),
-(3) resource statement.
+(3) resource & working-arrangement statement.
 
 > **DRAFT — author to review before sending.** Fields marked `[AUTHOR:
-> CONFIRM]` require the author's own attestation (only the author can
-> state them) and must be verified/filled before this goes to the employer.
-> Everything else is drawn from committed project artifacts.
+> …]` need the author's input or a company answer and must be resolved
+> before this goes to the company. Affiliation is intentionally left open
+> — it is one of the things this request asks the company to decide.
 
 ---
 
 ## Part 1 — Non-confidential content summary (~1 page)
 
-**Field.** General-purpose embodied-AI research on *memory architecture*
-for learning agents — specifically, whether an agent's accumulated
-experience should be stored in its model weights (parametric) or kept
-external and retrieved at inference (contextual). The work is in the
-open academic domain of machine-learning methodology and uses only
-public models, public simulators, and synthetic simulation data. It has
-**no relationship to any employer product, business line, customer data,
-or proprietary technology** (see Part 3).
+**Field.** General-purpose machine-learning methodology research on
+*memory architecture* for embodied learning agents — whether an agent's
+accumulated experience should be stored in model weights (parametric) or
+kept external and retrieved at inference (contextual). The work uses only
+public open-weight models, a public open-source robotics simulator, and
+synthetic data generated in simulation.
+
+**Relationship to company business.** To the best of my knowledge the
+topic is general ML methodology and does **not** touch any Nikon/NRCA
+product, business line, customer data, optical/imaging technology, or
+proprietary method. I flag this for the company's own assessment rather
+than asserting it as settled — that assessment is part of what I am
+requesting.
 
 **Question studied.** When an embodied agent accumulates experience,
 should that experience be baked into its policy weights, or kept external
@@ -33,25 +43,17 @@ and retrieved when needed?
 trajectories on a simulated robotic reaching task; student policies are
 distilled from those trajectories and evaluated under matched protocols,
 including one that supplies the same memory via retrieval at inference
-instead of via training. All models are public (open-weight VLMs); the
-simulator is a public robotics environment; all data is synthetic,
-generated in simulation.
+instead of via training. All models are public open-weight VLMs; the
+simulator is public; all data is synthetic.
 
 **Headline finding.** Distilling memory into weights recovered
 essentially none of the memory benefit, while attaching the *same* memory
-as an inference-time retrieval context recovered it in full — leading to
-a design principle ("distil the competence, externalise the memory") plus
-a mechanistic account of why. A second, harder task shows the same
-direction at reduced, non-significant magnitude. The study's
-methodological emphasis is pre-registration: hypotheses and analysis
-rules were fixed before results, so a negative result is reported as
-evidence rather than buried.
-
-**Why it is publishable and non-sensitive.** The contribution is a
-general ML-methodology result about where knowledge should live in a
-learning system. It contains no employer IP, no product information, no
-customer or proprietary data, and no employer-specific technology. It
-belongs to the same open literature as the public methods it builds on.
+as an inference-time retrieval context recovered it in full — a design
+principle ("distil the competence, externalise the memory") plus a
+mechanistic account of why. A second, harder task shows the same
+direction at reduced, non-significant magnitude. The methodological
+emphasis is pre-registration: hypotheses and analysis rules were fixed
+before results.
 
 ---
 
@@ -61,60 +63,81 @@ belongs to the same open literature as the public methods it builds on.
 |---|---|---|---|---|---|
 | **arXiv** | Preprint server | No | N/A (preprint) | Immediately on upload | Non-anonymous (author named) |
 | **TMLR** (Transactions on Machine Learning Research) | Journal, via OpenReview | Yes | Archival | On acceptance / camera-ready | Non-anonymous |
-| **BAR @ NeurIPS 2026** (workshop) | Workshop paper (4 pp) | Light review | **Non-archival** (official NeurIPS workshop policy) | On workshop acceptance notice / event (Sydney, 2026-12-11) | **Double-blind** submission |
+| **BAR @ NeurIPS 2026** (workshop) | Workshop paper (4 pp) | Light review | **Non-archival** (official NeurIPS workshop policy) | On workshop acceptance / event (Sydney, 2026-12-11) | **Double-blind** submission |
 
 **Timing notes:**
-- **arXiv / TMLR are gated on this disclosure clearance** — neither is
-  submitted until the employer review completes. TMLR's timeline is
-  therefore not under the author's control and may be extended by review.
+- **Nothing is submitted before the company clears this request.** arXiv
+  and TMLR are held pending clearance; TMLR's timeline is therefore
+  company-review-gated and not under my control.
 - **BAR has a hard external deadline of 2026-08-29 (AoE)** that cannot be
-  moved. The 4-page workshop paper is being prepared so it is ready to
-  submit the moment clearance lands; it will **not** be submitted before
-  clearance.
-- **Non-archival status of BAR** means the workshop paper is not a
-  formal publication of record and does not conflict with the TMLR
-  journal submission of the same work (standard dual-track: workshop for
-  early feedback, journal for the archival version).
-- `[AUTHOR: CONFIRM]` any employer policy on lead time between disclosure
-  and publication (e.g. a mandatory N-day review window) — adjust the
-  above timing so the earliest public date respects it.
+  moved. The 4-page workshop paper is prepared so it can be submitted the
+  moment clearance lands; it will **not** be submitted before clearance.
+  If clearance cannot be completed before 2026-08-29, the BAR submission
+  is simply forgone — I am not asking the deadline to override review.
+- **Non-archival** status of BAR means it is not a formal publication of
+  record and does not conflict with the TMLR journal version (standard
+  workshop-for-feedback / journal-for-record dual track).
+- `[AUTHOR / COMPANY: confirm]` any required review lead-time; I will
+  respect whatever window the company sets.
 
 ---
 
-## Part 3 — Resource statement
+## Part 3 — Resource & working-arrangement statement (full, honest disclosure)
 
-The following are the author's attestations. `[AUTHOR: CONFIRM]` each
-line reflects the true situation before sending; edit freely — only the
-author can make these statements.
+Stated plainly for the company's assessment:
 
-- **Time.** `[AUTHOR: CONFIRM]` This research was conducted on the
-  author's own personal time, outside of and unrelated to employment
-  duties.
-- **Hardware / compute.** `[AUTHOR: CONFIRM]` All computation ran on the
-  author's own / privately-arranged hardware (a single workstation-class
-  GPU). No employer computing resources, cloud accounts, or lab equipment
-  were used.
-- **Data.** No employer data of any kind was used. All data is synthetic,
-  generated by the author in a public open-source robotics simulator; the
-  models are public open-weight releases.
-- **IP / confidential information.** The work uses no employer
-  intellectual property, trade secrets, product information, or
-  confidential material. It does not touch the employer's business domain.
-- **No employer facilities or accounts.** `[AUTHOR: CONFIRM]` No employer
-  networks, storage, software licenses, or accounts were used in the
-  research or its writeup.
+- **Hardware.** Training and evaluation used **NRCA hardware**:
+  - a local workstation with a single **NVIDIA RTX A4500** (simulation,
+    data collection, LIBERO/robosuite work), and
+  - a remote **3-GPU workstation** (135 GB VRAM total; the teacher/student
+    inference servers and the LoRA training runs — `CUDA_VISIBLE_DEVICES=1,2`
+    for training, GPU 0 for inference).
+  `[AUTHOR: confirm the exact machine names/asset tags if the company
+  wants them.]`
+- **Working time.** The work was done **partly during working hours and
+  partly on personal time.** I am not representing it as done exclusively
+  off-hours. `[AUTHOR: add any detail the company expects, e.g. approx.
+  split or whether a manager was aware.]`
+- **Data.** No Nikon/NRCA data of any kind was used. All data is synthetic,
+  generated in a public open-source robotics simulator; the models are
+  public open-weight releases.
+- **IP / confidential information.** The work uses no company trade
+  secrets, product information, or confidential material, and (to my
+  knowledge) does not touch the company's business domain — but **because
+  company hardware and partial working time were used, I am not asserting
+  the IP position; I am asking the company to determine it** (ownership,
+  license-back, or release), and I will follow that determination.
+- **Software / accounts.** `[AUTHOR: confirm]` whether any company
+  software licenses or accounts were used beyond the hardware above.
+
+---
+
+## Part 4 — What I am requesting from the company
+
+1. **Permission to publish** the non-confidential content in Part 1 at the
+   venues in Part 2.
+2. **IP / authorship determination** — given company hardware + partial
+   working time, please advise ownership and whether/how I may publish
+   (e.g. as company-affiliated work, or released as personal work).
+3. **Affiliation & acknowledgement wording** — whether the paper should
+   list **Nikon Research Corporation of America** as the affiliation
+   and/or carry a specific acknowledgement. *(The paper's affiliation line
+   is deliberately unset pending this answer.)*
+4. **Any review window** I must observe before the earliest public date.
 
 ---
 
 ## Notes for the author (not part of the packet)
-- Keep Part 1 free of anything that could be read as employer-domain-
-  specific; the current text scopes it to generic embodied-AI/ML memory
-  architecture, which it genuinely is.
-- If the employer requires the actual manuscript, the arXiv PDF (once
-  affiliation is decided) is the artifact to attach — it is the same
-  non-confidential content, in full.
-- Affiliation decision (Nikon vs independent) interacts with this packet:
-  if the employer clears it as independent personal work, the paper may
-  list an independent/no affiliation; if filed under the employer, the
-  affiliation line and any required acknowledgement come from this review.
-  That decision is downstream of this clearance.
+- Affiliation decision is downstream of this request — do NOT set it on
+  the arXiv/TMLR manuscript until the company answers (main.tex currently
+  carries an "affiliation TBD" placeholder + personal email, which is the
+  right holding state).
+- The framing changed from v1 ("independent personal work") to v2
+  ("company-resource disclosure + permission request") after the author
+  clarified: NRCA hardware, partial working hours. v1's independent
+  framing would have mis-stated the facts to the employer — v2 is the
+  honest and safe framing.
+- Fact base for Part 3 verified against repo (2026-08-04):
+  run_d11_pipeline.sh uses `CUDA_VISIBLE_DEVICES=1,2` (remote training on
+  2 of 3 GPUs); llama_server_*.sh deploy on the remote 135 GB-VRAM host;
+  l2_stage1_pipeline.sh references the "LOCAL A4500". Both machines = NRCA.
