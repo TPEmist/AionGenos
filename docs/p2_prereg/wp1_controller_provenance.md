@@ -136,3 +136,42 @@ ALSO hangs → Isaac Sim / PhysX install problem (unrelated to our cfg,
 cf. #6220). If it runs → the problem is in our bimanual OSC cfg, then
 bisect (single-arm, no camera, one OSC target). Timebox for this session
 spent; WP1-① stays in_progress, runtime-blocked, next step pinned.
+
+### Isolation test 2026-08-05 — VERDICT: INSTALL-LAYER (official OSC also hangs)
+
+Per the pinned fork + PI spec (mechanical GPU gate before launch;
+`assert_gpu_clear.sh` = "cleanup must have an assertion"). Ran the
+**official, unmodified** IsaacLab tutorial
+`scripts/tutorials/05_controllers/run_osc.py --headless --num_envs 1`
+(no camera, no AionGenos cfg — pure install-layer probe).
+
+**Result: it HANGS too** — reaches deeper than our smoke (into
+`simulation_context` PhysX init, GPU 2549 MiB = scene actually building)
+then freezes; log frozen, process alive, no sim loop. A stock IsaacLab OSC
+example, zero of our code, hangs on this machine.
+
+**Verdict (spec branch 1): this is an INSTALL-LAYER problem, NOT our
+bimanual OSC cfg.** Evidence chain:
+- official run_osc.py (our code = none) hangs → not our cfg;
+- L2 (DiffIK, our cfg) runs → not the machine in general, and not our
+  task scaffolding;
+- ⇒ the fault is on the **OSC execution path × this Isaac Sim install**.
+
+**Isaac Sim version: `5.1.0-rc.19+release.26219.9c81211b.gl`** — matches
+the version family in issue **#6220** (Isaac Sim 5.1 kit-startup hang) that
+the investigation agent flagged. Strong corroboration that the OSC path is
+broken in this 5.1-rc build.
+
+**Minimal reproduction (for the upstream/version decision):**
+`./isaaclab.sh -p scripts/tutorials/05_controllers/run_osc.py --headless --num_envs 1`
+hangs at `simulation_context` init; any non-OSC task (e.g. L2 reach) runs
+fine on the same install. gdb/py-spy native backtrace was attempted but
+ptrace was not permitted in this env (native stack not captured).
+
+**Per PI spec: NOT entering a fix spiral.** An install operation
+(IsaacLab / Isaac Sim version up/down-grade) is a NEW engineering decision
+outside this timebox. WP1-① is marked **BLOCKED-ON-UPSTREAM**; the cfg is
+written and correct, unprovable until the OSC-on-5.1 install issue is
+resolved. Recommended next (for PI ruling): assess cost of moving off
+Isaac Sim 5.1-rc.19 to a build where the official OSC example runs. Pivot
+work to WP1-② (Edge-Grasp bridge recon — no ① dependency, pure CPU).
