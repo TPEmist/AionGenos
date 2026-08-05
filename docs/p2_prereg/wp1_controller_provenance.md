@@ -252,3 +252,25 @@ Any empirical claim that changes a decision branch ("X also hangs", "Y
 PASS") is reported WITH raw evidence: exact command, last ~20 log lines,
 exit status / liveness readings — not just the verdict. The user's spot-check
 cost should be one glance, not a re-run.
+
+### A1 bisection 2026-08-05 — s-table (build-up from official OSC reach env)
+
+| stage | added variable | verdict | evidence |
+|---|---|---|---|
+| s0 | official OSC + openarm SINGLE arm | **PASS** | env made → reset OK → 5/5 steps → STAGE PASS, action_dim=13; body `openarm_hand` confirmed |
+| s1 | + 2nd arm (dual articulation, 2 OSC terms) | **PASS** | STAGE PASS, action_dim=26 — REFUTES highest-suspicion bimanual×OSC |
+| s2 | + AionGenos RGB camera (verbatim) | **PASS** | STAGE PASS w/ --enable_cameras — refutes camera×OSC-reset |
+| s3 | + AionGenosReachEnvBaseCfg extras (reset event, cmd lock, …) | pending | next |
+
+**Interim conclusion:** OSC, bimanual, and camera are all EXONERATED. The
+root cause of the original test-bed's reset stall is in what
+`AionGenosReachEnvBaseCfg` adds over the official reach base. Prime suspect:
+the custom `reset_robot_joints` EventTerm (`reset_joints_to_target_with_offset`,
+reach_env_base_cfg.py:90). s3 adds the base's extras one at a time; the
+first red stage is the root cause, then A2 native-stack on that config.
+
+Incidental (crashes not hangs, fixed): s1 stale franka `arm_action`
+(panda_joint.* regex); s1 gym-register clobbered by a linter edit on
+`tasks/__init__.py` — re-added. Note: `tasks/__init__.py` is being edited by
+a linter/other hand between my writes; re-verify my gym.register survives
+before each run.
