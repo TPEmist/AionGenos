@@ -274,3 +274,22 @@ Incidental (crashes not hangs, fixed): s1 stale franka `arm_action`
 `tasks/__init__.py` — re-added. Note: `tasks/__init__.py` is being edited by
 a linter/other hand between my writes; re-verify my gym.register survives
 before each run.
+
+### 2026-08-05 — the "other hand" located + isolated (4th shared-resource incident)
+
+The intermittent clobber of a WP1 `gym.register` in `tasks/__init__.py` was
+traced to the **IDE (Antigravity) Python language server / format-on-save**
+(jedi-lsp + Pylance processes live; git shows no non-mine commit; paper
+worktree did not touch master's tasks/; file mtime = my edit time, so the
+rewrite is intermittent-on-save, not a daemon loop). Cannot disable the
+user's IDE → **isolate**: WP1 registrations moved to a dedicated
+`aiongenos/tasks/wp1_registry.py`; `__init__.py` now only
+`from . import wp1_registry`. A clobber of one import line is trivially
+re-verified; an inline-block clobber was invisible.
+
+**4th shared-resource incident, same lesson each time — isolate, don't
+share:** GPU→lockfile; session-territory→worktree; working-tree→worktree;
+now **file-level contention→dedicated module**. Also scripted the
+cleanup+GPU-assert+launch path into `run_osc_bisect_stage.sh` (explicit
+per-step exit checks, no &&-chains) to buy out the repeated pkill/&&
+footguns — one entry point for every stage from here.
