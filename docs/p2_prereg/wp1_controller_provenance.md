@@ -293,3 +293,27 @@ now **file-level contention→dedicated module**. Also scripted the
 cleanup+GPU-assert+launch path into `run_osc_bisect_stage.sh` (explicit
 per-step exit checks, no &&-chains) to buy out the repeated pkill/&&
 footguns — one entry point for every stage from here.
+
+### A1 bisection 2026-08-05 (cont.) — s3 PASS; last unisolated variable found
+
+| stage | added variable | verdict |
+|---|---|---|
+| s3 | + custom reset event (reset_joints_to_target_with_offset) | **PASS** (action_dim=26) |
+
+s0–s3 ALL GREEN. OSC, bimanual, camera, and the custom reset event are all
+exonerated. Comparing the original `WP1ContactTestbedEnvCfg` against the
+(green) s-stages, the ONE remaining unisolated variable is the **robot cfg
+flavour**: the original uses `OPENARM_BI_HIGH_PD_CFG`, the s-stages use
+plain `OPENARM_BI_CFG`. The original already zeroes the ARM actuator
+stiffness/damping (so HIGH_PD's arm-gain override is neutralised), leaving
+HIGH_PD's **gripper actuator gains (stiffness=2e3, damping=1e2)** as the
+only remaining difference (s-stages have plain gripper gains). Candidate
+s4: s3 + swap robot to HIGH_PD (or raise gripper gains) — the last thing to
+test before the original testbed's config is fully accounted for.
+
+**Timebox reached (s0–s3 done, all green, original still stalls).** Per PI
+rule: STOP and report the complete s-table. Emerging root-cause candidate:
+HIGH_PD gripper gains × OSC (a high-stiffness gripper PD loop under an
+effort controller — plausibly the same "PD fights effort" mechanism that
+zeroing the ARM gains fixed, but left in place on the gripper). This is a
+lead, not a verdict — s4 + the 2×2 confirm would settle it, pending PI go.

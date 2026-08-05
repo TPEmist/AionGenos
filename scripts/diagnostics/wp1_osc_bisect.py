@@ -40,6 +40,7 @@ _STAGE_GYM = {
     "s0": "Isaac-AionGenos-OSC-Bisect-S0-v0",
     "s1": "Isaac-AionGenos-OSC-Bisect-S1-v0",
     "s2": "Isaac-AionGenos-OSC-Bisect-S2-v0",
+    "s3": "Isaac-AionGenos-OSC-Bisect-S3-v0",
 }
 
 
