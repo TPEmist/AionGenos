@@ -139,6 +139,33 @@ spent; WP1-① stays in_progress, runtime-blocked, next step pinned.
 
 ### Isolation test 2026-08-05 — VERDICT: INSTALL-LAYER (official OSC also hangs)
 
+> **⚠️ SUPERSEDED — dated correction 2026-08-05 (later same day).**
+> **This install-layer verdict is WRONG. Kept verbatim below for honesty;
+> do not act on it.** Two compounding errors produced it, both surfaced
+> when the user hand-ran the official example without `--headless`:
+>
+> 1. **Misread control.** The official `run_osc.py` did NOT hang. It prints
+>    `"Setup complete..."` then enters a SILENT `while
+>    simulation_app.is_running()` loop (`sim.step(render=True)`, no
+>    per-step print). "log frozen after Setup complete" was a normal
+>    no-output sim loop, not a hang. The user's headed run stayed alive 3+
+>    min; a fresh headless run also just runs silently. **Official OSC works
+>    on this install.**
+> 2. **Self-broken instrument.** Our own smoke had a DUPLICATE
+>    `AppLauncher(args_cli)` (accidentally inserted during an earlier
+>    shell-edit that added flush markers). The 2nd AppLauncher deadlocks
+>    (app already started) → the real cause of the `_start_app` hang the
+>    faulthandler dump kept pointing at. Removing the dup → smoke now
+>    reaches `env made` (OSC env builds fine).
+>
+> **Corrected root state:** Isaac Sim 5.1 / OSC install is FINE (not #6220).
+> The remaining real issue is our OSC test-bed hanging at **reset /
+> first-step** — the original problem, now cleanly isolated (see the
+> 2026-08-05b section below). The "4 hypotheses refuted → install-layer"
+> chain was disciplined but built on a self-broken instrument + a misread
+> control, so its conclusion is void. Lesson → the three process rules
+> added at the end of this file.
+
 Per the pinned fork + PI spec (mechanical GPU gate before launch;
 `assert_gpu_clear.sh` = "cleanup must have an assertion"). Ran the
 **official, unmodified** IsaacLab tutorial
@@ -175,3 +202,53 @@ written and correct, unprovable until the OSC-on-5.1 install issue is
 resolved. Recommended next (for PI ruling): assess cost of moving off
 Isaac Sim 5.1-rc.19 to a build where the official OSC example runs. Pivot
 work to WP1-② (Edge-Grasp bridge recon — no ① dependency, pure CPU).
+
+### 2026-08-05b — CORRECTED state after the dup-AppLauncher fix
+
+With the duplicate `AppLauncher` removed, the smoke now prints
+`[smoke] cfg parsed OK` → `[smoke] env made: Isaac-AionGenos-WP1-Contact-v0`
+(the OSC bimanual env BUILDS — this was unreachable before). It then stalls
+at **reset / first step** (no `reset OK` marker). This is the original,
+real WP1-① issue, now cleanly isolated from the two red-herrings above.
+
+- Install is fine (official OSC runs; headed run stayed alive 3+ min).
+- OSC env construction is fine (`env made`).
+- Open: reset/first-step stall. faulthandler in-process dump is unreliable
+  here (Isaac Sim app takes over signal handlers → the timer never fired);
+  need EXTERNAL attach (`py-spy dump --native`, no in-proc signal dep) if a
+  stack is required.
+
+**Diagnosis plan (PI-approved):** B first (cheapest single variable) —
+run the OSC test-bed WITHOUT `--enable_cameras` (official run_osc has no
+camera and runs; ours has a camera and stalls → camera×OSC-reset
+interaction is the sole differing variable). If B runs → root cause locked;
+assess whether WP1 needs the camera (teacher needs vision → likely yes) and
+fix the interaction. If B still stalls → switch to A: headed mode (leverage
+"headed works") to step closer, and `py-spy dump --native` from outside.
+
+## Process rules (from the 2026-08-05 mis-diagnosis — two root causes, three gates)
+
+These are standing rules, not one-offs. Each grows from a root cause of the
+mis-diagnosis above.
+
+**Rule 1 — Instrument re-calibration (from: self-broken instrument).**
+After ANY change to a diagnostic tool/script, the NEXT step must re-run a
+KNOWN-GOOD baseline (e.g. the L2 DiffIK config) through the *changed* tool
+before trusting any new observation from it. If the baseline breaks, you
+broke the instrument — you did NOT find evidence. This would have caught
+the duplicate `AppLauncher` within one run (L2 through the edited harness
+would have hung too, flagging the harness not the task).
+
+**Rule 2 — Operational definition of "hang" (from: misread control).**
+Before declaring a hang, check ≥2 liveness signals over a defined window:
+GPU utilisation, process CPU state, log-file size growth, sim-step counter.
+"No stdout output" ALONE is not a hang — a silent sim loop looks identical.
+This would have caught the official-example misread (it was running silently
+with live GPU/CPU, growing nothing in the log because the loop simply does
+not print).
+
+**Rule 3 — Evidence-attached reporting (from: expensive-to-audit verdicts).**
+Any empirical claim that changes a decision branch ("X also hangs", "Y
+PASS") is reported WITH raw evidence: exact command, last ~20 log lines,
+exit status / liveness readings — not just the verdict. The user's spot-check
+cost should be one glance, not a re-run.

@@ -40,9 +40,6 @@ faulthandler.dump_traceback_later(args_cli.hang_timeout, repeat=True, file=sys.s
 app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
 
-app_launcher = AppLauncher(args_cli)
-simulation_app = app_launcher.app
-
 import gymnasium as gym
 import torch
 
