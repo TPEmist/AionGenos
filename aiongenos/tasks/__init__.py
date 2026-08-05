@@ -70,3 +70,33 @@ gym.register(
         "env_cfg_entry_point": "aiongenos.tasks.WP1_contact_testbed.osc_testbed_cfg:WP1ContactTestbedEnvCfg",
     },
 )
+
+# WP1-① OSC bisection s0: official OSC reach env + openarm single arm.
+gym.register(
+    id="Isaac-AionGenos-OSC-Bisect-S0-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": "aiongenos.tasks.WP1_contact_testbed.osc_bisect_s0_cfg:OscBisectS0EnvCfg",
+    },
+)
+
+# WP1-① OSC bisection s1: s0 + second arm (dual articulation, two OSC terms).
+gym.register(
+    id="Isaac-AionGenos-OSC-Bisect-S1-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": "aiongenos.tasks.WP1_contact_testbed.osc_bisect_s1_cfg:OscBisectS1EnvCfg",
+    },
+)
+
+# WP1-① OSC bisection s2: s1 + camera (isolate camera×OSC-reset).
+gym.register(
+    id="Isaac-AionGenos-OSC-Bisect-S2-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": "aiongenos.tasks.WP1_contact_testbed.osc_bisect_s2_cfg:OscBisectS2EnvCfg",
+    },
+)
