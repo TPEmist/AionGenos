@@ -379,3 +379,23 @@ Runner hardening (2026-08-06) burns rules 1–3 into the one entry point
 file (callers cite the verdict, never stdout atmosphere); (c) known-good L2
 DiffIK baseline runs first, baseline-red ⇒ verdicts VOID. Rule 4 is the
 new standing rule above.
+
+### WP1-① acceptance #2/#3 — design pinned (2026-08-06), run next via hardened runner
+
+Runner hardening + Rule 4 done and verified: hardened runner ran `orig`
+with (c) L2 baseline GREEN → (b) machine VERDICT=PASS from the verdict file
+(not stdout), (a) unbuffered. The runner is now the trusted instrument.
+
+**#2 motion-equivalence (design):** OSC action_dim=13 (single arm) =
+pose_abs[7: pos xyz + quat wxyz] + variable_kp stiffness[6]. Test = set the
+first 7 dims to a KNOWN-REACHABLE target (sample from the env command
+generator, or current EE pose + small in-workspace offset — NOT arbitrary,
+which could be unreachable → false "didn't converge"), servo ~60-120 steps,
+measure final ‖EE − target‖ < ~5cm gate that DiffIK achieves.
+
+**#3 seed determinism (design):** reuse D11 two-way check on the OSC
+test-bed (same-seed identical ε=1e-4, diff-seed varies ≥1e-3).
+
+Both are behavioural checks on a WORKING env, NOT blockers. Two green ⇒
+WP1-① fully green ⇒ P2 prereg [PWR-SIM] pilot (r-estimator variance → Δr
+prior / G×n grid before gen 0).
