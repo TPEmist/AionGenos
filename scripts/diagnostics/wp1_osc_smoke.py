@@ -65,7 +65,9 @@ def main() -> None:
 
     obs, _ = env.reset(seed=4700)
     act_dim = env.action_space.shape[-1]
-    print(f"[smoke] reset OK. action dim = {act_dim}")
+    print(f"[smoke] reset OK. action dim = {act_dim}", flush=True)  # flush: an
+    # unflushed print here (2026-08-06) left the log frozen at 'env made',
+    # misread AGAIN as a reset hang — the 3rd instance of no-flush → false hang.
 
     # Motion-only: feed a small constant pose_abs-style action and confirm
     # the env steps without controller/solver error. We do NOT assert task

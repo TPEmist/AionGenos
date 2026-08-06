@@ -59,3 +59,13 @@ gym.register(
         "env_cfg_entry_point": "aiongenos.tasks.WP1_contact_testbed.osc_bisect_s3_cfg:OscBisectS3EnvCfg",
     },
 )
+
+# Single-variable test on the REAL test-bed: gripper actuator gains zeroed.
+gym.register(
+    id="Isaac-AionGenos-WP1-GripZero-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": "aiongenos.tasks.WP1_contact_testbed.osc_gripzero_cfg:WP1GripZeroEnvCfg",
+    },
+)

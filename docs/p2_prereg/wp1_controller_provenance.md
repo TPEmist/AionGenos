@@ -317,3 +317,40 @@ HIGH_PD gripper gains × OSC (a high-stiffness gripper PD loop under an
 effort controller — plausibly the same "PD fights effort" mechanism that
 zeroing the ARM gains fixed, but left in place on the gripper). This is a
 lead, not a verdict — s4 + the 2×2 confirm would settle it, pending PI go.
+
+### 2026-08-06 — WP1-① RESOLVED: the config was fine all along (both "hangs" were script bugs)
+
+Direct single-variable test on the REAL test-bed, via the clean bisect
+smoke (single AppLauncher, all prints flushed): **the original
+`WP1ContactTestbedEnvCfg` PASSES** — env made → reset OK → 5/5 steps →
+STAGE PASS (action_dim=26), reproduced twice. The gripper-gain fix
+(gripzero) was not even needed to reach this; the original config runs.
+
+**Root-cause post-mortem — TWO separate script bugs, zero config faults:**
+1. The original "reset hang" (2026-08-03) = the DUPLICATE `AppLauncher` in
+   wp1_osc_smoke.py deadlocking at `_start_app` (fixed 2026-08-05).
+2. After that fix, wp1_osc_smoke still "stalled at env made" (2026-08-05b)
+   = its `reset OK` print had NO `flush=True`, so a successful reset+step
+   sat in the stdout buffer and the log looked frozen — the SAME
+   no-flush→false-hang misread, 3rd instance. The bisect smoke flushes
+   every marker, so running the identical cfg through it → PASS.
+
+**Verdict: WP1-① OSC bimanual test-bed WORKS.** OSC × openarm × dual-arm ×
+camera × custom-reset all run; s0–s3 green were real, and the original is
+green too. The whole "install-layer / reset-hang / gripper-gain" chase was
+chasing diagnostic-instrument artefacts. The arm-gain zeroing (2026-08-04)
+IS a correct OSC prerequisite and stays; the gripper-gain hypothesis is
+moot (never needed). 
+
+**Cost honestly logged:** ~4 diagnosis sessions burned on two flush/dup
+script bugs. The three process rules (instrument re-calibration, hang
+operational-definition, evidence-attached reporting) were written FROM
+these; the 3rd no-flush recurrence shows Rule 2 ("≥2 liveness signals, not
+'no output'") must be applied every time, not just written down — had I
+checked CPU state (0.0%, but the proc was mid-close after a completed run,
+not blocked) against log-size I'd have caught it a session earlier.
+
+**WP1-① acceptance status:** #1 boots ✓, reset+step ✓. Remaining for a
+true green: #2 motion-equivalence (does OSC actually track a pose target to
+the ~5cm gate, not just step without error) + #3 seed determinism. These
+are behavioural checks on a WORKING env, not blockers. WP1-① unblocked.

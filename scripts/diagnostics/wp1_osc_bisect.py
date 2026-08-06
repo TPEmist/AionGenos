@@ -22,7 +22,7 @@ import sys
 from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--stage", choices=["s0", "s1", "s2", "s3"], default="s0")
+parser.add_argument("--stage", choices=["s0", "s1", "s2", "s3", "orig", "gripzero"], default="s0")
 parser.add_argument("--steps", type=int, default=5)
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
@@ -41,6 +41,8 @@ _STAGE_GYM = {
     "s1": "Isaac-AionGenos-OSC-Bisect-S1-v0",
     "s2": "Isaac-AionGenos-OSC-Bisect-S2-v0",
     "s3": "Isaac-AionGenos-OSC-Bisect-S3-v0",
+    "orig": "Isaac-AionGenos-WP1-Contact-v0",        # the real stalling test-bed (baseline)
+    "gripzero": "Isaac-AionGenos-WP1-GripZero-v0",   # orig with gripper gains zeroed (1 variable)
 }
 
 
