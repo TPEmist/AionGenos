@@ -354,3 +354,28 @@ not blocked) against log-size I'd have caught it a session earlier.
 true green: #2 motion-equivalence (does OSC actually track a pose target to
 the ~5cm gate, not just step without error) + #3 seed determinism. These
 are behavioural checks on a WORKING env, not blockers. WP1-① unblocked.
+
+## Process rule 4 (from the 2026-08-06 saga — the structural lesson)
+
+**Rule 4 — Characterise the patient on a calibrated instrument FIRST.**
+Before starting ANY comparative bisection (build-up or strip-down), run the
+ORIGINAL failing artefact itself through the standardised, hardened runner
+once. Define the symptom on a calibrated instrument, THEN build the
+comparison ladder. Had this existed, the whole OSC saga ends on day 1: the
+original test-bed run through a flushed single-AppLauncher runner PASSES —
+there was never a config fault to bisect. The s0–s3 ladder was built to
+explain a symptom that only existed in a broken instrument.
+
+**s0–s3 are RETAINED, not deleted (supersede-not-erase).** They are valid
+positive compatibility evidence: OSC × openarm-single, OSC × bimanual
+(two action terms), OSC × camera, OSC × custom-reset each independently
+boot+reset+step. That evidence is reusable for WP1-③ (contact primitives)
+and as a minimal-repro scaffold; it is not waste. What is superseded is the
+INFERENCE ("root cause is upstream in some stage"), not the DATA.
+
+Runner hardening (2026-08-06) burns rules 1–3 into the one entry point
+`run_osc_bisect_stage.sh`: (a) PYTHONUNBUFFERED+stdbuf → flush sterilised;
+(b) background monitor writes heartbeat + machine PASS/FAIL/HANG verdict
+file (callers cite the verdict, never stdout atmosphere); (c) known-good L2
+DiffIK baseline runs first, baseline-red ⇒ verdicts VOID. Rule 4 is the
+new standing rule above.
