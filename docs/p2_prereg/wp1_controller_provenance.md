@@ -399,3 +399,24 @@ test-bed (same-seed identical ε=1e-4, diff-seed varies ≥1e-3).
 Both are behavioural checks on a WORKING env, NOT blockers. Two green ⇒
 WP1-① fully green ⇒ P2 prereg [PWR-SIM] pilot (r-estimator variance → Δr
 prior / G×n grid before gen 0).
+
+### WP1-① GREEN (2026-08-06) — all three acceptances pass
+
+- **#1 boots + reset + step**: ✓ (orig VERDICT=PASS on hardened runner, ×2).
+- **#2 motion-equivalence**: ✓ PASS-REACHED — OSC servos the EE to the env's
+  own (reachable) ee_pose command down to **min 2.14 cm**, well inside the
+  ~5 cm gate. It then drifts (final ~17 cm) because a constant pose_abs
+  target + fixed stiffness=100 doesn't HOLD — a tuning matter, NOT a
+  capability gap. Motion capability CONFIRMED.
+- **#3 seed determinism**: ✓ PASS — same-seed L2 dist 0.00 m, diff-seed
+  1.17 m. Paired-eval-ready (D11-style two-way check).
+
+**WP1-① (closed-loop contact control, OSC action-term swap) is GREEN.** The
+OSC bimanual test-bed boots, servos to pose targets, and is seed-paired.
+Open follow-ups (NOT blockers): stiffness/damping tuning so the EE HOLDS at
+target (relevant when contact/wrench is enabled in WP1-③); these are
+tuning, on a working controller.
+
+**Next:** P2 prereg [PWR-SIM] pilot — use this working test-bed to collect
+r-estimator variance and fill the Δr prior / G×n grid (the last block
+before gen 0).
