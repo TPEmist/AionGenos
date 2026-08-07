@@ -214,3 +214,35 @@ computed from data, not decided by a read-through.
 applicability boundaries) is the ASPIRE-worldview home crowd; P2's
 external-library-vs-parametric-consolidation positioning has a natural
 audience there. Recorded as a venue candidate; no action now.
+
+## 8b. [PWR-SIM] progress (2026-08-06) — step 1 DONE, first hard constraint found
+
+**Step 1 (r-tracker estimator + chance-band + monotonicity) — DONE, LOCKED.**
+`scripts/analysis/p2_r_tracker.py` implements and self-tests:
+- r_g = Spearman(round-1 correction c, situation feature s) — rank corr,
+  robust to the bounded/nonlinear correction range.
+- chance band = permutation null of r under H0 "correction is
+  situation-independent" (2.5/97.5 pct); r_g above the upper edge ⇒
+  significantly situation-conditional at gen g.
+- confirmatory trend = monotonic_climb: Spearman(gen_index, r_g) with a
+  permutation p (does r rise across generations?).
+Self-test passes: a conditional signal clears the band (r=0.99), pure noise
+sits inside it (r=0.20, not above), and a rising r-series trends up.
+
+**First locked PWR-SIM constraint — G ≥ 5.** The permutation monotonicity
+test cannot reach α=0.05 with fewer than 5 generations: even a PERFECT
+r-climb gives min p=0.084 at G=4 (1 of 4! orderings, ">=" inclusive),
+p=0.016 at G=5, 0.009 at G=6, 0.0004 at G=8. So **G≥5 is a hard floor** for
+the confirmatory trend; a noisy real r will want more. This is a genuine
+pre-flight number, computed not guessed.
+
+**Steps 2–4 still BLOCKED on a contact task (honest scope).** Step 2 (gen-0
+r estimate → Δr prior) needs a *chosen contact task with a gen-0 collect*.
+WP1-① delivered a working OSC *controller*, but the contact *task* (scene +
+WP1-③ press/twist primitives) does not exist yet. So the Δr prior, the G×n
+grid (beyond the G≥5 floor), and the stopping rule cannot be filled until a
+contact task exists to run a pilot collect on. The estimator is ready and
+waiting; the task is the remaining dependency. Next real pilot step is
+gated on WP1-③ (or an interim reach-based pilot to sanity-check the
+estimator's variance on real replay data — a methods check, not the Δr
+prior).
