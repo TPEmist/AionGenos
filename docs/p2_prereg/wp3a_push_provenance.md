@@ -74,3 +74,30 @@ object) → 10-ep teacher smoke. Gate: any protocol ≥ 20–25% SR → GO.
 Failure classification routed per the LIBERO template (info-gap / control /
 physics, each with a pre-written fix budget). GO → dual-track: gen-0
 collect (feeds [PWR-SIM] step 2 Δr prior) + ③b press.
+
+### 2026-08-11 — scene+physics acceptance PASS; hold test deferred to scaffolding (layer fix)
+
+Ran `wp3a_push_smoke.py`. **Scene + physics acceptance PASSES:**
+- env boots (Isaac-AionGenos-WP1-Push-v0), OSC bimanual + dynamic cube.
+- cube is a REAL dynamic RigidObject: mass=0.216 kg, gravity on, init pos
+  (0.45, 0, 0.024) — pushable as designed.
+- reset OK, seed-controlled.
+
+**Hold test in this smoke FAILED — but for a LAYER reason, not a controller
+one.** The smoke hand-set the cube's WORLD position as the OSC pose_abs
+target; the EE stalled at ~38 cm (never approached). Diagnosis: OSC
+pose_abs targets are NOT in world frame, so a hand-set world target is the
+wrong frame (same frame trap as #2's first attempt). #2 succeeded precisely
+because it used the env's OWN `ee_pose` command (frame guaranteed correct).
+
+**Layer correction (not a failure):** the hold gate (Pin 1) must be tested
+with a CORRECT-FRAME target, and the correct-frame target comes from the
+command system — which is exactly what the TEACHER SCAFFOLDING uses. So the
+order is: scene+physics acceptance (✓ done) → teacher scaffolding (uses
+left/right_ee_pose commands, correct frame) → THEN the ≥30-step hold gate on
+a real scaffolded push. Forcing hold into the scene smoke conflated layers.
+
+**Status:** ③a scene+physics GREEN. Next in the completion chain: teacher
+scaffolding port (error signal = EE→cube + cube→goal two legs, L0a Fix-3
+lineage), then hold gate + 10-ep teacher smoke on it. The push env is built
+and dynamic-verified; the frame-correct driving is the scaffolding's job.

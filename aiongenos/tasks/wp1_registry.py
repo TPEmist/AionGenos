@@ -69,3 +69,13 @@ gym.register(
         "env_cfg_entry_point": "aiongenos.tasks.WP1_contact_testbed.osc_gripzero_cfg:WP1GripZeroEnvCfg",
     },
 )
+
+# WP1-③a real push: OSC test-bed + dynamic pushable cube.
+gym.register(
+    id="Isaac-AionGenos-WP1-Push-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": "aiongenos.tasks.WP1_contact_testbed.push_s3a_cfg:WP1PushS3aEnvCfg",
+    },
+)
