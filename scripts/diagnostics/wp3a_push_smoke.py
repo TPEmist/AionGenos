@@ -28,7 +28,7 @@ import gymnasium as gym
 import aiongenos.tasks  # noqa: F401
 from isaaclab_tasks.utils import parse_env_cfg
 from aiongenos.tasks.WP1_contact_testbed.wp1_target_gate import (
-    assert_command_frame, base_frame_target_from_world, push_toward,
+    assert_command_frame, base_frame_target_from_world, push_toward_base,
 )
 
 
@@ -57,15 +57,16 @@ def main() -> None:
     half = act_dim // 2
 
     cube0_w = cube.data.root_pos_w[0, :3].clone()
-    # goal in world = left_ee_pose command target (world frame), a
-    # command-system source (Rule 5-compliant), NOT a hand-picked point.
-    goal_term = u.command_manager.get_term("left_ee_pose")
-    goal_w = goal_term.pose_command_w[0, :3].clone()
-    _p(f"cube_w={cube0_w.tolist()}  goal_w(from command)={goal_w.tolist()}")
+    # cube → base frame (sanctioned util). goal = left_ee_pose command,
+    # re-purposed as the CUBE goal; `.command` is BASE frame (Rule 5 source,
+    # the frame #2 verified — NOT pose_command_w which reads 0 pre-update).
+    cube0_b = base_frame_target_from_world(u, cube0_w)
+    goal_b = u.command_manager.get_term("left_ee_pose").command[0, :3].clone()
+    _p(f"cube_b={[round(x,3) for x in cube0_b.tolist()]}  goal_b(.command)={[round(x,3) for x in goal_b.tolist()]}")
 
-    # push_toward primitive: behind-cube approach point, base-frame target.
-    tgt_b, info = push_toward(u, cube0_w, goal_w)
-    _p(f"push_toward: approach_w={info['approach_w']} cube→goal={info['cube_goal_dist_m']*100:.1f}cm")
+    # push_toward primitive, all base frame: behind-cube approach point.
+    tgt_b, info = push_toward_base(cube0_b, goal_b)
+    _p(f"push_toward: approach_b={[round(x,3) for x in info['approach_b']]} cube→goal={info['cube_goal_dist_m']*100:.1f}cm")
 
     action = torch.zeros((u.num_envs, act_dim), device=u.device)
     action[:, 0:3] = tgt_b

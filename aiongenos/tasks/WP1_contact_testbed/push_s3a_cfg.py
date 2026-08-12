@@ -54,3 +54,20 @@ class WP1PushS3aEnvCfg(WP1ContactTestbedEnvCfg):
         for act in (self.actions.left_arm_action, self.actions.right_arm_action):
             act.controller_cfg.motion_stiffness_task = 300.0
             act.controller_cfg.motion_stiffness_limits_task = (100.0, 500.0)
+
+        # ── cube-goal (Pin 4): re-purpose the left_ee_pose command as the
+        # CUBE's goal region (where the cube must be pushed), NOT the EE's
+        # target. Rationale: this reuses an existing seed-deterministic,
+        # base-frame `.command` term (frame-gate compliant, already in the
+        # replay-recording path) rather than adding a new CommandsCfg field
+        # (which would need a dataclass change). Sampling distribution =
+        # Pin 4 (on-table, planar, position-only). The push_toward primitive
+        # reads this goal + the cube pose and computes the behind-cube
+        # approach; the teacher only picks push-this-cube-to-this-goal.
+        g = self.commands.left_ee_pose
+        g.ranges.pos_x = (0.40, 0.60)
+        g.ranges.pos_y = (-0.15, 0.15)
+        g.ranges.pos_z = (0.02, 0.02)      # cube resting height (planar)
+        g.ranges.roll = (0.0, 0.0)
+        g.ranges.pitch = (0.0, 0.0)
+        g.ranges.yaw = (0.0, 0.0)          # position-region goal; orient N/A

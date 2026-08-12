@@ -56,26 +56,23 @@ def assert_command_frame(env) -> None:
     )
 
 
-def push_toward(env, cube_pos_w: torch.Tensor, goal_pos_w: torch.Tensor):
-    """Push primitive. Given cube + goal in WORLD frame, compute the
-    behind-cube approach point and return (pose_abs_target_base, info).
-    The EE aims at cube minus a step along the (cube→goal) direction, so it
-    contacts the far face and drives the cube toward the goal.
+def push_toward_base(cube_pos_b: torch.Tensor, goal_pos_b: torch.Tensor):
+    """Push primitive, all in BASE frame (the frame OSC pose_abs consumes).
+    Given cube + goal in base frame, compute the behind-cube approach point
+    (offset along the reversed cube→goal direction) — the EE contacts the
+    cube's far face and drives it toward the goal. Returns (approach_b, info).
 
-    Returns a base-frame position target (the OSC pose_abs consumes base
-    frame; quaternion left identity — push is planar, orientation is not the
-    controlled DoF here).
+    All-base-frame avoids a base→world→base round-trip: the cube is
+    converted to base once by the caller (via base_frame_target_from_world),
+    the goal is already base (the command term's `.command`), and the result
+    feeds the pose_abs action directly.
     """
-    d = goal_pos_w - cube_pos_w
+    d = goal_pos_b - cube_pos_b
     n = torch.norm(d)
     if float(n) < 1e-6:
-        approach_w = cube_pos_w.clone()  # cube already at goal; hold on it
+        approach_b = cube_pos_b.clone()  # cube at goal; hold on it
     else:
-        approach_w = cube_pos_w - (d / n) * _APPROACH_OFFSET_M
-    tgt_b = base_frame_target_from_world(env, approach_w)
-    info = {
-        "approach_w": approach_w.tolist(),
-        "cube_goal_dist_m": float(n),
-        "offset_m": _APPROACH_OFFSET_M,
-    }
-    return tgt_b, info
+        approach_b = cube_pos_b - (d / n) * _APPROACH_OFFSET_M
+    info = {"approach_b": approach_b.tolist(), "cube_goal_dist_m": float(n),
+            "offset_m": _APPROACH_OFFSET_M}
+    return approach_b, info

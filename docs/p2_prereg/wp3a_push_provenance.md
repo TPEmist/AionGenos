@@ -158,3 +158,64 @@ scaffolding's first real task is to add the cube-goal command term, then
 push_toward has a real goal, then hold-gate + 10-ep smoke. Scene+physics +
 frame machinery are in place; the cube-goal command is the next concrete
 build.
+
+## Pin 4 — cube-goal command: sampling distribution (pinned BEFORE first data)
+
+The push goal is a CUBE goal (where the cube must end up), realised as a
+seed-deterministic `cube_goal` UniformPoseCommand term (base-frame `.command`,
+same sanctioned frame path as the EE commands; frame-gate compliant). Seed
+determines the goal → same seed same goal (P2 paired design) and the goal is
+the r-tracking "situation" variable. Goal position written into the replay
+(`goal_pose`, alongside the existing seed-determined init fields).
+
+**Sampling distribution (Pin 2 table region, planar push):**
+- `pos_x = (0.40, 0.60)` m — on-table, within push reach, in front of arms.
+- `pos_y = (-0.15, 0.15)` m — lateral span (margin inside the EE reach used
+  by ee_pose's (-0.2,0.2) so the push line stays reachable).
+- `pos_z = (0.02, 0.02)` m — fixed at cube resting height (planar push;
+  cube stays on the table). Degenerate range = deterministic z.
+- orientation ranges all (0,0) — goal is a POSITION region (GOAL_RADIUS
+  0.05 m, XY), orientation irrelevant to the cube-in-goal predicate.
+- **Margin note:** cube inits at (0.45, 0.0); goal pos_x/pos_y ranges keep a
+  non-trivial cube→goal vector (push has somewhere to go) while staying in
+  the reachable/pushable workspace. `resampling_time_range=(inf,inf)` — the
+  goal is FIXED for the whole episode (F35 lineage; no mid-episode jump).
+
+### 2026-08-12 (cont.) — cube-goal built + frame CORRECT; new blocker: bimanual OSC EE inert
+
+**Built (spec 1-3):** cube-goal command term (re-purposed left_ee_pose,
+seed-deterministic, base-frame `.command`, Pin-4 distribution, recorded in
+replay path). Frame is now DEMONSTRABLY correct — the smoke prints sane
+base-frame values: cube_b=[0.45,0,0.024], goal_b=[0.419,0.13,0.02] (in the
+Pin-4 sampling range), approach_b=[0.464,-0.058,0.026] (behind the cube),
+cube→goal 13.3cm. push_toward_base geometry verified. Rule-5 frame gate held
+(assert passed; `.command` base not `pose_command_w`).
+
+**New blocker (needs its own diagnosis): bimanual OSC EE is INERT.** With a
+correct base-frame pose_abs target, the left EE does not move at all
+(31.96cm, unchanged across 200 steps — not even gravity drift), cube not
+contacted. This CONTRADICTS WP1-① #2, where the SINGLE-arm s0 env servoed to
+2.14cm with the same method. Difference = single (s0, OPENARM_UNI) vs
+bimanual (push, OPENARM_BI_HIGH_PD). Leading hypothesis: with the arm
+actuator gains zeroed (OSC effort prereq) AND OSC somehow not taking over
+the effort on the bimanual articulation, the arm has NO driving force
+(neither PD nor OSC). Candidate causes to diagnose next: (a) the two OSC
+action terms on one articulation — does each term's joint_names regex
+(openarm_left_joint.* / openarm_right_joint.*) correctly claim its half, or
+does the shared `openarm_arm` actuator group interfere; (b) action layout
+into the two terms (verified [L13][R13] in principle, but the inert EE
+suggests the left term's pose_abs is not reaching the controller); (c) OSC
+stiffness command scaling (my action[:,7:13]=300 vs the term's
+stiffness_scale=100 → effective stiffness / units).
+
+NOTE: s1 bisection (dual-arm OSC, two terms) PASSED boot+reset+step earlier
+— but that fed ZERO actions (just stepped), so it never exercised whether a
+NON-zero pose_abs target actually drives each arm. s1's green covers
+construction, not servo. This inert-EE is the first test of bimanual OSC
+SERVO under a real target.
+
+**Status:** cube-goal + frame machinery GREEN; bimanual-OSC-servo is the
+blocker before hold-gate/smoke. Next: diagnose the inert EE (single-arm
+works, bimanual doesn't) — likely the two-terms-on-one-articulation
+interaction. Hold gate + 10-ep smoke + the mandatory human-eye GIF gate
+(spec 5) all wait behind a moving arm.
