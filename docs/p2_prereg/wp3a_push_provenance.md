@@ -219,3 +219,44 @@ blocker before hold-gate/smoke. Next: diagnose the inert EE (single-arm
 works, bimanual doesn't) — likely the two-terms-on-one-articulation
 interaction. Hold gate + 10-ep smoke + the mandatory human-eye GIF gate
 (spec 5) all wait behind a moving arm.
+
+## Rule 6 (standing, from the s1 lesson, 2026-08-12)
+
+**A gate's green covers ONLY the path it actually exercised.** Any controller
+config's acceptance MUST include a per-limb NON-ZERO-target real-motion check;
+a zero-action boot+step green may NOT be claimed as servo capability. (s1
+passed boot+reset+step feeding ZERO actions → it never tested whether a real
+pose target drives each arm; that gap hid the reachability issue below for a
+whole cycle.) The hardened-runner stage template gains this check: every
+controller stage drives one limb to a known-reachable non-zero target and
+asserts measurable EE motion before reporting green.
+
+### inert-EE diagnosis result (Steps 0/1/2) — NOT inert; it's REACHABILITY
+
+Diagnosis flipped the premise. Readings:
+- **STEP0 torque NONZERO** (max|τ|=40, sum=108) and **EE MOVED 10.08cm / 20
+  steps**. So OSC IS applying force and the EE IS moving — "inert" was wrong.
+- STEP1 joint IDs correct + disjoint: left=[0,2,4,6,8,10,12],
+  right=[1,3,5,7,9,11,13] (interleaved but each 7, non-overlapping). Made a
+  boot-assert per Rule 1.
+- STEP2 action layout correct: left term gets action[0:13] = pose(0.46,-0.06,
+  0.03) + quat + stiffness 300×6; right term action[13:26] all zero. No
+  layout/impedance bug (my leading suspect was WRONG).
+- disable_gravity=True → no-drift is EXPECTED (not a clue).
+
+**Root cause: target reachability, not control.** The smoke's "31.96cm flat"
+was the EE reaching its WORKSPACE LIMIT ~31cm short of the target, then
+stopping — not failing to move. The push approach target has **z=0.026 m
+(table height)**; WP1-① #2 succeeded with targets at z=0.15–0.5 (the arm's
+comfortable range). The openarm EEs, at their mounting height, may not reach
+down to table-contact height.
+
+**This is a go/no-go-level finding for ③a:** push REQUIRES the EE to reach
+table height to contact the cube (cube at z=0.024). If the openarm mount
+cannot reach the table, push is geometrically infeasible in this robot
+configuration — NOT a tuning matter. Next: a reachability sweep (drive EE
+down, find the lowest reachable z) to decide feasibility. If the arm can't
+reach the table, options are (a) raise the cube/table to the arm's reachable
+band, (b) re-mount the arms lower, (c) re-scope ③a — a PI decision, not an
+execution tweak. Hold gate / smoke / GIF gate all wait on push being
+geometrically possible.
