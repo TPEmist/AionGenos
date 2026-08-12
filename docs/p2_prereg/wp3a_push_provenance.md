@@ -101,3 +101,60 @@ a real scaffolded push. Forcing hold into the scene smoke conflated layers.
 scaffolding port (error signal = EE→cube + cube→goal two legs, L0a Fix-3
 lineage), then hold gate + 10-ep teacher smoke on it. The push env is built
 and dynamic-verified; the frame-correct driving is the scaffolding's job.
+
+## Frame gate (standing rule, 2026-08-12) — pose targets from command system ONLY
+
+**Rule 5 (mechanised, from the 2×-same frame trap: #2 first attempt + the
+hold-smoke).** Any pose target fed to an OSC `pose_abs` action MUST be
+produced by the env command system (`command_manager.get_term(...)` /
+`get_command(...)`) OR an explicit IsaacLab frame-transform util
+(`isaaclab.utils.math.subtract_frame_transforms` etc.). **Hand-writing a
+world-position straight into a pose_abs slot is FORBIDDEN** — it silently
+uses the wrong frame (the EE stalls / grasps skew, no error raised). Both
+prior stalls were this. Enforcement: `wp1_target_gate.py` provides the only
+sanctioned target builder + an assert that the target's provenance is a
+command term; smoke scripts import it and cannot bypass it.
+
+## Approach-behind ownership (pinned) — primitive-level, not teacher output
+
+**Ruling (LIBERO hover-descend precedent):** the "approach from behind the
+cube" geometry is mechanical common-sense of a push, so it belongs at the
+PRIMITIVE level, not the teacher's reasoning. Encapsulate
+`push_toward(cube, goal)`: the primitive itself computes the behind-cube
+approach point (offset along the reversed cube→goal vector), approaches, and
+pushes along the line. **The teacher's canonical output = WHICH cube to
+push + toward WHICH goal** — it does NOT emit an approach-point coordinate.
+This split is pinned here; the scaffolding prompt is written to it. Error
+signal has two legs (EE→cube, cube→goal), oracle sources disclosed per the
+L0a convention.
+
+### 2026-08-12 — frame gate + push_toward built; design clarification surfaced
+
+**Built (spec 1+2 mechanised):**
+- **Frame gate (Rule 5)**: `wp1_target_gate.py` — the ONLY sanctioned OSC
+  pose_abs target builder. `base_frame_target_from_world` now uses IsaacLab's
+  `subtract_frame_transforms` (root as frame-0, full rotation), NOT the naive
+  world−root subtraction (that dropped root orientation — the residual frame
+  error in the first hold-smoke). `assert_command_frame` boot-asserts the
+  command term still exposes base-frame `.command` (= pose_command_b, the
+  frame WP1-① #2 verified). Confirmed at runtime: the reach command's
+  `.command` IS pose_command_b (base), while `pose_command_w` (world) is
+  computed lazily and read 0 before update — reading _w was my error.
+- **push_toward primitive (spec 2)**: computes the behind-cube approach point
+  (offset along reversed cube→goal), returns a base-frame target. Teacher
+  will only choose cube+goal; geometry lives here.
+
+**Design clarification (the real next-step, not a bug):** the push task needs
+a CUBE goal, but the current env only has an EE-pose command (`left/right_ee_
+pose`) — a target for the ARM, not for the cube. The hold-smoke wrongly fed
+the EE command as the cube goal (and read the un-updated world field → 0).
+**Push requires its own cube-goal**: a fixed on-table goal region (provenance
+Pin 2's green marker) or a dedicated object-goal command. That is a
+scaffolding-level addition (a cube-goal command term + the two-leg error
+signal EE→cube / cube→goal), NOT something a smoke can improvise. 
+
+**Status:** frame-gate + push_toward mechanisms GREEN and unit-safe; the
+scaffolding's first real task is to add the cube-goal command term, then
+push_toward has a real goal, then hold-gate + 10-ep smoke. Scene+physics +
+frame machinery are in place; the cube-goal command is the next concrete
+build.
