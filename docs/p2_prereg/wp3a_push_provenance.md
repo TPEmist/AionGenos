@@ -428,3 +428,57 @@ point — not a vague "bimanual bug".** Options now sharply scoped:
 - single-arm push on the UNI robot (s0 verified 2cm) remains the cheapest
   path to a working contact task if BI-OSC proves a sink.
 This is now a PI-decidable fork with a concrete root cause, not a mystery.
+
+### 2026-08-17 Step 0 — interleaved-index hypothesis KILLED; decision-tree triggers (3)
+
+**Step 0b (mass-matrix sanity) — the interleaved-index hypothesis is FALSE.**
+On the BI robot the joints ARE interleaved (left=[0,2,4,6,8,10,12], names
+verified), BUT the OSC-style left-arm 7×7 sub-block M[ids][:,ids] is
+CORRECT: symmetric (max|M-Mᵀ|=0), all-positive diagonal, and the
+left×right cross-block is exactly 0 (perfect block-diagonal — confirms the
+agent's fixed-base decoupling math). So `find_joints` resolves the
+interleaved ids correctly by NAME and the sub-block selection is valid.
+**Index selection is NOT the bug.** My confident interleaved-index root
+cause is refuted by direct measurement.
+
+**Decision-tree ruling (pre-committed by PI): trigger (3).** Step 0
+consumed its discriminating job — it KILLED the leading hypothesis but did
+not convict a new one; the true culprit is deeper in the BI×OSC path
+(jacobi body indexing / BI kinematics), and chasing it further is exactly
+the wall the pre-committed tree says is NOT this stage's to attack. Per the
+tree: "unless Step 1 solves in 10 min, (3) single-arm UNI push is the main
+line; bimanual contact = known boundary + upstream issue." Step 1 (asset
+joint-reorder) is not a 10-min solve (would need URDF/asset-level rework),
+so:
+
+- **MAIN LINE = (3) single-arm UNI push.** s0 (UNI, 1 OSC term) is
+  VERIFIED to servo to 2cm. ③a's scientific goal loses nothing: the
+  conditional structure lives in the cube→goal geometry, not the arm count;
+  P1's L0a was single-arm too, so single-arm push is continuous with it.
+  gen-0 collect for [PWR-SIM] proceeds on single-arm push.
+- **Bimanual OSC = KNOWN BOUNDARY + upstream issue.** A minimal repro
+  (BiLeftOnly NO-TRACK 21.6cm while UNI tracks 2cm, mass-matrix verified
+  correct so it's not indexing) has public value; file it to IsaacLab.
+- **(2) custom two-controller action term = deferred P2 mid/late option**,
+  paid only if/when a genuinely bimanual contact task needs it; does NOT
+  block gen-0.
+
+## Rule 7 (standing, from the 5-round UNI/BI confound) — A/B diff table mandatory
+
+Any comparative experiment's "control" MUST list, in provenance, EVERY
+difference from the experiment arm, signed off, before the comparison is
+trusted. The 5-round bimanual-OSC misdiagnosis traced entirely to s0 being
+used as the "single-arm control" while it silently used a DIFFERENT robot
+asset (OPENARM_UNI vs OPENARM_BI) — that difference was never listed, so
+"single works / bimanual doesn't" confounded robot-asset with arm-count for
+five rounds. From now, every A/B in provenance carries a diff table:
+
+| dimension | control (s0) | experiment (bileft) | intended-same? |
+|---|---|---|---|
+| robot asset | OPENARM_UNI_CFG | OPENARM_BI_CFG | **NO — the confound** |
+| # OSC terms | 1 | 1 | yes |
+| arm gains zeroed | yes | yes | yes |
+| controller params | identical | identical | yes |
+
+The single unlisted "intended-same? NO" row is where a confound hides. The
+diff table makes it impossible to run an A/B without confronting it.

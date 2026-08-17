@@ -89,3 +89,13 @@ gym.register(
         "env_cfg_entry_point": "aiongenos.tasks.WP1_contact_testbed.osc_bi_leftonly_cfg:OscBiLeftOnlyEnvCfg",
     },
 )
+
+# Diagnosis Step 0a mirror: BI robot + RIGHT arm one OSC term + LEFT JointPos.
+gym.register(
+    id="Isaac-AionGenos-OSC-BiRightOnly-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": "aiongenos.tasks.WP1_contact_testbed.osc_bi_rightonly_cfg:OscBiRightOnlyEnvCfg",
+    },
+)
