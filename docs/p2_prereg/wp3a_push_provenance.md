@@ -529,3 +529,39 @@ scope back to you rather than deep-diving:
     single-arm as main line; the PI overrode to "fix it properly" — this
     checkpoint is where that override meets a deeper-than-expected cause).
 Your call on which. UNI single-arm fallback remains in backlog, unused.
+
+### 2026-08-17 Stage-1 extension — P1/P2/P3: all three probes fail to convict → scope back to PI
+
+Per PI's 3-probe extension (each with a pre-written prediction):
+- **P1 (body-index): NOT culprit.** Left OSC term resolves body_idx=17
+  (openarm_left_hand)/jacobi_body_idx=16 — correct. At the plateau NO body
+  is near target (nearest finger 45.5cm, EE 57.2cm) → "wrong body on target"
+  prediction did NOT fire.
+- **P2 (init near-singular): NOT culprit.** Jacobian read correctly
+  (fixed-base jacobi_body_idx=body_idx-1; first pass missed the -1 → σ=0
+  read bug, fixed): init(q=0) σ_min=0.0417 cond=39.7; raised σ_min=0.0401
+  cond=46.1 — nearly identical, neither singular. Prediction did NOT fire.
+- **P3: NOT RUN** (gated on P2 conviction).
+- Candidate 2 (URDF): covered — Jacobian (σ_min 0.04 invertible), mass
+  (Step 0b block-diagonal correct), body index all healthy on BI.
+
+**All three concrete candidates refuted + OSC inputs verified healthy, yet
+still no servo (21-30cm, both arms).** So the fault is ABOVE kinematics/
+dynamics — how the action reaches the OSC controller or how effort is
+applied on the BI articulation, a layer these probes don't instrument. A
+genuine deeper-than-indexing integration issue, not a one-line fix.
+
+**Pre-committed regression condition FIRES → scope to PI.** The "fix it
+properly" override assumed a concrete, fixable cause; three discriminating
+probes refuted all three concrete candidates and verified OSC's inputs are
+healthy, so that premise is no longer evidence-supported. Decision for PI
+(full readings above):
+- (I) escalate to IsaacLab upstream WITH this evidence (healthy Jacobian/
+  mass/body, single-arm servos, bimanual doesn't) — the specific bug report
+  the two closed issues lacked; OR
+- (II) build Path B (custom action term wrapping two OSC controller
+  objects, explicit effort merge) — full control, no upstream wait, new
+  code to own through P2; OR
+- (III) revert to the decision-tree main line (3) single-arm UNI push
+  (verified 2cm), bimanual OSC → backlog/upstream, unblock gen-0 NOW.
+UNI single-arm fallback stays verified + ready in backlog.
