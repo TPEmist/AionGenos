@@ -340,3 +340,49 @@ height FIRST (isolate the hold problem from the reach problem — tune gains
 where the arm can already reach, e.g. z=0.30), THEN raise the table by the
 amount that puts the cube in the now-hold-capable band. Order matters:
 tuning at an unreachable height is untestable.
+
+### 2026-08-17 — root cause ISOLATED: bimanual OSC (two terms / one articulation) doesn't servo
+
+Cross-stage tracking probe (same reachable target (0.45,0.10,0.30), same
+frame-gate build, LEFT arm), decisive:
+
+| stage | action_dim | left-EE start | min_err | verdict |
+|---|---|---|---|---|
+| s0 single-arm | 13 | (0.268,-0.026,0.508) | **2.0 cm** | TRACKS |
+| s1 dual-arm (official base, NO camera, NO cube) | 26 | (0.0,0.153,0.162) | **25.1 cm** | NO-TRACK |
+
+**Root cause isolated: it's the BIMANUAL OSC config, not push-specific.** s1
+is the official reach base with TWO OSC action terms and NOTHING else new
+(no cube, no camera) — and it fails to servo (25cm) exactly like the push
+env, while single-arm s0 servos to 2cm. So the cube/camera/table are all
+exonerated; the fault is two OSC action terms on ONE articulation.
+
+Extra clue: the left EE START differs by stage — s0 (0.268,...) vs s1
+(0.0,0.153,0.162). Same openarm left arm, different start pose → the two
+OSC terms perturb each other's state (interleaved joint indices
+L=[0,2,4,6,8,10,12] R=[1,3,5,7,9,11,13]; each term computes mass-matrix /
+inertial-decoupling / nullspace over the SAME articulation, and they
+interfere). The official OSC example only ever runs ONE OSC term on one
+arm — two-terms-on-one-articulation is uncovered territory (the s1
+bisection green was construction-only, Rule 6).
+
+**This is a go/no-go-level design fork (PI decision), not an execution
+tweak.** Options:
+- (A) ONE OSC action term spanning BOTH arms' joints (single term,
+  action_dim ~ pose×2 + stiffness) — if IsaacLab's OSC term supports a
+  multi-body/multi-EE target. Needs checking whether the term can control
+  two EEs at once.
+- (B) keep DiffIK for the arms' reaching, use OSC/impedance ONLY at the
+  contact phase / only on the pushing arm — hybrid; loses "pure closed-loop
+  contact" cleanliness but may be enough for push.
+- (C) single-arm push task (one arm pushes, other parked) — s0 shows
+  single-arm OSC works (2cm); a one-arm push sidesteps the bimanual-OSC bug
+  entirely and still delivers the P2 contact contrast. Cheapest path to a
+  working contact task; the "bimanual" ambition can wait.
+
+Recommendation for PI: (C) single-arm push — it uses the VERIFIED-working
+single-arm OSC (s0), closes the contact-ceiling contrast vs LIBERO, feeds
+r-tracking (push conditional structure is per-episode regardless of arm
+count), and dodges an IsaacLab bimanual-OSC limitation that would otherwise
+become its own research-engineering sink. Bimanual OSC → deferred /
+upstream issue. But this is the PI's call.
