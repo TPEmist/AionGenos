@@ -705,3 +705,48 @@ raise CONTACT HEIGHT into the torque-comfortable band:
 bimanual OSC WORKS (Pin-7); this is purely WHERE to put the contact surface.
 Next probe should find the torque-comfortable contact band's lower edge
 (reachable-with-margin height), then raise cube contact to it + margin.
+
+### 2026-08-17 torque-band sweep — NO comfortable band in Pin-4 region: it's HORIZONTAL reach, not height
+
+Swept z 0.30→0.05 at 3 XY (center 0.50/0.05, far-x 0.60/0.05, far-corner
+0.55/0.15) on the push env (Pin-7 init), servo+hold τ/limit per cell
+(mechanical classify, boundary fixed in code: <0.85 FEASIBLE / [0.85,1) TIGHT
+/ >=1 SATURATED).
+
+**Result: EVERY XY, EVERY z ∈ [0.05,0.30] is SATURATED (τ/limit=1.00), none
+servos (min_err 14-36cm).** Even center z=0.30. NO torque-comfortable band
+exists anywhere in the Pin-4 region.
+
+**But this CONTRADICTS posed_verify's NEAR pass (4.3cm, τ 0.81) — and the
+contradiction is the finding.** NEAR's target was EE_start±12cm ≈
+(0.264,0.169,0.382), CLOSE to the working-pose EE start (0.144,0.219,0.382).
+The band targets are ABSOLUTE (0.50,0.05,z) — the x jumps from 0.144 to
+0.50-0.60, a ~36-45cm horizontal extension. So the arm's torque-comfortable
+zone is a SMALL neighbourhood around its working-pose EE (~x 0.14-0.26); the
+ENTIRE Pin-4 region (x 0.40-0.60) is beyond the horizontal torque envelope.
+
+**Refined FINAL diagnosis: it was never (only) contact HEIGHT — the Pin-4
+cube position (0.45,0) is itself outside the arm's horizontal torque
+envelope.** Raising the table (changing z) does NOT fix a horizontal-reach
+saturation. This is more fundamental than Pin-8's "raise the surface".
+
+**Task-design decision for PI (data complete):** the openarm (7 N·m distal)
+has a small torque-comfortable workspace around x~0.14-0.26; the cube/goal
+must live THERE, not at Pin-4's x 0.40-0.60. Options:
+- move the cube+goal region IN to the arm's torque-comfortable zone (x~0.2,
+  the natural fix — Pin-4 was inherited from reach's command ranges, never
+  calibrated to this 7 N·m arm's contact envelope, same lineage as the
+  table-height issue);
+- OR a fundamentally stronger arm / different mount (out of scope);
+- table height is now a SECONDARY axis — first the horizontal region must
+  come in; then within it, find the height band.
+Pin-4 region + Pin-8 table-raise are BOTH superseded by this: the primary
+correction is the horizontal position of the contact workspace. bimanual OSC
+still WORKS (near-servo verified); this is purely WHERE the contact task
+lives relative to the arm's real torque envelope — a sim-to-real workspace-
+calibration finding, exactly P2 material.
+
+**Process note:** I nearly committed the earlier Pin-8 (raise-table) reading
+before this sweep — the sweep (PI-mandated, XY not just center) caught that
+height was the wrong axis. Sweeping the SURFACE not a point (Rule-7-adjacent)
+again beat a single-point conclusion.
