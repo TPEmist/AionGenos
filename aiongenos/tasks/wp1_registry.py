@@ -79,3 +79,13 @@ gym.register(
         "env_cfg_entry_point": "aiongenos.tasks.WP1_contact_testbed.push_s3a_cfg:WP1PushS3aEnvCfg",
     },
 )
+
+# Diagnosis: BI robot + LEFT arm one OSC term + RIGHT arm JointPosition.
+gym.register(
+    id="Isaac-AionGenos-OSC-BiLeftOnly-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": "aiongenos.tasks.WP1_contact_testbed.osc_bi_leftonly_cfg:OscBiLeftOnlyEnvCfg",
+    },
+)

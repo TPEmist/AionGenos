@@ -16,7 +16,7 @@ from __future__ import annotations
 import argparse
 from isaaclab.app import AppLauncher
 parser = argparse.ArgumentParser()
-parser.add_argument("--stage", choices=["s0", "s1", "push"], default="s1")
+parser.add_argument("--stage", choices=["s0", "s1", "push", "bileft"], default="s1")
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
 app_launcher = AppLauncher(args_cli)
@@ -32,8 +32,10 @@ _GYM = {
     "s0": "Isaac-AionGenos-OSC-Bisect-S0-v0",
     "s1": "Isaac-AionGenos-OSC-Bisect-S1-v0",
     "push": "Isaac-AionGenos-WP1-Push-v0",
+    "bileft": "Isaac-AionGenos-OSC-BiLeftOnly-v0",
 }
-_EE = {"s0": "openarm_hand", "s1": "openarm_left_hand", "push": "openarm_left_hand"}
+_EE = {"s0": "openarm_hand", "s1": "openarm_left_hand",
+       "push": "openarm_left_hand", "bileft": "openarm_left_hand"}
 
 
 def _p(m):
@@ -59,13 +61,24 @@ def main() -> None:
     tgt_w = torch.tensor([0.45, 0.10, 0.30], device=u.device)
     tgt_b = base_frame_target_from_world(u, tgt_w)
     action = torch.zeros((u.num_envs, act_dim), device=u.device)
-    # LEFT arm always occupies action[0:...]; single-arm dim=13, dual=26.
+    # LEFT arm always occupies action[0:13]; left pose_abs + stiffness.
     action[:, 0:3] = tgt_b
     action[:, 3:7] = torch.tensor([1.0, 0.0, 0.0, 0.0], device=u.device)
-    # fill the LEFT term's stiffness slot (indices 7..12 for a 13-dim term)
-    left_dim = 13 if act_dim >= 13 else act_dim
-    if left_dim > 7:
-        action[:, 7:left_dim] = 300.0
+    if act_dim >= 13:
+        action[:, 7:13] = 300.0
+    # CRITICAL (2026-08-17 fix): for the dual-arm env the RIGHT term occupies
+    # action[13:26]. Leaving it ZERO commands the right EE to the BASE ORIGIN
+    # (inside the body) → the right OSC term applies huge effort chasing an
+    # impossible target and, through articulation coupling, drags the whole
+    # robot — which is why the LEFT EE appeared "not to servo". Hold the right
+    # arm at its CURRENT pose instead (a valid, in-place target).
+    if act_dim >= 26:
+        right_idx = robot.body_names.index("openarm_right_hand")
+        r_ee_w = robot.data.body_pos_w[0, right_idx, :3]
+        r_ee_b = base_frame_target_from_world(u, r_ee_w)
+        action[:, 13:16] = r_ee_b
+        action[:, 16:20] = torch.tensor([1.0, 0.0, 0.0, 0.0], device=u.device)
+        action[:, 20:26] = 300.0
 
     dmin = 1e9
     for i in range(120):

@@ -386,3 +386,45 @@ r-tracking (push conditional structure is per-episode regardless of arm
 count), and dodges an IsaacLab bimanual-OSC limitation that would otherwise
 become its own research-engineering sink. Bimanual OSC → deferred /
 upstream issue. But this is the PI's call.
+
+### 2026-08-17 — recon agent + isolation cut: root cause is BI-ROBOT × OSC, NOT arm-count/two-terms
+
+Recon agent (IsaacLab bimanual-OSC query) flagged the decisive flaw in ALL
+my prior comparisons: **UNI-vs-BI robot was confounded with arm-count.** s0
+(TRACKS 2cm) used `OPENARM_UNI_CFG` — a DIFFERENT robot — while s1/push
+(NO-TRACK) used `OPENARM_BI_*`. So "single-arm servos / bimanual doesn't"
+never isolated the real variable.
+
+Agent's decisive isolation, run: **bileft** = BI robot + ONE OSC term
+(left) + right arm on JointPosition (NOT a 2nd OSC term). Result:
+**NO-TRACK, min_err 21.6cm — IDENTICAL to s1's two-OSC-term result** (same
+EE settled, same start (0.0,0.153,0.162)).
+
+**This flips the diagnosis:**
+- NOT "two OSC terms interfere" — ONE OSC term on the BI robot fails too.
+- The clean contrast is now: s0 (UNI robot, 1 OSC term) TRACKS 2cm;
+  bileft (BI robot, 1 OSC term) NO-TRACK 21.6cm. **The only difference is
+  UNI vs BI robot.** Arm-count and two-terms are BOTH exonerated.
+
+Root-cause candidate (agent's + the interleaving clue): the BI articulation
+has INTERLEAVED joint indices (left = [0,2,4,6,8,10,12], right =
+[1,3,5,7,9,11,13]) whereas UNI is contiguous [0..6]. The OSC term takes
+mass-matrix / jacobian sub-blocks by these interleaved ids
+(`get_generalized_mass_matrices()[:,joint_ids,:][:,:,joint_ids]`,
+`get_jacobians()[..., jacobi_joint_ids]`). If any layer assumes contiguous
+joint ordering, the interleaved indices select the wrong sub-block → wrong
+dynamics → EE servos to the wrong place. Also the BI left-arm START pose
+(0.0,0.153,0.162) vs UNI (0.268,-0.026,0.508) differs — same "left arm",
+different robot kinematics/mount, consistent with a BI-specific issue.
+
+**Next (per agent's Go): the fault is BI-robot-OSC, a concrete/checkable
+point — not a vague "bimanual bug".** Options now sharply scoped:
+- verify the interleaved-index hypothesis (does OSC on the BI right arm, or
+  on a BI arm remapped to contiguous ids, track?);
+- or the agent's robust fallback: a single custom action term wrapping two
+  `OperationalSpaceController` objects, computing each arm's 6×7 jacobian +
+  effort explicitly and merging — bypasses whatever the action-term layer
+  mishandles on the BI articulation.
+- single-arm push on the UNI robot (s0 verified 2cm) remains the cheapest
+  path to a working contact task if BI-OSC proves a sink.
+This is now a PI-decidable fork with a concrete root cause, not a mystery.
