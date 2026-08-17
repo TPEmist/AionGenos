@@ -750,3 +750,64 @@ calibration finding, exactly P2 material.
 before this sweep — the sweep (PI-mandated, XY not just center) caught that
 height was the wrong axis. Sweeping the SURFACE not a point (Rule-7-adjacent)
 again beat a single-point conclusion.
+
+### 2026-08-17 P5 δ-clamp setpoint probe — BRANCH-3: not a span artifact; domain shrink stands (gravity-honest)
+
+PI-mandated P5 (jumped the queue before any domain shrink). Hypothesis: the
+band sweep + side-push commanded the ABSOLUTE far target in ONE step
+(action[:,0:3]=far), so OSC saw an instantaneous position error = the whole
+30-45cm span → K·(huge error) saturated. Maybe a SETPOINT-SPAN ARTIFACT, not
+the arm's real envelope. Fix: clamp each commanded setpoint to ≤δ=3cm ahead
+of the CURRENT EE (carrot); walk the far target in as a chain of δ-steps;
+per-step max(τ/limit) throughout; hold ≥30.
+
+**Result (δ=3cm, push env, Pin-7 init):**
+- a far-horizontal (0.50,0,0.30): reached=False, min_err 23.8cm (walked in
+  from ~42 then stalled), walk_peak=1.00 hold_peak=1.00 — SATURATED.
+- b far+low/cube (0.45,0,0.024): reached=False, min_err 53.3cm (DIVERGED —
+  ended farther than start), peaks 1.00 — SATURATED.
+→ a_ok=False b_ok=False → **BRANCH-3: clamp does NOT save it.**
+
+**Config read BEFORE recording (killed my first mis-reading):** I first
+guessed "arm extends → gravity lever on 7N·m distal saturates." FALSE —
+osc_testbed_cfg.py:55 sets robot `disable_gravity=True` (H1-inherited OSC
+prerequisite; push_s3a inherits it). Gravity is OFF. So the saturation is NOT
+gravity torque. With the setpoint error BOUNDED to 3cm AND gravity OFF, the
+arm STILL saturates walking into the far/low region. The residual driver is
+the OSC control law itself at the workspace boundary: with
+inertial_dynamics_decoupling=True the task-space inertia M_task blows up near
+the reach boundary, and nullspace_control="center" adds a pull-back torque as
+the arm extends off its centred posture. That is the arm's REAL controllable
+workspace under THIS (validated, not invented) OSC tuning + 7N·m distal — not
+a setpoint-span artifact.
+
+**Gravity-honesty note (Pin-TODO below):** the whole diagnosis ran with
+robot gravity OFF — an OPTIMISTIC torque budget. With gravity ON (gen-0
+reality), the far-point torque only gets WORSE and the comfort zone only
+SHRINKS. So BRANCH-3's "shrink the domain" conclusion is if anything
+UNDER-stated; it will not reverse under honest gravity. This makes the
+decision safe to act on.
+
+**DECISION for PI (data complete, three-branch pre-committed → BRANCH-3):**
+the contact workspace must move IN to the arm's controllable/torque-
+comfortable zone (~x 0.14-0.26, the posed NEAR pass region: 12cm reach,
+τ 0.81). Pin-4's x 0.40-0.60 was inherited from the REACH task's command
+ranges, never calibrated to this arm's contact envelope.
+**P2 scientific cost (on the table, per PI spec):** r-tracking's "context"
+is supplied by per-episode cube+goal geometry variation; a shrunk domain =
+poorer context space = weaker P2 signal source. The shrink must preserve, in
+the new (smaller) region: cube sampling area + goal area + behind-cube
+approach clearance + ≥8cm push-distance 2D direction variation. Whether
+x~0.14-0.26 (a ~12cm-deep band) can hold all four is the design question to
+settle WITH the PI — not a unilateral shrink.
+
+**Pin-TODO (gravity re-enable, note-2):** disable_gravity=True is an
+H1-inherited OSC prerequisite. AFTER the task geometry is settled and BEFORE
+gen-0 collect: re-enable robot gravity + turn ON OSC gravity_compensation,
+re-verify one round (the no-gravity torque budget is optimistic;
+sim-to-real honesty requires the gravity-on number).
+
+**Process win:** reading the config before recording caught my own
+gravity-lever misread — the finding is "control-law workspace boundary, not
+span, not gravity," which is stronger and correctly-attributed. Rule-2 family
+(don't record a mechanism you didn't read the runtime/config state for).
