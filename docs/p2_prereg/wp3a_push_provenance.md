@@ -260,3 +260,35 @@ reach the table, options are (a) raise the cube/table to the arm's reachable
 band, (b) re-mount the arms lower, (c) re-scope ③a — a PI decision, not an
 execution tweak. Hold gate / smoke / GIF gate all wait on push being
 geometrically possible.
+
+### Reachability sweep 2026-08-17 — pilot (3×3): FAIL, "差一大截" (human-eye confirmed)
+
+Pilot 3×3 over the Pin-4 region (frame-gate targets, Rule-6 real-motion,
+per PI spec). Result:
+- z_momentary: lowest reached ~0.20-0.30 m per cell (2 cells never reached
+  the test range).
+- **z_hold: None in EVERY cell** — the EE cannot HOLD at any tested z.
+- z_hold ≤ 0.03 coverage: **0/9 (0%)** ≪ 90% line → **VERDICT FAIL**.
+
+The openarm EE bottoms out ~0.20 m; the cube contact height is 0.026 m —
+a **~17 cm gap**. Human-eye gate (logs/wp3a_reach_descent_z20.gif, 60-frame
+descent to the z=0.02 target): the arm reaches a limit pose with the EE
+(gripper) clearly FAR from the low target marker — this is "差一大截"
+(a large gap), NOT "差一點". So option (a)'s correction is ~17-20 cm class,
+not a 5 cm tweak.
+
+**Ruling (pre-committed): FAIL → execute (a) raise the work surface.** Put
+the cube centre inside the hold-capable band + 2-3 cm margin; Pin-4 XY
+unchanged; record as a Pin-5 amendment (pre-data, clean). The hold-capable
+band's exact top/bottom needs the focused full sweep next (momentary hits
+0.20 but hold=None even there → the hold-capable band is likely higher,
+~0.25-0.35; the amendment's target height comes from that sweep, not a
+guess).
+
+**Scientific-validity note (for Pin-5, so (a) is not misread as
+easing the task):** no P2 question (conditional structure, r-tracking,
+closed-loop-contact-vs-open-loop-eject) depends on the ABSOLUTE table
+height. This scene inherited its work-surface height from the reach task;
+it was never calibrated for a contact task. Aligning the table to the
+arm's operating envelope fixes the scene to what a real openarm workstation
+would be — it does not make the task easier.
