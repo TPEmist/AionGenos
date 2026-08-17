@@ -613,3 +613,48 @@ the arm gains WERE zero at runtime (cfg intent honoured) but τ saturates at
 the effort limit — a fact invisible in cfg text, visible only at runtime.
 Five rounds of kinematics-quantity reads missed the actuator drive state
 entirely; Rule 8 makes runtime drive-state a first-class check.
+
+**Rule 8 footnote (accounting correction, 2026-08-17):** effort-saturation
+is the near-neighbour of my OWN Round-5 candidate (c) "OSC stiffness command
+scale/units" — which I LISTED then never checked; it silently evaporated
+while I chased frame/index/singularity. The saturation finding is what (c)
+would have surfaced. Lesson folded into Rule 8: every item on a candidate
+list must be either CHECKED-OFF or explicitly marked WHY-SKIPPED — no silent
+evaporation. A listed-but-unchecked candidate is a debt, not a dismissal.
+
+Also pinned: the distal 7 N·m effort limit is a REAL HARDWARE spec, not an
+asset default — openarm.py:55-59 cites motor datasheets (DM-J8009P joints
+1-2, DM-J4340 joints 3-4). So if the down-to-table reach saturates, raising
+the limit fights the hardware truth (sim-to-real); the honest fix is
+posture/effort-allocation, not inflating a datasheet number.
+
+### 2026-08-17 BI working-pose verification — BRANCH-2: OSC WORKS from working pose; TABLE reach TORQUE-limited (real hw)
+
+Decisive. BiLeftPosed (BI robot, left OSC term, left arm at a BI-legal raised
+working pose EE_start=(0.144,0.219,0.382)):
+- **NEAR target (start ±12cm): min_err 4.3cm PASS, |τ|/limit max 0.81
+  (healthy margin) → BIMANUAL OSC ITSELF WORKS.** Every "BI doesn't servo"
+  across 8 rounds was the BI HANGING init pose (from hanging, a target needs
+  super-limit torque). Working-pose init → it servos. OSC is NOT broken.
+- **TABLE target (z=0.03, the real ③a motion): min_err 18.4cm FAIL,
+  |τ|/limit=[1.0,0.42,1.0,1.0,0.82,0.45,0.62] — joints 1/3/4 SATURATED.**
+  Torque-limited, not geometry.
+
+Answers the old reachability puzzle definitively: "can't reach table" = can't
+push DOWN against effort limits, NOT arm-can't-reach. Geometry-vs-torque
+split (PI asked): it's TORQUE. Distal 7 N·m is REAL hardware (openarm.py:
+55-59 motor datasheets), so inflating it fights sim-to-real truth.
+
+**Branch-2 fix (pre-committed): init working-pose + effort/posture, not limit
+inflation.** The saga resolves to: (1) init-pose one-liner fixes servo
+(Pin-7 candidate); (2) table-contact is genuinely torque-bounded by real hw
+— push must approach at a posture with better downward-press leverage, or the
+contact force lives within the 7 N·m distal budget. A real robotics
+constraint, exactly what P2's sim-to-real framing should surface.
+
+**Scope note for PI:** bimanual OSC is now DE-confounded and WORKING
+(near-servo 4.3cm) — the (I)/(II)/(III) fork (upstream/Path-B/single-arm) is
+MOOT for the servo question. What remains is task design: can a push-down
+contact live within the openarm real distal torque budget, or does ③a need a
+posture/approach keeping the press within 7 N·m. A task-design + provenance
+decision, not a controller bug.
