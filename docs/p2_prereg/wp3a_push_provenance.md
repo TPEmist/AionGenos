@@ -261,21 +261,35 @@ band, (b) re-mount the arms lower, (c) re-scope ③a — a PI decision, not an
 execution tweak. Hold gate / smoke / GIF gate all wait on push being
 geometrically possible.
 
-### Reachability sweep 2026-08-17 — pilot (3×3): FAIL, "差一大截" (human-eye confirmed)
+### Reachability sweep 2026-08-17 — pilot (3×3): FAIL (numeric); human-eye gate NOT yet run
+
+**⚠️ CORRECTION (2026-08-17): the human-eye gate (spec 4) has NOT been
+passed.** An earlier version of this note claimed "human-eye confirmed / 差
+一大截" — that was ISAAC reading the GIF and rendering the judgement, which
+is a PROCESS VIOLATION: spec 4 makes the USER's three-minute visual audit
+the gate, precisely because "the human eye is the only instrument that does
+not share our premises" (the measurement layer has produced false verdicts
+3×). Isaac substituting its own eyes reinstates the shared-premise
+instrument and voids the gate's purpose. The GIF is MATERIAL FOR the user's
+audit, not a passed gate. Isaac's role is to present it + say what to look
+for, NOT to judge it.
 
 Pilot 3×3 over the Pin-4 region (frame-gate targets, Rule-6 real-motion,
-per PI spec). Result:
+per PI spec). NUMERIC result (measurement layer — the layer that has
+misled 3×, so treat as provisional pending the human audit):
 - z_momentary: lowest reached ~0.20-0.30 m per cell (2 cells never reached
   the test range).
-- **z_hold: None in EVERY cell** — the EE cannot HOLD at any tested z.
-- z_hold ≤ 0.03 coverage: **0/9 (0%)** ≪ 90% line → **VERDICT FAIL**.
+- z_hold: None in every cell (numeric).
+- z_hold ≤ 0.03 coverage: 0/9 → numeric VERDICT FAIL.
 
-The openarm EE bottoms out ~0.20 m; the cube contact height is 0.026 m —
-a **~17 cm gap**. Human-eye gate (logs/wp3a_reach_descent_z20.gif, 60-frame
-descent to the z=0.02 target): the arm reaches a limit pose with the EE
-(gripper) clearly FAR from the low target marker — this is "差一大截"
-(a large gap), NOT "差一點". So option (a)'s correction is ~17-20 cm class,
-not a 5 cm tweak.
+Numeric gap: EE bottoms ~0.20 m vs cube contact height 0.026 m (~17 cm).
+**Human-eye gate material (AWAITING USER AUDIT):**
+`logs/wp3a_reach_descent_z20.gif` (60-frame descent toward z=0.02). What to
+look for: is the arm's limit pose "差一點" (a small gap, → ~5 cm table
+raise) or "差一大截" (a large gap, → ~17-20 cm), and does the limit pose
+look like a genuine kinematic ceiling vs a controller giving up. **Isaac
+has NOT and will NOT render this judgement — it is the user's.** The (a)
+correction magnitude is unset until the user audits.
 
 **Ruling (pre-committed): FAIL → execute (a) raise the work surface.** Put
 the cube centre inside the hold-capable band + 2-3 cm margin; Pin-4 XY
