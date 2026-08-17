@@ -482,3 +482,50 @@ five rounds. From now, every A/B in provenance carries a diff table:
 
 The single unlisted "intended-same? NO" row is where a confound hides. The
 diff table makes it impossible to run an A/B without confronting it.
+
+### 2026-08-17 Stage 1 — checkpoint 1: culprit NOT localised to indexing; scope signal to re-discuss
+
+Stage 1(a) DONE: BI RIGHT arm single OSC term → NO-TRACK 30.2cm (mirror of
+left's 21.6cm). Both BI arms fail identically. Combined with Step 0b (mass
+sub-block CORRECT, symmetric, block-diagonal), the interleaved-index
+hypothesis is fully dead — indexing is not the culprit.
+
+Stage 1(b) as originally specced ("BI interleaved sub-block vs UNI ground
+truth, element-wise, same pose") — **its PREMISE does not hold.** UNI and
+BI are DIFFERENT robots at the joint-coordinate level, not just different
+index order:
+- different USD (openarm_unimanual.usd vs openarm_bimanual.usd),
+- different init pose (UNI joint1=1.57,3=-1.57,4=1.57 working pose; BI all-0
+  hanging),
+- **different joint LIMITS**: BI left_joint1 ∈ [-3.491,1.396] (UNI's 1.57
+  illegal), BI left_joint2 ∈ [-3.316,0.175]. The joint frames/directions
+  differ.
+So there is NO common pose to put both robots in for an element-wise
+Jacobian/mass comparison — the two arms are not the "same arm, reindexed";
+they are separately-authored articulations. Element-wise ground-truth
+comparison is not defined.
+
+**A side probe I started (BI with a non-hanging init pose, to test whether
+the all-0 hanging config is near-singular for OSC) — I abandoned it: it was
+OFF your Stage-1 spec (an improvised hypothesis), and I was blindly
+guessing BI-legal joint angles, hitting limit errors twice. Recorded as a
+process note: do not improvise off-spec probes mid-stage; the honest move
+is this checkpoint.**
+
+**Checkpoint-1 report (per your "report-and-continue, and re-discuss if
+deeper than indexing"):** the culprit is NOT indexing (Step 0b + 1a), and
+the specced (b) comparison is undefined because UNI/BI aren't the same arm.
+The fault is therefore in the BI×OSC path at a level below joint-index
+selection — candidates now: (i) the BI init/near-singular config for OSC's
+Jacobian solve; (ii) a BI-specific kinematic/URDF property; (iii) something
+in how OSC's Jacobian body-index resolves on the BI articulation. This is
+"deeper than indexing" → per your checkpoint semantics I STOP and bring
+scope back to you rather than deep-diving:
+  - continue Stage-1 root-cause on the BI×OSC Jacobian (a cleaner probe:
+    read BI left-arm Jacobian at a BI-legal pose, check rank/condition —
+    a near-singular Jacobian at the hanging config would explain no-track);
+  - OR accept "bimanual OSC" is a deeper IsaacLab-integration problem than
+    an index fix, and reconsider the earlier decision (the tree had (3)
+    single-arm as main line; the PI overrode to "fix it properly" — this
+    checkpoint is where that override meets a deeper-than-expected cause).
+Your call on which. UNI single-arm fallback remains in backlog, unused.

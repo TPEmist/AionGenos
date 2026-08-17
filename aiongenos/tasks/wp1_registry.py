@@ -99,3 +99,13 @@ gym.register(
         "env_cfg_entry_point": "aiongenos.tasks.WP1_contact_testbed.osc_bi_rightonly_cfg:OscBiRightOnlyEnvCfg",
     },
 )
+
+# Diagnosis Step 1b-alt: BiLeftOnly + left arm at UNI working init pose.
+gym.register(
+    id="Isaac-AionGenos-OSC-BiLeftPosed-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": "aiongenos.tasks.WP1_contact_testbed.osc_bi_leftposed_cfg:OscBiLeftPosedEnvCfg",
+    },
+)

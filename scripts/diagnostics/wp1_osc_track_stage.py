@@ -16,7 +16,7 @@ from __future__ import annotations
 import argparse
 from isaaclab.app import AppLauncher
 parser = argparse.ArgumentParser()
-parser.add_argument("--stage", choices=["s0", "s1", "push", "bileft"], default="s1")
+parser.add_argument("--stage", choices=["s0", "s1", "push", "bileft", "biright", "bileftposed"], default="s1")
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
 app_launcher = AppLauncher(args_cli)
@@ -33,9 +33,13 @@ _GYM = {
     "s1": "Isaac-AionGenos-OSC-Bisect-S1-v0",
     "push": "Isaac-AionGenos-WP1-Push-v0",
     "bileft": "Isaac-AionGenos-OSC-BiLeftOnly-v0",
+    "biright": "Isaac-AionGenos-OSC-BiRightOnly-v0",
+    "bileftposed": "Isaac-AionGenos-OSC-BiLeftPosed-v0",
 }
 _EE = {"s0": "openarm_hand", "s1": "openarm_left_hand",
-       "push": "openarm_left_hand", "bileft": "openarm_left_hand"}
+       "push": "openarm_left_hand", "bileft": "openarm_left_hand",
+       "biright": "openarm_right_hand",
+       "bileftposed": "openarm_left_hand"}
 
 
 def _p(m):
@@ -57,8 +61,10 @@ def main() -> None:
     ee0 = robot.data.body_pos_w[0, ee_idx, :3]
     _p(f"root={[round(x,3) for x in root_w.tolist()]} EE_start={[round(x,3) for x in ee0.tolist()]}")
 
-    # A comfortably reachable target in front of the LEFT arm (world frame).
-    tgt_w = torch.tensor([0.45, 0.10, 0.30], device=u.device)
+    # A comfortably reachable target in front of the arm (world frame).
+    # Right-arm mirror uses -y so the target is in front of the RIGHT arm.
+    _y = -0.10 if args_cli.stage == "biright" else 0.10
+    tgt_w = torch.tensor([0.45, _y, 0.30], device=u.device)
     tgt_b = base_frame_target_from_world(u, tgt_w)
     action = torch.zeros((u.num_envs, act_dim), device=u.device)
     # LEFT arm always occupies action[0:13]; left pose_abs + stiffness.
