@@ -658,3 +658,50 @@ MOOT for the servo question. What remains is task design: can a push-down
 contact live within the openarm real distal torque budget, or does ③a need a
 posture/approach keeping the press within 7 N·m. A task-design + provenance
 decision, not a controller bug.
+
+## Pin 7 (2026-08-17) — BI init working pose (servo fix, independent of side-push)
+
+**Servo fix, pinned NOW (independent of the side-push question).** The BI
+robot MUST init at a raised working pose, NOT the asset default all-0
+hanging pose — from hanging, OSC needs super-limit torque to move and
+saturates (the 8-round "BI doesn't servo" root cause). Verified: working
+pose → NEAR servo 4.3cm, healthy margin (|τ|/limit max 0.81).
+
+Pinned init (BI-legal, verified against limits j1[-3.49,1.40] j2[-3.32,0.17]
+j3[-1.57,1.57] j4[0,2.44] j5[-1.57,1.57] j6[-0.79,0.79] j7[-1.57,1.57]):
+  left_joint1=0.6, joint2=0.0, joint3=0.0, joint4=1.2, joint5=0.0,
+  joint6=0.5, joint7=0.0 (right arm mirrored). One-line cfg in the ③a push
+  env's __post_init__ (self.scene.robot.init_state.joint_pos = {...}).
+This is a permanent ③a-scene requirement; any ③a run inits here.
+
+### 2026-08-17 side-push verification — FINAL verdict: contact height is TORQUE-bound (branch 3)
+
+Side-push feasibility (push env, Pin-7 working init, cube 0.216kg):
+- 1a contact-reach to cube SIDE-face height z=0.024: min_err 28cm FAIL,
+  **peak τ/limit = 1.00 SATURATED**, cube unmoved.
+- 1b horizontal push: peak 1.00, cube moved 0.0cm (never contacted).
+
+**Side-push does NOT dodge the torque wall.** Hypothesis (side avoids
+down-press saturation) WRONG: the cube is SHORT (half-height 2.4cm), so
+side-contact z=0.024 is as LOW as the table z=0.03 — reaching either needs
+super-limit torque. The variable is CONTACT HEIGHT not press-direction: arm
+servos fine at z=0.30 (|τ|/limit 0.81) but saturates at z≈0.024.
+(Probe verdict-logic bug: peak=1.00 printed FEASIBLE-TIGHT via `<=1.0`; 1.00
+IS saturation → branch 3.)
+
+**Branch 3 fires (pre-committed): real-hardware torque constraint → re-
+discuss scene.** Final ③a diagnosis: openarm (real 7 N·m distal limits)
+cannot reach table-height contact (z≈0.024) from base — not geometry
+(reaches 0.30 fine) but torque (low reach needs super-limit torque). Fix =
+raise CONTACT HEIGHT into the torque-comfortable band:
+- (a-justified) raise work surface so cube contact sits where the arm has
+  torque margin — the LEGITIMATE (a) now, grounded in measured torque, not
+  a guess; Pin-4 XY unchanged; a Pin-8 records surface height + the τ data.
+- and/or a TALLER cube (contact height up without moving table) — one-line
+  cube scale, likely cheapest.
+- lighter cube does NOT help 1a (reach saturates before contact).
+
+**Task-design decision for PI, now with complete torque/geometry data:**
+bimanual OSC WORKS (Pin-7); this is purely WHERE to put the contact surface.
+Next probe should find the torque-comfortable contact band's lower edge
+(reachable-with-margin height), then raise cube contact to it + margin.

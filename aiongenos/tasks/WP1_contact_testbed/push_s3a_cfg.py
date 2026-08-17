@@ -27,6 +27,20 @@ class WP1PushS3aEnvCfg(WP1ContactTestbedEnvCfg):
     def __post_init__(self):
         super().__post_init__()
 
+        # Pin-7 (2026-08-17): BI init WORKING pose, not the asset all-0
+        # hanging pose. From hanging, OSC needs super-limit torque → saturates
+        # → no servo (the 8-round root cause). Working pose → servos (4.3cm).
+        # BI-legal values (verified vs joint limits).
+        self.scene.robot.init_state.joint_pos = {
+            "openarm_left_joint1": 0.6, "openarm_left_joint2": 0.0,
+            "openarm_left_joint3": 0.0, "openarm_left_joint4": 1.2,
+            "openarm_left_joint5": 0.0, "openarm_left_joint6": 0.5,
+            "openarm_left_joint7": 0.0,
+            "openarm_right_joint1": 0.6, "openarm_right_joint4": 1.2,
+            "openarm_right_joint6": 0.5,
+            "openarm_left_finger_joint.*": 0.0, "openarm_right_finger_joint.*": 0.0,
+        }
+
         # Dynamic pushable cube — reuse L3's validated DexCube physics
         # (gravity ON so it moves; the exact params pinned in provenance Pin 2).
         self.scene.object = RigidObjectCfg(
