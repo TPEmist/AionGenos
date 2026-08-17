@@ -292,3 +292,37 @@ height. This scene inherited its work-surface height from the reach task;
 it was never calibrated for a contact task. Aligning the table to the
 arm's operating envelope fixes the scene to what a real openarm workstation
 would be — it does not make the task easier.
+
+### Full 5×5 sweep 2026-08-17 — FAIL, and it's TWO stacked problems (not just table height)
+
+Full sweep, z focused 0.15-0.40 (hunting the hold-capable band). Result:
+- **Only 2 of 25 cells can HOLD at all** (both at z=0.375, high in the arm's
+  comfortable range); 23/25 have z_hold=None.
+- z_hold ≤ 0.03 coverage: **0/25** → VERDICT FAIL.
+- worst-cell z_momentary=0.4, z_hold=0.375.
+
+**Re-diagnosis — this is NOT purely table-height.** Momentary reach hits
+0.3-0.4 m across most cells, but the EE HOLDS at almost none of them
+(23/25 fail hold even at heights it can momentarily touch). Two stacked
+problems:
+1. **Reachability**: EE bottoms ~0.2-0.4 m, cannot reach the table (0.026 m)
+   — solvable by (a) raising the work surface.
+2. **Hold**: even at momentarily-reachable heights (0.3-0.4), the EE holds
+   in only 2/25 cells — this is an OSC stiffness/damping TUNING problem
+   (my 300 is insufficient; echoes #2's "reach-then-drift"), and raising
+   the table does NOT fix it.
+
+**Implication for the pre-committed ruling: (a) is NECESSARY BUT NOT
+SUFFICIENT.** Raising the table lets the EE reach contact height, but the
+contact won't HOLD until OSC gains are tuned (the Pin-1 hold gate was
+always meant to be tuned; the sweep shows how far off 300 is). So the fix
+is a PAIR: (a) raise work surface (Pin-5 amendment) + an OSC gain-tuning
+pass to pass the ≥30-step hold at the new (reachable) contact height. These
+compose; neither alone gets a working push.
+
+**This needs a PI decision point** — the ruling assumed (a) alone; the data
+says (a)+hold-tuning. Recommend: do the gain-tuning sweep AT a reachable
+height FIRST (isolate the hold problem from the reach problem — tune gains
+where the arm can already reach, e.g. z=0.30), THEN raise the table by the
+amount that puts the cube in the now-hold-capable band. Order matters:
+tuning at an unreachable height is untestable.
