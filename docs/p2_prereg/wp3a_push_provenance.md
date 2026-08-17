@@ -565,3 +565,51 @@ healthy, so that premise is no longer evidence-supported. Decision for PI
 - (III) revert to the decision-tree main line (3) single-arm UNI push
   (verified 2cm), bimanual OSC → backlog/upstream, unblock gen-0 NOW.
 UNI single-arm fallback stays verified + ready in backlog.
+
+### 2026-08-17 P4 — actuator runtime state: stiffness ZERO (not residual spring); τ SATURATES at effort limit
+
+Per PI's P4 (physics balance: constant nonzero τ + zero velocity + gravity
+off + no contact → a spring → residual joint stiffness). Runtime readings
+(Rule 8: runtime state, not cfg intent):
+- **P4a: arm stiffness/damping are RUNTIME ZERO** (physx view + actuator
+  object both confirm; `openarm_arm` group matched all 14 arm joints
+  correctly). **Residual-stiffness hypothesis REFUTED** — gains-zeroing DID
+  take effect; the spring does not exist. gripper group stiffness=2000 (not
+  arm, irrelevant).
+- **P4c is the finding: effort limits = [40,40,27,27,7,7,7] N·m, and the
+  observed max|τ|=40 EXACTLY equals joint1's limit.** τ is SATURATED at the
+  effort limit. So the plateau is: OSC commands the effort to reach the
+  target, it is CLIPPED at the (low, esp. distal 7 N·m) effort limits, the
+  arm can't produce enough torque to move from its config → stalls. Not a
+  spring (P4 balance argument's mechanism was right — constant nonzero τ has
+  a cause — but the cause is output CLIPPING, not a reaction spring).
+
+**UNI-vs-BI check (decisive nuance): UNI and BI have IDENTICAL effort limits**
+([40,40,27,27,7,7,7]). So effort-clip alone can't explain "UNI servos / BI
+doesn't". The difference is the INIT POSE × effort demand: UNI inits at a
+working pose (joint1=1.57, gravity off → tiny effort to fine-tune to a
+nearby target); BI inits HANGING (all-0) → OSC must drive the arm from
+hanging to the target, which demands torque EXCEEDING the (esp. distal
+7 N·m) limits → saturates → stalls. P2 tested Jacobian singularity (not
+singular) but NOT "effort required to move from this init exceeds the
+limit" — that is the actual mechanism, and it ties the BI hanging init to
+the effort clip.
+
+**Refined culprit: BI hanging-init requires super-limit torque to reach
+targets → effort saturation → no servo.** This is CONCRETE and fixable
+(back on the "specifically fixable" premise): candidates — (a) init BI at a
+working (non-hanging) pose within limits so small corrections suffice
+(the P3 idea, but P3 was gated on P2/singularity which was the wrong gate;
+effort-demand is the right gate); (b) higher effort limits if the real
+openarm supports it; (c) smaller/closer targets. This is testable in one
+run: BI at a legal working init + a NEARBY target → does it servo.
+
+## Rule 8 (standing) — diagnose controllers on RUNTIME state, never cfg intent
+
+When diagnosing a control problem, "what the config intends" is NOT
+trusted — only the RUNTIME actual state counts. All gain/limit/mode checks
+read runtime values (physx view / actuator objects), not cfg text. P4 found
+the arm gains WERE zero at runtime (cfg intent honoured) but τ saturates at
+the effort limit — a fact invisible in cfg text, visible only at runtime.
+Five rounds of kinematics-quantity reads missed the actuator drive state
+entirely; Rule 8 makes runtime drive-state a first-class check.
