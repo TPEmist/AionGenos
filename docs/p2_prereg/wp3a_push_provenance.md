@@ -1054,3 +1054,54 @@ DiffIK-record consistency. Reported to PI; NOT unilaterally decided.
 
 GIFs: logs/reach_posfree/posfree_L_x{25,35,45}_y-20.gif (low-z stuck, wrist
 free — shows the arm folding toward the floor).
+
+### 2026-08-20 ROOT CAUSE (screenshot-confirmed): the scene has NO usable table — L3 swapped the table/robot z-offset from the official convention
+
+PI: "確認範例場景的設定應該是正確的,不然截圖給我確認." Did exactly that —
+rendered the L3 scene (our only same-robot table scene) + read prim bboxes.
+
+**Screenshot (logs/l3_scene/l3_scene.png): floor grid, robot, two GREEN goal
+markers, one tiny YELLOW cube floating in mid-air. NO TABLE visible.**
+
+**Facts (L3, settled):**
+- robot base world z = 0.0
+- EE rest world z ≈ 0.26 (both hands)
+- cube rest world z = 0.024 — floating, NOT on any surface
+- TABLE world bbox z = [-2.09, -0.33] → its TOP SURFACE is at z ≈ −0.33,
+  i.e. BELOW THE FLOOR. The code comment "top surface ends up at z=0" is
+  WRONG.
+
+**Root cause — L3 swapped the official table/robot z convention:**
+- Official IsaacLab lift (ObjectTableSceneCfg): TABLE init pos=[0.5,0,**0**]
+  (table origin at floor, its top ~1.05m up), ROBOT init pos=[0,0,**−1.05**]
+  (robot dropped so its base sits at the table-top height). Net: table top ≈
+  robot base + 1.05 = the arm's natural work height.
+- Our L3 (pick_place_cfg.py:47): TABLE pos=[0.5,0,**−1.05**] (table shoved
+  underground), ROBOT left at z=0. The −1.05 was applied to the WRONG asset.
+  Result: table top at −0.33 (underground), cube floating at 0.024, arm based
+  on the floor. push_s3a inherited this broken premise.
+
+**This resolves EVERYTHING cleanly:**
+- The 9-round "can't reach z=0.024" saga was never torque, orientation,
+  lateral, or a real kinematic floor — it was that the workpiece sits ~24cm
+  BELOW the arm's natural EE height because the table (which should lift the
+  work to EE height) is underground. The reachability envelope was correct;
+  the SCENE was mis-assembled.
+- L3 was never run to success (no collect dumps) → the bug was never exposed
+  until this contact work forced a real reach to the workpiece.
+
+**Fix (matches PI's synthetic-data intent): assemble the work surface at the
+arm's natural height, the OFFICIAL way, as a configurable asset:**
+- Follow the official convention — either robot pos z=−1.05 (arm base at
+  table-top) OR table raised so its TOP is at ~z=0 relative to a floor-based
+  arm; net effect identical: cube contact height ≈ arm EE natural band
+  (z≈0.20-0.30, which the envelope PROVED reachable, each arm owning its
+  lateral side).
+- Make table height / presence a cfg parameter (table_height, spawn on/off)
+  so the background is swappable for synthetic-data domain randomization
+  (PI's stated goal).
+- Then the cube sits ON the table at the reachable band → contact geometry is
+  valid → Pin-9 hybrid control (DiffIK transport + OSC contact) can proceed.
+
+Screenshot evidence: logs/l3_scene/l3_scene.png (cube floating, no table).
+Reported to PI for the assembly decision; NOT unilaterally rebuilt.
