@@ -938,3 +938,30 @@ until the two confounds are killed. Reported to PI with GIFs (human-eye gate)
    whether orientation constraint blocks low-z.
 3. If BOTH confounds killed and low-z STILL walls → Pin-10 (raise table) is
    earned, clean kinematic version.
+
+### 2026-08-20 (addendum) Human-eye gate caught a GIF-material bug: RED cube ≠ servo target
+
+PI viewing the stuck-cell GIFs asked: "the red block looks CLOSER to the body,
+but the arm is fully extended FORWARD — which do I trust?" That question
+exposed a real defect in MY material, not arm behaviour:
+
+- The reachability sweep uses the L2 env as a KINEMATIC INSTRUMENT: it feeds
+  the left arm a bare coordinate (x,y,z) via execute_command → the DiffIK
+  ACTION term. There is NO goal block at that coordinate.
+- The RED cube in the GIF is L2's left goal VISUALIZER, bound to the
+  `left_ee_pose` COMMAND term (pose_command_w). execute_command drives the
+  ACTION path only; it never touched the command term. So the red cube sat at
+  the reset-time RANDOM command (near the body) while the arm servoed to my
+  invisible forward target. Two unrelated things in one frame → misleading.
+- ⇒ the first GIF batch was UNAUDITABLE (wrong reference object). The PI's eye
+  caught it in one second — exactly the human-eye gate working as designed.
+
+Fix: `mark_left_goal()` writes the servo target into the command term's
+pose_command_b each burst; CommandTerm.compute() → _update_metrics()
+recomputes pose_command_w every step, so the RED cube now marks the arm's TRUE
+target. L2 resampling_time_range is LOCKed, so the mark persists. Verified the
+sweep numbers are byte-identical with/without the mark (baseline 0.0cm;
+x0.25z0.024=22.8cm) — the mark is purely visual, does not perturb the servo.
+
+Regenerated GIFs (RED cube now = true target): logs/reach_frames/stuck_x{35,
+40,45}_z24.gif. Human-eye gate re-opened with correct material.

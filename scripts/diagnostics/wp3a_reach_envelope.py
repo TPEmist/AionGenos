@@ -100,6 +100,25 @@ def main() -> None:
         prox = np.maximum(1.0 - frac_hi, frac_hi)  # 0.5 center → ~1.0 at a limit
         return q, prox
 
+    def mark_left_goal(x, y, z, quat):
+        """Write the servo target into the left_ee_pose COMMAND term so the
+        RED goal-cube visualizer marks the arm's ACTUAL target. Without this,
+        the red cube shows the reset-time RANDOM command (near the body) while
+        the arm servos to our invisible action target — the misleading GIF the
+        PI caught. pose_command_b is the base-frame goal the visualizer renders
+        (via pose_command_w). Frame matches our (x,y,z) root-frame target."""
+        try:
+            term = u.command_manager.get_term("left_ee_pose")
+            term.pose_command_b[:, 0] = x
+            term.pose_command_b[:, 1] = y
+            term.pose_command_b[:, 2] = z
+            term.pose_command_b[:, 3] = quat[0]
+            term.pose_command_b[:, 4] = quat[1]
+            term.pose_command_b[:, 5] = quat[2]
+            term.pose_command_b[:, 6] = quat[3]
+        except Exception as e:
+            _p(f"WARN could not mark left goal: {e}")
+
     def servo_left_to(x, y, z, hold_orient=True):
         """Drive the LEFT arm to (x,y,z) root-frame via the L2 DiffIK
         instrument; right arm holds. Returns (min_err_cm, err_vec, q, prox).
@@ -127,9 +146,14 @@ def main() -> None:
         cmd = BimanualCommand(left=left_cmd, right=right_cmd)
         target = np.array([x, y, z])
         dmin = 1e9; err_vec_at_min = None
+        # mark the RED goal cube at the TRUE servo target (L2 resampling is
+        # LOCKed, so a post-reset mark persists; re-mark each burst is cheap
+        # insurance)
+        mark_left_goal(x, y, z, quat)
         # execute_command servos `steps`; but we want the min over the servo,
         # so step manually via the same action-build path in short bursts.
         for _ in range(args_cli.steps // 10):
+            mark_left_goal(x, y, z, quat)
             iface.execute_command(cmd, steps=10, active_arm="left")
             lp = left_pos_b()
             d = float(np.linalg.norm(lp - target)) * 100
@@ -224,13 +248,17 @@ def main() -> None:
     for c in picks:
         x, z = c["x"], c["z"]
         iface.reset(seed=4700)
-        _, right_b, _, right_qw = iface._get_ee_poses()
+        # match the sweep EXACTLY: hold current orientation (not identity) so
+        # the GIF shows the same servo the numbers came from.
+        _, right_b, left_qw, right_qw = iface._get_ee_poses()
+        lq = (float(left_qw[0]), float(left_qw[1]), float(left_qw[2]), float(left_qw[3]))
         cmd = BimanualCommand(
-            left=MetricCommand(position=(x, 0.0, z), quaternion=(1.0, 0.0, 0.0, 0.0)),
+            left=MetricCommand(position=(x, 0.0, z), quaternion=lq),
             right=MetricCommand(position=tuple(float(v) for v in right_b),
                                 quaternion=tuple(float(v) for v in right_qw)))
         frames = []
         for _ in range(args_cli.steps // 5):
+            mark_left_goal(x, 0.0, z, lq)  # RED cube = the TRUE target
             iface.execute_command(cmd, steps=5, active_arm="left")
             png = iface.get_rgb()
             if png:
