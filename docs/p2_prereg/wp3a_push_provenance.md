@@ -878,3 +878,63 @@ hardware envelope. (Related: Rule 2 read-runtime-state family.)
 
 **Pin-TODO carry-over:** the gravity-on re-verify (P5 note-2) still stands —
 do it on the HYBRID controller before gen-0.
+
+### 2026-08-20 Reachability envelope (L2 instrument) — instrument fixed after 3 harness bugs; z-wall signal REAL but CONFOUNDED by y=0 + orientation
+
+Per PI spec (instrument rule): drove the reachability sweep with the VALIDATED
+L2 DiffIK instrument (ArenaEnvBuilder level=2 + IsaacLabEnvInterface.
+execute_command), NOT a hand-written IK probe. Baseline-first, (x,z)-face
+sweep, error vector + joint-limit proximity + orientation contrast + GIFs.
+
+**Three harness bugs found & fixed via baseline-first (all MINE, not the
+instrument):**
+1. Invented baseline point (0.45,0,0.30) — real L2 left-arm cmds span
+   x[-0.17,0.51] z[0,0.70]; there is NO canonical single point, and
+   final_dist (median 15.6cm, 2% <5cm) is an OBJECT-GOAL metric, not EE servo
+   error. Fixed: self-referential baseline (EE_start + 5cm x).
+2. Readback frame: interface uses world−root (translation only); DiffIK
+   consumes subtract_frame_transforms (with rotation). Fixed readback to match
+   the controller frame. (Moot here: root_quat = identity, but the bug was
+   real and would bite a rotated base.)
+3. Forced identity quat → the servo wasted motion slewing orientation, z
+   drifted (6.2cm baseline FAIL). Fixed: HOLD the EE's current orientation →
+   baseline min_err = 0.0cm PASS. Instrument+frame validated.
+
+**Sweep result (baseline PASS → readings trustworthy for what they measure):**
+- EVERY (x,z) cell STUCK (none <3cm). Low z: z-wall(hover), dz 17-24cm,
+  joint2/joint4 pinned at limit (1.00) — the fingerprint of a KINEMATIC wall,
+  not servo budget (budget-limited joints sit mid-range, still moving).
+- At z=0.30 (reset height), x=0.25: 3.8cm (nearly reached, y-limited);
+  extending x to 0.45 → 12.4cm, joint2 at limit — an x-extent boundary too.
+
+**TWO CONFOUNDS I baked in without isolating — so I do NOT declare Pin-10:**
+- **y=0 centerline demand:** every cell targets y=0, but the LEFT arm's
+  natural workspace is the +y side. dy≈+9.2cm persists EVERYWHERE (EE can't
+  reach centerline). The cube sits at y=0, so this is TASK-RELEVANT — but it
+  means "low-z unreachable" is really "low-z AT CENTERLINE with the LEFT arm
+  unreachable," which is a different (and arguably righter) statement: maybe
+  the RIGHT arm should own y≤0, or the cube should sit on the left arm's side,
+  or it's a bimanual reach. This is a task-geometry question, not a pure wall.
+- **orientation not truly relaxed:** DiffIK command_type="pose" ALWAYS
+  constrains orientation. My "relax" contrast used palm-down (worse), but that
+  is still a constraint — I could NOT test true orientation-free reach. A
+  genuine test needs command_type="position" DiffIK. So "orientation not the
+  blocker" is UNPROVEN, only "palm-down is worse than held-current."
+
+**Verdict (honest): strong z-wall + x-extent kinematic signal (joints at
+limit, hover pattern), but the y=0 centerline confound + un-relaxed
+orientation mean the sweep does NOT cleanly prove "pure z-wall → raise table
+(Pin-10)."** The decision-tree's Pin-10 branch is PLAUSIBLE but not earned
+until the two confounds are killed. Reported to PI with GIFs (human-eye gate)
++ this data, NOT unilaterally decided.
+
+**GIFs for the human-eye gate:** logs/reach_frames/stuck_x{35,40,45}_z24.gif
+(left arm servoing toward y=0, z=0.024 at x=0.35/0.40/0.45).
+
+**Recommended confound-killers before any Pin-10 (for PI approval):**
+1. Re-sweep at the LEFT arm's natural y (e.g. y=+0.10..+0.20), not y=0, to
+   separate "can't reach low z" from "can't reach centerline."
+2. Add a command_type="position" (orientation-free) DiffIK pass to truly test
+   whether orientation constraint blocks low-z.
+3. If BOTH confounds killed and low-z STILL walls → Pin-10 (raise table) is
+   earned, clean kinematic version.
