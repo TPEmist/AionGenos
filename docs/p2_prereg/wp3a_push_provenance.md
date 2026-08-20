@@ -811,3 +811,70 @@ sim-to-real honesty requires the gravity-on number).
 gravity-lever misread — the finding is "control-law workspace boundary, not
 span, not gravity," which is stronger and correctly-attributed. Rule-2 family
 (don't record a mechanism you didn't read the runtime/config state for).
+
+### 2026-08-20 P6 pre-clip + ablation — BRANCH-3 OVERTURNED: controller over-command, not hardware. Pin-9 hybrid control.
+
+PI rejected the BRANCH-3 domain-shrink: "12cm comfort zone" contradicts
+DiffIK's 3-month full-table record on the SAME arm/table — an unresolved
+contradiction bars the verdict. P6 three-piece, read the number nine rounds
+never read: OSC's COMMANDED torque BEFORE the actuator clips it.
+
+Path (task_space_actions.py): `_osc.compute()` → `term._joint_efforts`
+(PRE-clip commanded) → `set_joint_effort_target` → actuator clips →
+`robot.data.applied_torque` (POST-clip, =limit when saturated — the only
+thing nine rounds read).
+
+**(a) PRE-CLIP read, baseline OSC (decoupling=True, nullspace=position):**
+- a far-horizontal (0.50,0,0.30): min_err 14.8cm, **PRE-clip |τ_cmd|/limit
+  = 5.17**, post-clip 1.00.
+- b far+low/cube (0.45,0,0.024): min_err 30.5cm, **PRE-clip = 6.19**,
+  post 1.00.
+→ OSC COMMANDS 5-6× the motor limit; the actuator clips it to 1.00. The arm
+was never physically unable to reach — the CONTROLLER asked for torque the
+motors cannot deliver. This resolves the DiffIK contradiction: DiffIK reaches
+x=0.6 (it solves joint *position*); OSC asks 5-6× torque at the same point.
+**"12cm hardware comfort zone" is VOID; Pin-4 geometry vindicated.**
+
+**(b) ABLATION (decoupling=False, nullspace='none') — PREDICTION OVERTURNED:**
+- a: min_err 29.2cm (WORSE), PRE-clip = 21,512,042 — diverged.
+- b: min_err 42.8cm (WORSE), PRE-clip = 41,801,836 — diverged.
+→ Turning decoupling OFF did NOT heal it — it blew up to millions and the EE
+diverged. So our "decoupling = the Λ-inverse singular blow-up source, turn it
+off → healthy" hypothesis is FALSE. Decoupling is here a STABILISING term;
+without it the naked spring-damper on a large-span setpoint (high stiffness
+300 × 30-45cm error, integrated over 150 steps) goes numerically unstable.
+
+**Honest mechanism (corrects the probe's auto-verdict wording):**
+- The CONVICTION stands: baseline pre-clip 5-6× >> 1 → the ceiling is the
+  controller's command, not arm physics (DiffIK full-table record confirms).
+  PI's rejection of BRANCH-3 was correct.
+- The mechanism is NOT "decoupling singular blow-up" — ablation proved
+  removing it is worse. The over-command comes from the COMBINATION of a
+  single-step large-span setpoint × high task stiffness under THIS OSC
+  tuning; AND no single OSC knob covers both full-table transport and contact
+  (baseline over-commands, ablation diverges — both roads break).
+- Therefore the fix is ARCHITECTURAL, not a flag tweak → hybrid control.
+
+**Pin-9 (architecture, DECIDED — per PI spec (c), independent of a/b):**
+HYBRID CONTROL. This is the design answer, not a workaround — free-space
+position control + contact-phase impedance control is standard real-robot
+practice, sim-to-real honest.
+- TRANSPORT phase: DiffIK (existing, validated) drives the EE to the
+  pre-contact point behind the cube.
+- CONTACT phase: OSC takes over the push (working range ≤±12cm, entirely
+  inside the NEAR-verified envelope τ 0.81).
+- SWITCH point = a phase boundary INSIDE the push_toward primitive,
+  transparent to the teacher (canonical output unchanged).
+- Consequence: Pin-4 geometry KEPT; domain-shrink / table-raise / task-
+  semantic-change ALL unnecessary. Supersedes Pin-8 and the BRANCH-3 shrink.
+
+**Rule 9 (institutionalised):** controller config knobs (decoupling,
+nullspace, stiffness, impedance mode) are DESIGN degrees of freedom, not
+physical ground truth. Before declaring ANY "hardware limit", ablate the
+controller variants first — read the PRE-clip commanded quantity, not just
+the post-clip applied one. Nine rounds read only post-clip (always =limit
+when saturated) and nearly mislabelled a controller-tuning ceiling as a
+hardware envelope. (Related: Rule 2 read-runtime-state family.)
+
+**Pin-TODO carry-over:** the gravity-on re-verify (P5 note-2) still stands —
+do it on the HYBRID controller before gen-0.
