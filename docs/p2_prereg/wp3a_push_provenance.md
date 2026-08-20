@@ -965,3 +965,37 @@ x0.25z0.024=22.8cm) — the mark is purely visual, does not perturb the servo.
 
 Regenerated GIFs (RED cube now = true target): logs/reach_frames/stuck_x{35,
 40,45}_z24.gif. Human-eye gate re-opened with correct material.
+
+### 2026-08-20 HUMAN-EYE GATE VERDICT (PI) — the wall is LATERAL, not vertical; Pin-10 (raise-table) REFUTED
+
+PI audited the corrected GIFs (RED cube = true target). Verdict:
+1. "橫向勾不到,再往右一點應該就可以了" — the arm reaches SHORT LATERALLY;
+   a bit further right (−y, toward centerline) would reach.
+2. "自然極限,但往右是沒問題的" — looks like a natural extent, but the
+   rightward direction is NOT hard-blocked (i.e. close/achievable, not a wall).
+3. "手指 ee 需要往右" — the finger EE needs to go right (−y).
+
+**This OVERTURNS my numeric classifier.** My code labelled every low-z cell
+"z-wall(hover)" because |dz| (≈20cm) was the largest error component. The
+human eye identified the CAUSAL wall as LATERAL: the arm can't get its finger
+across to the y=0 centerline (dy≈+9.2cm everywhere), and the large dz is a
+DOWNSTREAM consequence — once the arm is laterally maxed and a joint pins, it
+also can't descend. Magnitude-ranking misread cause; the eye read cause.
+
+**Consequences:**
+- **Pin-10 (raise the table / z-wall → raise work surface) is REFUTED by the
+  human eye.** We did NOT wrongly raise the table. Height is not the wall. The
+  old option (a) does NOT return this time — the clean kinematic evidence
+  (human-eye) points AWAY from it.
+- The real constraint is the y=0 CENTERLINE demand with the LEFT arm (confound
+  #1 I flagged — now CONFIRMED), likely COMPOUNDED by the held-orientation
+  constraint pinning the wrist in a poor IK config (confound #2 — the PI's
+  "往右沒問題" suggests a better config/orientation would reach).
+
+**Both confounds I flagged are now the live hypotheses, human-validated.** The
+decisive next test (confound-killer) is well-motivated: re-sweep with
+orientation FREED (command_type="position" DiffIK) AND across the left arm's
+natural lateral zone (+y), to map the true (x,y,z) envelope and check whether
+low-z becomes reachable once lateral+orientation are unconstrained. Then place
+the contact workspace INSIDE that envelope (lateral/side placement or bimanual
+arm-assignment), NOT by raising the table.
