@@ -109,3 +109,14 @@ gym.register(
         "env_cfg_entry_point": "aiongenos.tasks.WP1_contact_testbed.osc_bi_leftposed_cfg:OscBiLeftPosedEnvCfg",
     },
 )
+
+# WP1-③a reachability confound-killer: L2 instrument, DiffIK POSITION mode
+# (orientation-free reachability). Human-eye gate verdict 2026-08-20.
+gym.register(
+    id="Isaac-AionGenos-WP1-ReachProbe-PosFree-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": "aiongenos.tasks.WP1_contact_testbed.reach_probe_posfree_cfg:WP1ReachProbePosFreeEnvCfg",
+    },
+)

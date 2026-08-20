@@ -999,3 +999,58 @@ natural lateral zone (+y), to map the true (x,y,z) envelope and check whether
 low-z becomes reachable once lateral+orientation are unconstrained. Then place
 the contact workspace INSIDE that envelope (lateral/side placement or bimanual
 arm-assignment), NOT by raising the table.
+
+### 2026-08-20 CONFOUND-KILLER + frame fact — the "z-wall" is BASE-AT-FLOOR geometry; there is NO TABLE
+
+Confound-killer sweep (PosFree env: DiffIK command_type="position", wrist
+FREE; both arms; full y∈[-0.20,+0.20]; per PI "先純診斷,不預設歸屬"). Baseline
+self-referential PASS both arms (L 0.0cm, R 0.4cm) → instrument valid.
+
+**Envelope (orientation-free):**
+- z=0.30: LEFT reachable y∈[0,+0.20] (its +y side), RIGHT y∈[-0.20,0] (its
+  −y side) — arms naturally own opposite lateral halves (assignment EMERGED,
+  not preset).
+- z=0.10: NONE reachable, either arm, any y.
+- z=0.024: NONE reachable, either arm, any y (dz≈22-26cm, joint2/4 pinned).
+- LOW-Z reachable cells (orientation-free, full y): **0**.
+
+Orientation-free did NOT rescue low z → the held-orientation confound was
+NOT the (main) blocker; something more basic gates low z.
+
+**Frame-fact probe (wp3a_frame_fact.py) — the decisive read I should have
+done rounds ago:**
+- root_pos_w = [0,0,0] → ROOT frame == WORLD frame; z=0.024 root IS z=0.024
+  world. The frame-confound I suspected is RULED OUT (no offset).
+- Both EEs rest at world z≈0.20-0.25. The robot BASE is mounted at world z=0.
+- **The env has NO TABLE.** scene entities = terrain, robot, camera, ground,
+  light. The code comments say "looking down at the table" but there is no
+  table prim — only a ground plane at z=0. The cube (push env only) sits at
+  world z=0.02 = basically ON THE FLOOR, and the arm base is AT THE FLOOR too.
+
+**Reframing (this overturns the question, not just the answer):** "z=0.024
+unreachable" is not a torque wall, not an orientation wall, not a lateral
+wall — it is that we asked an arm BASED AT FLOOR LEVEL to fold down to its own
+feet (z≈0.02, 20cm below its natural EE rest). That is geometrically extreme
+for ANY 7-DoF arm. And it is consistent with the DiffIK 3-month record: real
+L2 commands ranged z→0 but ACHIEVED median 15cm off — L2 never actually
+touched the floor; its goal cubes float. **The premise "cube on the floor at
+z=0.02" was inherited by push_s3a from elsewhere and NEVER validated against
+this floor-mounted arm.**
+
+**Pin-10 (raise the table) is now MOOT in its old form — there is no table to
+raise.** The real design question for the PI:
+- the WORKSPACE needs a WORK SURFACE at the arm's natural EE height (~z 0.20-
+  0.30), i.e. ADD a table/pedestal at ~0.20-0.25 and put the cube ON IT — so
+  contact happens where the arm actually works (the z=0.30 reachable band),
+  not on the floor;
+- OR mount the arm base ABOVE the work surface (real robots sit above their
+  table), equivalent geometry;
+- either way the cube contact height should sit in the z≈0.20-0.30 reachable
+  band, which the envelope shows IS reachable (and laterally, each arm owns
+  its side — natural bimanual assignment).
+This is the clean, correctly-attributed version of "raise the work surface",
+now backed by: orientation-free envelope + frame fact + no-table discovery +
+DiffIK-record consistency. Reported to PI; NOT unilaterally decided.
+
+GIFs: logs/reach_posfree/posfree_L_x{25,35,45}_y-20.gif (low-z stuck, wrist
+free — shows the arm folding toward the floor).
