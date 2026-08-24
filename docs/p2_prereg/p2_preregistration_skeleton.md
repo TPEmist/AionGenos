@@ -77,6 +77,20 @@ trace climbing out of the chance band, generation by generation.**
   *conditional structure* is in the weights, independent of whether it
   cashes out to success — the cleaner mechanism claim.
 
+## 2c. Harness-grant FREEZE clause (body-constancy = r-tracking validity precondition)
+
+From **gen-0 until P2 data collection is complete**, the
+[harness_grant_ledger.md](../harness_grant_ledger.md) is **frozen**: no new
+grant (standby pose, primitive, viewpoint, or any other marginal capability)
+may be added to the body during the collection window. Rationale: r-tracking
+measures whether conditional structure accretes across generations; a body
+that changes mid-collection confounds the residual-correlation signal with a
+capability shift. A constant body is a **validity precondition**, not a
+convenience. New grant needs that surface during collection are recorded in
+the Ledger's **Pending** section and ruled on only after P2 closes. See
+[aiongenos_founding_intent.md](../aiongenos_founding_intent.md) for the
+marginal/conditional basis of what may be granted at all.
+
 ## 3. A-priori hypothesis list (post-hoc P1 threads → pre-registered P2 predictions)
 
 Each P1 exploratory thread is promoted here to an a-priori prediction with
