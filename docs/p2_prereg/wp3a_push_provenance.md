@@ -1105,3 +1105,39 @@ arm's natural height, the OFFICIAL way, as a configurable asset:**
 
 Screenshot evidence: logs/l3_scene/l3_scene.png (cube floating, no table).
 Reported to PI for the assembly decision; NOT unilaterally rebuilt.
+
+### 2026-08-24 Scene rebuild — Step 1 new-table USD health check (Pin-10 material) + PI-defined layout
+
+New geometry (PI-defined, from visual inspection): table asset
+localProps/Table_sor_1.usd at (0.55,0,0); robot base at (0,0,0.65); cube
+centre (table-top + half-height) at base-frame z_b≈0.39 — lands near the
+NEAR-verified servo band, the answer to "where should the work surface be."
+
+**Step 1 USD health check (wp3a_table_usd_check.py, headless):**
+- root valid, Xform, 17 subtree prims.
+- **COLLIDER: PRESENT** (1) — /World/Table/packing_table/…/SM_HeavyDutyPacking
+  Table_C02_01. Push has a real contact surface; no missing-collider trap.
+- **Physics material: NONE on the asset** → friction inherits the sim default.
+  IsaacLab RigidBodyMaterialCfg default = static 0.5 / dynamic 0.5,
+  combine_mode="average". (L3 cube also sets no explicit friction — same
+  inheritance.)
+- **Table-top world z (bbox) = 0.9941** (measured, at table pos z=0). PI-stated
+  ≈1.0197 differs by ~2.6cm — pending PI ruling on which datum to use; sim
+  measures 0.9941 as the physical top.
+- bbox x=[0.169,0.951] (Pin-4 x 0.40-0.60 is ON the table ✓);
+  y=[-1.237,1.237] (both arms covered ✓).
+
+**Pin-10 (contact-surface material — PENDING PI ruling, two points):**
+1. Table-top datum: sim-measured 0.9941 vs PI 1.0197 (~2.6cm). Recommend
+   sim-measured (what PhysX sees). Cube rests on top + half-height.
+2. Friction: currently INHERITS sim default 0.5/0.5. Push physics IS friction,
+   so recommend setting an EXPLICIT physics material on the contact pair
+   (cube+table) so friction is a CONTROLLED KNOWN, not silently inherited —
+   proposed static 0.6 / dynamic 0.5 (typical cube-on-table), to be PINNED
+   here once the PI confirms. This value directly sets the push force budget
+   that the 7 N·m distal must supply.
+
+Both are contact-physics parameters that must be pinned BEFORE gen-0 data (a
+changed friction mid-collection would confound r-tracking, per the freeze
+clause). Awaiting PI ruling before Step 2 (cube physics) + Step 3 (coord z
+updates).
