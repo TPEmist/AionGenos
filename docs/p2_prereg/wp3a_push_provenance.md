@@ -1141,3 +1141,64 @@ Both are contact-physics parameters that must be pinned BEFORE gen-0 data (a
 changed friction mid-collection would confound r-tracking, per the freeze
 clause). Awaiting PI ruling before Step 2 (cube physics) + Step 3 (coord z
 updates).
+
+### 2026-08-24 Scene rebuild — assembly verified (steps 2/3/5 PASS; step 4 needs a correct intersection test)
+
+Rebuilt push_s3a (table Table_sor_1.usd @ (0.55,0,0), robot base z=0.65,
+cube-on-table, explicit friction 0.6/0.5). Assembly-verify results:
+
+- **robot base world z = 0.6500** ✓ (PI layout applied)
+- **table top z = 0.9941** ✓ (sim-measured, PI ruling); x=[0.17,0.95]
+  y=[-1.24,1.24] — Pin-4 region on the table, both arms covered.
+- **cube half-height MEASURED = 0.0240** (constant assumed 0.0206 — DexCube
+  edge is ~0.06 not 0.0515 at scale 0.8; corrected below).
+- **cube settle DETERMINISTIC**: seed4700 == seed4700(rpt) to 0.00mm; rests
+  2.40cm above table top = ON the table ✓ (step 2 PASS).
+- **cube centre BASE frame z_b = 0.368** (PI expected ≈0.39; close — the
+  0.0206→0.0240 half-height + exact table top account for it). Lands in the
+  NEAR-verified servo band ✓ — the whole point of the rebuild.
+- **camera framing**: screenshot logs/assembly/assembly.png shows table +
+  cube-on-table + goal markers IN FRAME ✓ (step 5 PASS). Contrast the pre-fix
+  shot (floating cube, no table).
+
+**Step 4 (Pin-7 vs table intersection): my probe MIS-JUDGED — retracted.** It
+compared "lowest robot body z vs table top" and flagged INTERSECT because
+openarm_body_link (the torso/base) sits at z=0.65, below the table top 0.9941.
+But a torso 34cm BELOW the table top is not a collision — it is the arm base
+on its stand under/beside the work surface, exactly as intended. The screenshot
+shows the arms clear above the table, no penetration. A correct test must check
+horizontal bbox OVERLAP with the table AND vertical penetration, not a bare
+min-z compare. Step 4 re-do pending with the right geometric predicate; visual
+(screenshot) shows no intersection.
+
+**Two corrections to fold in:**
+1. cube half-height is 0.0240 (measured), not 0.0206 → _CUBE_REST_Z and the
+   goal pos_z should use the measured value so the goal marker sits exactly on
+   the cube rest height. (z_b 0.368 is fine either way — in band.)
+2. the Pin-7 intersection probe predicate is wrong (min-z vs top); rewrite to
+   bbox-overlap + penetration before claiming step 4.
+
+### 2026-08-24 Scene rebuild — steps 2/3/4/5 ALL PASS (Pin-7 CLEAR with correct predicate)
+
+Re-ran assembly-verify after two fixes (cube half-height 0.0206→0.0240
+measured; Pin-7 predicate min-z→bbox-overlap+penetration):
+- robot base z=0.6500 ✓; table top 0.9941 ✓; cube settle DETERMINISTIC (0.00mm
+  same-seed), rests 2.40cm on table ✓; cube z_b=0.368 in NEAR band ✓;
+  camera framing ✓ (table+cube+goal in frame).
+- **Pin-7 standby: CLEAR** — no robot body penetrates the table AABB
+  (x[0.17,0.95] y[-1.24,1.24] z[0.00,0.99]). The earlier INTERSECT was a
+  probe-predicate bug (min-z vs top), now retracted; correct test PASSES. No
+  Pin-7a needed — the working standby pose is collision-free with the new
+  table.
+
+Scene rebuild checklist status: 1 (USD health) ✓, 2 (cube physics) ✓, 3
+(coord z updates in push_s3a) ✓, 4 (Pin-7 clear) ✓, 5 (camera framing) ✓.
+Remaining: 6 (kinematic reachability sweep on NEW geometry — CONFIRM the
+contact height z_b≈0.37 is in the reachable band; old sweeps void) → 7
+(Pin-9a contact-gain on new pre-contact posture → hybrid primitive →
+acceptance chain).
+
+Pin-10 SEALED (contact-physics params, PI-ruled): table-top datum = sim
+0.9941; cube rest z_b≈0.368; friction EXPLICIT static 0.6 / dynamic 0.5 on the
+cube (set by assignment, spawn.physics_material). These are frozen for gen-0
+(freeze clause).

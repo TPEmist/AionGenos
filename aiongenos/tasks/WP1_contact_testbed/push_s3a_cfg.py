@@ -11,7 +11,7 @@
 # (Pin 1); the exact tuned value is re-pinned in provenance before first data.
 
 import isaaclab.sim as sim_utils
-from isaaclab.assets import RigidObjectCfg
+from isaaclab.assets import RigidObjectCfg, AssetBaseCfg
 from isaaclab.sim.spawners.from_files.from_files_cfg import UsdFileCfg
 from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg
 from isaaclab.utils import configclass
@@ -19,13 +19,43 @@ from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 
 from aiongenos.tasks.WP1_contact_testbed.osc_testbed_cfg import WP1ContactTestbedEnvCfg
 
+# ── Scene-rebuild geometry (2026-08-24, PI visual-inspection layout) ─────────
+# Root cause of the 9-round reachability saga: NO table existed; the cube sat
+# on the floor (z=0.02) while the arm base was also on the floor, so contact
+# meant folding the arm to its own feet. Fix: a real work surface at the arm's
+# natural EE height + the arm base raised onto a stand. All geometry here is
+# base-relative-safe (interface/eval/bounds/camera all subtract root — recon
+# 2026-08-24); only these absolute-z literals change.
+_TABLE_USD = "/home/control/AionGenos/localProps/Table_sor_1.usd"
+_TABLE_POS = (0.55, 0.0, 0.0)          # PI-defined table placement
+_TABLE_TOP_Z = 0.9941                  # sim-measured bbox top (PI ruling: use sim value)
+_ROBOT_BASE_Z = 0.65                   # PI-defined: arm base on a stand, clear of the table
+_CUBE_HALF_H = 0.0240                  # DexCube half-height at scale 0.8, MEASURED via bbox (assembly-verify 2026-08-24)
+_CUBE_REST_Z = _TABLE_TOP_Z + _CUBE_HALF_H          # ≈1.0181 (cube centre at rest, matches settle)
+_CUBE_SPAWN_Z = _TABLE_TOP_Z + 0.02                 # spawn slightly above → settles onto top
+# Contact-surface friction (Pin-10, PI ruling): EXPLICIT, not sim-inherited.
+_FRICTION_STATIC = 0.6
+_FRICTION_DYNAMIC = 0.5
+
 
 @configclass
 class WP1PushS3aEnvCfg(WP1ContactTestbedEnvCfg):
-    """Real push: OSC bimanual test-bed + a dynamic pushable cube."""
+    """Real push: OSC bimanual test-bed + a dynamic pushable cube on a table."""
 
     def __post_init__(self):
         super().__post_init__()
+
+        # Raise the robot base onto its stand (PI layout). Base-relative coord
+        # pipeline auto-adapts (recon-verified); only this literal changes.
+        self.scene.robot.init_state.pos = (0.0, 0.0, _ROBOT_BASE_Z)
+
+        # Work surface (Pin-10): the table asset the cube rests on and is pushed
+        # across. AssetBaseCfg (static). collider verified present (step 1).
+        self.scene.table = AssetBaseCfg(
+            prim_path="{ENV_REGEX_NS}/Table",
+            init_state=AssetBaseCfg.InitialStateCfg(pos=list(_TABLE_POS), rot=[1.0, 0.0, 0.0, 0.0]),
+            spawn=UsdFileCfg(usd_path=_TABLE_USD),
+        )
 
         # Pin-7 (2026-08-17): BI init WORKING pose, not the asset all-0
         # hanging pose. From hanging, OSC needs super-limit torque → saturates
@@ -41,11 +71,14 @@ class WP1PushS3aEnvCfg(WP1ContactTestbedEnvCfg):
             "openarm_left_finger_joint.*": 0.0, "openarm_right_finger_joint.*": 0.0,
         }
 
-        # Dynamic pushable cube — reuse L3's validated DexCube physics
-        # (gravity ON so it moves; the exact params pinned in provenance Pin 2).
+        # Dynamic pushable cube — DexCube physics, now RESTING ON THE TABLE.
+        # Spawn just above the table top so it settles deterministically onto
+        # the surface (gravity ON). Explicit physics material (Pin-10): push
+        # physics IS friction, so friction is a CONTROLLED KNOWN, not the
+        # silently-inherited sim default.
         self.scene.object = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/PushCube",
-            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.45, 0.0, 0.02], rot=[1.0, 0.0, 0.0, 0.0]),
+            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.45, 0.0, _CUBE_SPAWN_Z], rot=[1.0, 0.0, 0.0, 0.0]),
             spawn=UsdFileCfg(
                 usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
                 scale=(0.8, 0.8, 0.8),
@@ -59,6 +92,13 @@ class WP1PushS3aEnvCfg(WP1ContactTestbedEnvCfg):
                 ),
                 visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 1.0, 0.0)),
             ),
+        )
+        # Explicit contact friction (Pin-10): FileCfg.physics_material is a
+        # configclass field, set by assignment (not an __init__ kwarg). Push
+        # physics IS friction → controlled known, not sim-inherited default.
+        self.scene.object.spawn.physics_material = sim_utils.RigidBodyMaterialCfg(
+            static_friction=_FRICTION_STATIC,
+            dynamic_friction=_FRICTION_DYNAMIC,
         )
 
         # Pin-1 HOLD gate: raise motion stiffness so the EE holds at the
@@ -81,7 +121,7 @@ class WP1PushS3aEnvCfg(WP1ContactTestbedEnvCfg):
         g = self.commands.left_ee_pose
         g.ranges.pos_x = (0.40, 0.60)
         g.ranges.pos_y = (-0.15, 0.15)
-        g.ranges.pos_z = (0.02, 0.02)      # cube resting height (planar)
+        g.ranges.pos_z = (_CUBE_REST_Z, _CUBE_REST_Z)   # cube resting height on the table (planar)
         g.ranges.roll = (0.0, 0.0)
         g.ranges.pitch = (0.0, 0.0)
         g.ranges.yaw = (0.0, 0.0)          # position-region goal; orient N/A
