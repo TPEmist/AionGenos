@@ -57,19 +57,44 @@ class WP1PushS3aEnvCfg(WP1ContactTestbedEnvCfg):
             spawn=UsdFileCfg(usd_path=_TABLE_USD),
         )
 
-        # Pin-7 (2026-08-17): BI init WORKING pose, not the asset all-0
-        # hanging pose. From hanging, OSC needs super-limit torque → saturates
-        # → no servo (the 8-round root cause). Working pose → servos (4.3cm).
-        # BI-legal values (verified vs joint limits).
+        # Pin-7 (2026-08-17, corrected 2026-08-24): BI standby WORKING pose,
+        # SYMMETRIC across both arms (left/right same-sign — the arm's mirror
+        # convention, per the reset-event target which used same-sign L/R).
+        # Previously the right arm set only j1/j4/j6 (the other 4 fell to 0),
+        # giving an asymmetric standby.
         self.scene.robot.init_state.joint_pos = {
             "openarm_left_joint1": 0.6, "openarm_left_joint2": 0.0,
             "openarm_left_joint3": 0.0, "openarm_left_joint4": 1.2,
             "openarm_left_joint5": 0.0, "openarm_left_joint6": 0.5,
             "openarm_left_joint7": 0.0,
-            "openarm_right_joint1": 0.6, "openarm_right_joint4": 1.2,
-            "openarm_right_joint6": 0.5,
+            "openarm_right_joint1": 0.6, "openarm_right_joint2": 0.0,
+            "openarm_right_joint3": 0.0, "openarm_right_joint4": 1.2,
+            "openarm_right_joint5": 0.0, "openarm_right_joint6": 0.5,
+            "openarm_right_joint7": 0.0,
             "openarm_left_finger_joint.*": 0.0, "openarm_right_finger_joint.*": 0.0,
         }
+
+        # CRITICAL (2026-08-24): the inherited reach-base reset event
+        # `reset_robot_joints` OVERRODE Pin-7 at every reset — it forced only
+        # j2/j4 to 0.5/0.8 and added ±0.2 rad jitter to ALL joints, so the
+        # standby was asymmetric + non-deterministic (the flop/self-collide/
+        # jitter the PI saw). Setting it to None was wrong: with no reset event,
+        # reset falls back to the USD default (all-0), NOT init_state. So we
+        # REWRITE the event to apply the FULL Pin-7 symmetric pose with ZERO
+        # jitter — the deterministic standby the task actually uses. (r-tracking
+        # needs a constant body per the freeze clause; jitter would confound it.)
+        self.events.reset_robot_joints.params["target_joint_pos"] = {
+            "openarm_left_joint1": 0.6, "openarm_left_joint2": 0.0,
+            "openarm_left_joint3": 0.0, "openarm_left_joint4": 1.2,
+            "openarm_left_joint5": 0.0, "openarm_left_joint6": 0.5,
+            "openarm_left_joint7": 0.0,
+            "openarm_right_joint1": 0.6, "openarm_right_joint2": 0.0,
+            "openarm_right_joint3": 0.0, "openarm_right_joint4": 1.2,
+            "openarm_right_joint5": 0.0, "openarm_right_joint6": 0.5,
+            "openarm_right_joint7": 0.0,
+        }
+        self.events.reset_robot_joints.params["position_range"] = (0.0, 0.0)  # ZERO jitter
+        self.events.reset_robot_joints.params["velocity_range"] = (0.0, 0.0)
 
         # Dynamic pushable cube — DexCube physics, now RESTING ON THE TABLE.
         # Spawn just above the table top so it settles deterministically onto
