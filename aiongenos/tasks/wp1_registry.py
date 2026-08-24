@@ -120,3 +120,14 @@ gym.register(
         "env_cfg_entry_point": "aiongenos.tasks.WP1_contact_testbed.reach_probe_posfree_cfg:WP1ReachProbePosFreeEnvCfg",
     },
 )
+
+# WP1-③a step 6: reachability CONFIRM on REBUILT geometry (table+base z=0.65),
+# orientation-free DiffIK instrument. Old sweeps void (mis-assembled scene).
+gym.register(
+    id="Isaac-AionGenos-WP1-ReachProbe-NewGeom-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": "aiongenos.tasks.WP1_contact_testbed.reach_probe_newgeom_cfg:WP1ReachProbeNewGeomEnvCfg",
+    },
+)

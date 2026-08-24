@@ -1202,3 +1202,40 @@ Pin-10 SEALED (contact-physics params, PI-ruled): table-top datum = sim
 0.9941; cube rest z_b≈0.368; friction EXPLICIT static 0.6 / dynamic 0.5 on the
 cube (set by assignment, spawn.physics_material). These are frozen for gen-0
 (freeze clause).
+
+### 2026-08-24 Step 6 reachability CONFIRM — UNEXPECTED: Pin-4 unreachable at contact height on new geom (baseline PASS)
+
+Ran the L2 DiffIK instrument (orientation-free) on the rebuilt geometry
+(table + base z=0.65). Baseline PASS both arms (L 0.2cm, R 3.2cm — instrument
+valid; several harness bugs fixed en route: reset-jitter staleness in
+self-ref baseline → read rest in-episode with do_reset=False; baseline vs
+sweep tolerance split 4/3cm).
+
+**Result: 0/15 Pin-4 cells reachable, either arm, at contact z_b=0.368.**
+NOT the expected confirmation. Error-vector pattern (the diagnostic signal):
+- dominant component is dx NEGATIVE (x undershoot): L reaches x≈0.29 rest but
+  Pin-4 wants 0.40-0.60; at x≥0.55 dx≈-25..-31cm. R similar, dx≈-25..-44cm.
+- near cells (L x0.40-0.50/y+0.15 → 4.6-8.7cm; R x0.45-0.50/y-0.15 →
+  4.9-6.7cm) are CLOSEST but still >3cm.
+- arm rest x is only 0.29 (L) / 0.17 (R); Pin-4 x 0.40-0.60 is 11-43cm beyond
+  rest in x AND 28cm below base in z simultaneously.
+
+**Honest read: raising the base to z=0.65 SHORTENED the horizontal reach to
+the Pin-4 table region.** The "far + low" combination (reach out to x=0.40-0.60
+AND down to z_b=0.37) exceeds the raised arm's envelope. The scene is now
+physically assembled correctly (table, cube-on-table, base on stand), but the
+Pin-4 x-region and/or the base height are not matched to each other.
+
+This is NOT a controller/instrument issue (baseline servos to 0.2cm) — it is
+a workspace-geometry mismatch between base height, Pin-4 x-extent, and contact
+z, on the NEW layout. Candidates to resolve WITH the PI (not unilateral):
+1. base z=0.65 may be too high — a lower base (e.g. 0.3-0.4) keeps the arm's
+   natural x-reach over the table while the table (top 0.99) still lifts the
+   cube to the EE band;
+2. OR the Pin-4 region should move IN (x≈0.25-0.40, the reachable band the
+   near-cells suggest) — but that is the domain-shrink question again, now on
+   correct geometry;
+3. OR the table should be closer (table x-pos < 0.55) so its usable top sits
+   at reachable x.
+Reported to PI with the envelope data + error vectors. Step 7 (Pin-9a) BLOCKED
+until the contact workspace is confirmed reachable.
