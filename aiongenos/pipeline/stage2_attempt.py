@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from aiongenos.config import LevelConfig, WorkspaceBounds
-from aiongenos.vlm.parser import Stage1Response, Stage3Response, VLMAction
+from aiongenos.vlm.parser import Stage1Response, Stage3Response, VLMAction, PushStage1Response
 from aiongenos.vlm.scalar_guard import int_to_metric, int_to_rpy_rad
 from aiongenos.control.rotation import rpy_rad_to_quat
 from aiongenos.replay.schema import TimeStep
@@ -107,3 +107,20 @@ def convert_stage3_to_commands(
         left=vlm_action_to_metric(response.left, bounds),
         right=vlm_action_to_metric(response.right, bounds),
     )
+
+
+def convert_push_to_waypoint_metric(
+    response: PushStage1Response,
+    bounds: WorkspaceBounds,
+) -> tuple[float, float]:
+    """WP1-③a: TRANSLATE a parsed PUSH_TO (int x,y) → base-frame metric (x,y).
+
+    Translator ONLY — no sim, no physics, no control. It de-normalizes the two
+    integers to metres on the SAME grid as every other target (int_to_metric +
+    WorkspaceBounds); the returned (x,y) is the CUBE waypoint the primitive
+    consumes. The behind-cube approach, lead-budget clamp, and servo all live
+    in push_segment_from_waypoint (the primitive), which the env interface calls
+    with the live cube pose. This function is unit-testable without Isaac."""
+    x = int_to_metric(response.push_to.x, bounds.x_bounds)
+    y = int_to_metric(response.push_to.y, bounds.y_bounds)
+    return (x, y)

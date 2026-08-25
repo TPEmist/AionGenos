@@ -30,6 +30,13 @@ from isaaclab.utils.math import subtract_frame_transforms
 _APPROACH_OFFSET_M = 0.06
 _IDENTITY_QUAT = (1.0, 0.0, 0.0, 0.0)
 
+# Per-round lead budget (m): the primitive clamps the requested cube waypoint
+# displacement to this. A far PUSH_TO is NOT an error — it's the natural input
+# to a segmented push: this round moves ≤8cm, the teacher re-plans next round
+# from the new state. The clamp lives HERE (control budget), NOT in the parser
+# (which only checks workspace bounds / format).
+_LEAD_BUDGET_M = 0.08
+
 
 def base_frame_target_from_world(env, pos_w: torch.Tensor) -> torch.Tensor:
     """World position → base-frame position, via IsaacLab's
@@ -76,3 +83,41 @@ def push_toward_base(cube_pos_b: torch.Tensor, goal_pos_b: torch.Tensor):
     info = {"approach_b": approach_b.tolist(), "cube_goal_dist_m": float(n),
             "offset_m": _APPROACH_OFFSET_M}
     return approach_b, info
+
+
+def push_segment_from_waypoint(cube_pos_b: torch.Tensor, waypoint_b: torch.Tensor):
+    """WP1-③a per-round push primitive (base frame). The teacher emits a cube
+    WAYPOINT (where it wants the cube to end up); this primitive:
+      1. clamps the requested cube displacement to the per-round lead budget
+         (≤8cm) — a far waypoint is a segmented-push input, not an error;
+      2. computes the behind-cube APPROACH point (opposite the push direction)
+         so the EE contacts the cube's near face and drives it toward the
+         (clamped) waypoint.
+    Returns (approach_b, clamped_target_b, info). All control lives here; the
+    converter only translates (x,y)→this call. Pure tensor math, NO sim — the
+    converter's unit test runs without Isaac.
+
+    info carries the r-tracking raw material: requested vs clamped displacement,
+    whether it was clamped, and the push direction."""
+    d = waypoint_b - cube_pos_b
+    n = float(torch.norm(d))
+    clamped = n > _LEAD_BUDGET_M
+    if n < 1e-6:
+        target_b = cube_pos_b.clone()          # degenerate: waypoint == cube
+        push_dir = torch.zeros_like(cube_pos_b)
+        approach_b = cube_pos_b.clone()
+    else:
+        push_dir = d / n
+        seg = min(n, _LEAD_BUDGET_M)            # clamp to lead budget
+        target_b = cube_pos_b + push_dir * seg  # clamped cube target this round
+        approach_b = cube_pos_b - push_dir * _APPROACH_OFFSET_M  # behind cube
+    info = {
+        "requested_disp_m": n,
+        "clamped_disp_m": min(n, _LEAD_BUDGET_M),
+        "was_clamped": clamped,
+        "push_dir": push_dir.tolist(),
+        "approach_b": approach_b.tolist(),
+        "target_b": target_b.tolist(),
+        "lead_budget_m": _LEAD_BUDGET_M,
+    }
+    return approach_b, target_b, info
