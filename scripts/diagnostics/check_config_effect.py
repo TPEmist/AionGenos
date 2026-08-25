@@ -49,6 +49,37 @@ from isaaclab_tasks.utils import parse_env_cfg
 def _p(m): print(f"[CFG-GATE] {m}", flush=True)
 
 
+def _scan_instruments(cfg):
+    """Grep the WP1 diagnostic scripts for HARDCODED geometry that the cfg
+    defines, so a stale copy (drift source) is flagged. Reports scripts that
+    embed a coordinate range NOT matching the current cfg goal range."""
+    import re
+    from pathlib import Path
+    warns = []
+    try:
+        gr = cfg.commands.left_ee_pose.ranges
+        xlo, xhi = gr.pos_x
+    except Exception:
+        return warns
+    diag = Path(__file__).resolve().parent
+    # bare coordinate-pair literals like (0.40, ...)(0.60, ...) or 0.40|0.60
+    # that DON'T match the live range → likely a stale hardcoded goal copy.
+    stale_pat = re.compile(r"0\.40|0\.60")  # the pre-Pin-4a literals
+    for f in diag.glob("wp3a_*.py"):
+        if f.name == Path(__file__).name:
+            continue
+        txt = f.read_text()
+        # flag only if the file hardcodes the OLD range AND the cfg has moved
+        if stale_pat.search(txt) and (abs(xlo - 0.40) > 1e-6 or abs(xhi - 0.60) > 1e-6):
+            hits = [ln.strip() for ln in txt.splitlines()
+                    if ("0.40" in ln or "0.60" in ln) and "read" not in ln.lower()
+                    and not ln.strip().startswith("#")]
+            if hits:
+                warns.append(f"{f.name}: hardcodes 0.40/0.60 but cfg goal x=[{xlo:.2f},{xhi:.2f}] "
+                             f"→ stale copy? e.g. `{hits[0][:70]}`")
+    return warns
+
+
 def main() -> int:
     cfg = parse_env_cfg(args_cli.gym, num_envs=1)
     # the cfg INTENT for the standby pose = init_state.joint_pos (what the
@@ -88,7 +119,15 @@ def main() -> int:
         if abs(q1[n] - q2[n]) > args_cli.tol:
             fails.append(f"NON-DETERMINISTIC {n}: reset1={q1[n]:+.3f} reset2={q2[n]:+.3f} (jitter?)")
 
+    # 3) INSTRUMENT SCAN — the diagnostic scripts must not HARDCODE geometry
+    # the cfg defines (the tuner hardcoded Pin-4 0.40-0.60 and did not track the
+    # −60mm shift). Grep the WP1 diagnostic dir for the OLD literal values that
+    # a live cfg read would now differ from. A hit = a stale copy = drift source.
+    warns = _scan_instruments(cfg)
+
     _p(f"gym={args_cli.gym} joints checked={len([k for k in intent if '.*' not in k])}")
+    for w in warns:
+        _p(f"  INSTRUMENT-DRIFT WARN: {w}")
     if fails:
         _p(f"FAIL ({len(fails)} issues) — runtime state != cfg intent; HALT downstream work:")
         for f in fails[:20]:

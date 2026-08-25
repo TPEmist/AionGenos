@@ -36,7 +36,9 @@ import isaaclab.sim as sim_utils
 from isaaclab.markers import VisualizationMarkers, VisualizationMarkersCfg
 
 GID = "Isaac-AionGenos-WP1-Push-v0"
-PIN4_CORNERS = [(0.40, -0.15), (0.40, 0.15), (0.60, -0.15), (0.60, 0.15), (0.50, 0.0)]
+# Pin-4 corners are READ FROM THE CFG at runtime (see main) — never hardcoded,
+# so the markers always track the live goal region (no drift). The old
+# hardcoded 0.40-0.60 did not follow the Pin-4a −60mm shift.
 
 
 def _p(m): print(f"[VIEW] {m}", flush=True)
@@ -53,6 +55,13 @@ def main():
         if c is not None:
             if hasattr(c, "debug_vis"):
                 c.debug_vis = False
+
+    # Pin-4 corners READ FROM CFG (no hardcoded copy → no drift)
+    gr = cfg.commands.left_ee_pose.ranges
+    xlo, xhi = gr.pos_x
+    ylo, yhi = gr.pos_y
+    pin4_corners = [(xlo, ylo), (xlo, yhi), (xhi, ylo), (xhi, yhi),
+                    ((xlo + xhi) / 2, (ylo + yhi) / 2)]
 
     env = gym.make(GID, cfg=cfg, render_mode=None)
     u = env.unwrapped
@@ -78,7 +87,7 @@ def main():
     cube_b, _ = subtract_frame_transforms(root_p, root_q, obj.data.root_pos_w[0:1, :3])
     z_b = float(cube_b[0, 2])
     world_pts = []
-    for (x, y) in PIN4_CORNERS:
+    for (x, y) in pin4_corners:
         pw, _ = combine_frame_transforms(root_p, root_q, torch.tensor([[x, y, z_b]], device=u.device))
         world_pts.append(pw[0])
     marker_pos = torch.stack(world_pts)
@@ -91,6 +100,8 @@ def main():
         b, _ = subtract_frame_transforms(root_p, root_q, w.unsqueeze(0))
         _p(f"{nm} standby: world={[round(float(v),3) for v in w]} base-rel={[round(float(v),3) for v in b[0]]}")
     _p(f"cube contact z_b (base) = {z_b:.3f}; Pin-4 corners at that height = RED spheres")
+    _p(f"Pin-4 goal region (from cfg): x=[{xlo:.2f},{xhi:.2f}] y=[{ylo:.2f},{yhi:.2f}] "
+       f"(Pin-4a −60mm → expect x 0.34-0.54)")
     _p("=== GUI open. Arm HELD at Pin-7 standby (no gravity flop). RED = Pin-4 goal corners.")
     _p("    Gap between hands and red spheres = the reach miss. Close window to exit. ===")
 

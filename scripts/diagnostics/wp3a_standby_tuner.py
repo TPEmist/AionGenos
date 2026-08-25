@@ -35,7 +35,6 @@ import isaaclab.sim as sim_utils
 from isaaclab.markers import VisualizationMarkers, VisualizationMarkersCfg
 
 GID = "Isaac-AionGenos-WP1-Push-v0"
-PIN4_CORNERS = [(0.40, -0.15), (0.40, 0.15), (0.60, -0.15), (0.60, 0.15), (0.50, 0.0)]
 # per-joint slider range (rad) — generous, clamped to soft limits at apply
 JOINT_RANGE = (-3.5, 2.5)
 
@@ -51,6 +50,16 @@ def main():
         c = getattr(cfg.commands, term, None)
         if c is not None and hasattr(c, "debug_vis"):
             c.debug_vis = False
+
+    # Pin-4 goal corners READ FROM THE CFG (not hardcoded) so the red markers
+    # always reflect the actual goal region — the earlier hardcoded 0.40-0.60
+    # did NOT track the Pin-4a −60mm inward shift, so the markers looked
+    # unmoved. Read the command term's x/y ranges live.
+    gr = cfg.commands.left_ee_pose.ranges
+    xlo, xhi = gr.pos_x
+    ylo, yhi = gr.pos_y
+    pin4_corners = [(xlo, ylo), (xlo, yhi), (xhi, ylo), (xhi, yhi),
+                    ((xlo + xhi) / 2, (ylo + yhi) / 2)]
 
     env = gym.make(GID, cfg=cfg, render_mode=None)
     u = env.unwrapped
@@ -76,12 +85,14 @@ def main():
     cube_b, _ = subtract_frame_transforms(root_p, root_q, u.scene["object"].data.root_pos_w[0:1, :3])
     z_b = float(cube_b[0, 2])
     pts = []
-    for (x, y) in PIN4_CORNERS:
+    for (x, y) in pin4_corners:
         pw, _ = combine_frame_transforms(root_p, root_q, torch.tensor([[x, y, z_b]], device=u.device))
         pts.append(pw[0])
     marker_pos = torch.stack(pts)
 
     _p(f"base z = {float(r.data.root_pos_w[0,2]):.3f}; Pin-4 contact z_b = {z_b:.3f}")
+    _p(f"Pin-4 goal region (from cfg): x=[{xlo:.2f},{xhi:.2f}] y=[{ylo:.2f},{yhi:.2f}] "
+       f"→ red markers here (Pin-4a −60mm should show x 0.34-0.54)")
     _p(f"tunable arm joints: {arm_names}")
 
     # ---- omni.ui slider panel ----
