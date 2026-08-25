@@ -1354,3 +1354,71 @@ the controller now feed-forwards the gravity load (knows the weight to hold)
 instead of running blind. gen-0 gravity budget is comfortable, not tighter.
 
 Pin-TODO (gravity re-verify) CLOSED. Proceed to Q3 (teacher scaffolding).
+
+### 2026-08-25 Q3 canonical design SEALED + Pin-11 + gen-0 pre-reqs (PI ruling)
+
+**PUSH_TO format (canonical, teacher-only ControlMode.PUSH_WAYPOINT):**
+- `PUSH_TO: x,y` — 2D ONLY. z is not a decision variable (cube slides on the
+  table; z owned by primitive/physics). Cuts a whole dimension of error
+  surface, physically honest.
+- integer, base-frame, SAME scale/units as LEFT_TARGET_POS (int_to_metric +
+  WorkspaceBounds). "Student zero-change" = the tokenizer sees the same kind
+  of number.
+- one PUSH_TO per round; the primitive executes ONE bounded push segment
+  (per-round cube displacement cap ~5-8cm, managed by the primitive's internal
+  lead budget) then returns; teacher re-decides next round. The conditional
+  decision surface ("where / how far / when to re-approach") lives in this
+  loop — this is what r-tracking measures.
+- Parser validation: PUSH_TO must fall inside the table workspace (Pin-4a
+  region + margin); out-of-bounds = format violation → format-contract check
+  (extend the gate, teacher-only branch).
+
+**Two-leg error reveal (L0a Fix-3 convention):** two vectors (EE→cube,
+cube→goal) revealed as base-frame integers, SAME scale as the output, oracle
+source declared in-prompt. Symmetric with the reach prompt's reveal style →
+one-sentence caveat covers both tasks in the P2 writeup.
+
+**Pin-11 (success predicate + round budget, SEALED):**
+- SUCCESS = cube centre within 0.05m of goal.
+- round cap = 12 (distance budget: farthest ~36cm ÷ 5-8cm/round ≈ 6-8 rounds,
+  ×1.5 margin).
+- plateau termination: 3 consecutive rounds with cube displacement <1cm →
+  end early, log 'plateau'.
+- If these conflict with the Q5 containment probe, the probe wins; re-pin
+  after.
+
+**R1 probe — push analogue (DEFINED pre-data, prereg addendum):**
+round-1 push-direction error = angle/deviation between the teacher's FIRST
+PUSH_TO direction (from cube toward the emitted waypoint) and the OPTIMAL
+cube→goal direction. Smoke is feasibility and does NOT use it; gen-0 does.
+Written before any data seen (matched-tier discipline, like the reach R1).
+
+**gen-0 pre-req flag (record now, execute before gen-0):** "student
+zero-change" holds ONLY for smoke. Expert iteration REQUIRES the student to
+eventually emit PUSH_TO itself → before gen-0 SFT, the student-side
+constrained decoding + STAGE1 templates + format-contract gate MUST be
+extended to include PUSH_WAYPOINT. This is a PLANNED controlled change (full
+format-contract discipline, precisely because of that bug family's record) —
+NOT a forbidden zone. Forbidden = "tweak it during smoke." Added to the gen-0
+pre-req list.
+
+**Q1 τ-reading flag (Rule 8, one-line verify, non-blocking):** the counter-
+intuitive 0.75→0.61 (gravity ON lowering τ) must be checked: is the logged
+applied_torque INCLUSIVE of the gravity-compensation feed-forward term? If yes
+→ benign (pose near equilibrium), record one explanatory sentence. If no → the
+τ budget accounting must be redone (real motor load = feed-forward + feedback).
+To verify before trusting the budget.
+
+### 2026-08-25 Q1 τ-flag RESOLVED (Rule 8) — applied_torque IS the real motor load
+
+Verified (articulation_data.py:339): `applied_torque` = the torque the actuator
+model actually applies to sim AFTER clipping. OSC's `_joint_efforts` (which
+includes the gravity-comp feed-forward `joint_efforts += gravity`,
+operational_space.py:479) → set_joint_effort_target → actuator → applied_torque.
+So the logged τ INCLUDES the gravity-comp feed-forward = the real motor load
+(feed-forward + feedback). → BENIGN branch: the 0.75→0.61 drop is physical —
+without gravity/comp, OSC fights the pose on position-error feedback alone
+(large error → high τ); with gravity ON + comp ON, the feed-forward cancels
+the weight, the pose sits near equilibrium, feedback only trims → total τ
+lower. τ budget accounting is CORRECT, no redo. gravity_compensation is
+sim-to-real honest AND cheaper on τ.
