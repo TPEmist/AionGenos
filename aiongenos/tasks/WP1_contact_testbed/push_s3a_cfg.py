@@ -82,6 +82,13 @@ class WP1PushS3aEnvCfg(WP1ContactTestbedEnvCfg):
         # pipeline auto-adapts (recon-verified); only this literal changes.
         self.scene.robot.init_state.pos = (0.0, 0.0, _ROBOT_BASE_Z)
 
+        # Q1 (2026-08-25, Pin-TODO trigger): gen-0 requires REAL gravity, not
+        # the OSC-effort optimistic no-gravity of osc_testbed. Re-enable arm
+        # gravity AND turn ON OSC gravity_compensation so the controller
+        # actively holds against it. Overridden HERE (not osc_testbed) so the
+        # old bisection diagnostics stay on their no-gravity config — isolation.
+        self.scene.robot.spawn.rigid_props.disable_gravity = False
+
         # Work surface (Pin-10): the table asset the cube rests on and is pushed
         # across. AssetBaseCfg (static). collider verified present (step 1).
         self.scene.table = AssetBaseCfg(
@@ -147,6 +154,11 @@ class WP1PushS3aEnvCfg(WP1ContactTestbedEnvCfg):
         for act in (self.actions.left_arm_action, self.actions.right_arm_action):
             act.controller_cfg.motion_stiffness_task = 300.0
             act.controller_cfg.motion_stiffness_limits_task = (100.0, 500.0)
+            # Q1: OSC actively compensates gravity (arm gravity now ON) so the
+            # standby/servo hold against real weight — the sim-to-real-honest
+            # controller. Requires the gravity vector, which the OSC action
+            # term feeds from get_gravity_compensation_forces.
+            act.controller_cfg.gravity_compensation = True
 
         # ── cube-goal (Pin 4): re-purpose the left_ee_pose command as the
         # CUBE's goal region (where the cube must be pushed), NOT the EE's

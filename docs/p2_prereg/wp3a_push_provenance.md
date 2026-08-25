@@ -1335,3 +1335,22 @@ abstraction judgements I could not make from the numbers. The last one caught
 that I was solving the wrong layer entirely (hand-writing what must be learned).
 That is the harness_grant_ledger's gap map in action: where a human still
 supplies the abstraction the system can't yet reach.
+
+### 2026-08-25 Q1 gravity-on re-verify — PASS (Pin-TODO closed; gen-0 gravity honest)
+
+push_s3a now: arm disable_gravity=False + OSC gravity_compensation=True
+(overridden in push_s3a, NOT osc_testbed, so the old no-gravity diagnostics
+are untouched — isolation). cube physics unchanged. Pre-committed criteria:
+
+- **STANDBY HOLD**: command the standby EE pose, sustained. peak τ/limit=0.61
+  (mean 0.57), drift 2.7cm, EE_z 1.127 → PASS (≤0.85). Pin-7a holds under
+  real gravity + compensation; no Pin-7b needed.
+- **NEAR servo** (rest+12cm): min_err 2.9cm, peak τ/limit=0.53 → PASS.
+
+**τ delta (sim-to-real material):** no-gravity/no-comp first-servo τ≈0.75 →
+gravity-on/comp-on τ 0.61 (hold), 0.53 (near). Counter-intuitive but correct:
+turning gravity ON while turning gravity_compensation ON *lowered* τ, because
+the controller now feed-forwards the gravity load (knows the weight to hold)
+instead of running blind. gen-0 gravity budget is comfortable, not tighter.
+
+Pin-TODO (gravity re-verify) CLOSED. Proceed to Q3 (teacher scaffolding).
