@@ -46,6 +46,18 @@ ACTION_MODE_MAP: dict[ControlMode, ActionModeSpec] = {
         has_gripper=True,
         description="L3/L4: EE position + 3-DoF Euler RPY + binary gripper",
     ),
+    # WP1-③a push: the teacher's action is a 2-DoF CUBE waypoint, NOT a per-arm
+    # EE target — so dims_per_arm is not the right frame here (the arm is driven
+    # by the push_toward primitive, not a direct IK target). Registered so the
+    # map stays total over the enum (get_action_mode won't KeyError); the push
+    # converter, not build_ik_action_cfg_dict, owns the actual arm command.
+    ControlMode.PUSH_WAYPOINT: ActionModeSpec(
+        command_type="position",
+        use_relative_mode=False,
+        dims_per_arm=2,   # cube waypoint x,y (semantic: cube-space, not per-arm EE)
+        has_gripper=False,
+        description="WP1-③a: 2-DoF cube push waypoint (x, y); primitive owns approach+contact",
+    ),
 }
 
 

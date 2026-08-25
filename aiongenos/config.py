@@ -28,6 +28,12 @@ class ControlMode(str, Enum):
     POSITION_ONLY = "end_effector_position_only"  # L0/L1: 3-DoF (x, y, z)
     POSITION_RPY_2DOF = "end_effector_pose_with_2dof_rpy"  # L2: 5-DoF (x, y, z, pitch, yaw)
     POSITION_RPY_GRIPPER = "end_effector_pose_with_rpy"  # L3/L4: 6-DoF + 1-bit gripper
+    # WP1-③a push (teacher-only for smoke): the teacher emits a 2-DoF CUBE
+    # waypoint (PUSH_TO x,y), NOT a per-arm EE target. The primitive owns the
+    # behind-cube approach + contact. Kept a distinct mode so it never routes
+    # through the per-arm EE path or the student format maps (student pipeline
+    # unchanged for smoke; extended under full contract discipline before gen-0).
+    PUSH_WAYPOINT = "cube_push_waypoint_2dof"  # WP1-③a: 2-DoF cube waypoint (x, y)
 
 
 @dataclass(frozen=True)

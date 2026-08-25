@@ -253,6 +253,42 @@ class IsaacLabEnvInterface:
                 "right_gripper": right_gripper_state,
             })
 
+        # WP1-③a PUSH: two-leg oracle reveal (EE→cube, cube→goal) as base-frame
+        # integer vectors at the SAME scale as the output (int_to_metric grid),
+        # following the L0a Fix-3 convention. Cube = scene['object']; goal = the
+        # re-purposed left_ee_pose command term (base-frame .command).
+        if level_config.control_mode == ControlMode.PUSH_WAYPOINT:
+            try:
+                import numpy as _np
+                root_w = self.robot.data.root_pos_w[0].cpu().numpy()
+                cube_w = self.env.unwrapped.scene["object"].data.root_pos_w[0].cpu().numpy()
+                cube_b = cube_w[:3] - root_w[:3]  # base-frame (root identity-rot verified)
+                goal_b = self.env.unwrapped.command_manager.get_term(
+                    "left_ee_pose").command[0, :3].cpu().numpy()
+                ee_b = _np.array(left_pos_b)  # left EE, base frame (already computed)
+
+                def _xy_int(mx, my):
+                    (xi, yi, _), _ = position_metric_to_int(
+                        float(mx), float(my), 0.0,
+                        bounds.x_bounds, bounds.y_bounds, bounds.z_bounds)
+                    return xi, yi
+
+                cube_xi, cube_yi = _xy_int(cube_b[0], cube_b[1])
+                goal_xi, goal_yi = _xy_int(goal_b[0], goal_b[1])
+                ee_cube_xi, ee_cube_yi = _xy_int(cube_b[0] - ee_b[0], cube_b[1] - ee_b[1])
+                cube_goal_xi, cube_goal_yi = _xy_int(goal_b[0] - cube_b[0], goal_b[1] - cube_b[1])
+                state.update({
+                    "cube_x": cube_xi, "cube_y": cube_yi,
+                    "goal_x": goal_xi, "goal_y": goal_yi,
+                    "ee_to_cube_x": ee_cube_xi, "ee_to_cube_y": ee_cube_yi,
+                    "cube_to_goal_x": cube_goal_xi, "cube_to_goal_y": cube_goal_yi,
+                })
+            except Exception as e:
+                logger.warning(f"push state reveal failed: {e}")
+                state.update({k: "?" for k in (
+                    "cube_x", "cube_y", "goal_x", "goal_y",
+                    "ee_to_cube_x", "ee_to_cube_y", "cube_to_goal_x", "cube_to_goal_y")})
+
         return state
 
     def execute_command(

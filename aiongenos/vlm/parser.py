@@ -62,6 +62,31 @@ class Stage1Response(BaseModel):
     stop: bool
 
 
+class PushTarget(BaseModel):
+    """2-DoF integer CUBE waypoint (WP1-③a push). x,y only — z is owned by the
+    physics/primitive (cube slides on the table)."""
+    x: int
+    y: int
+
+    @field_validator("x", "y")
+    @classmethod
+    def in_range(cls, v: int) -> int:
+        if not -100 <= v <= 100:
+            raise ValueError(f"Coordinate {v} out of [-100, 100]")
+        return v
+
+
+class PushStage1Response(BaseModel):
+    """Parsed Stage-1 PUSH response (teacher-only, ControlMode.PUSH_WAYPOINT).
+
+    A DISTINCT model, NOT Stage1Response — a push waypoint is one cube target,
+    not two EE targets; overloading left/right would route it into the per-arm
+    IK path and corrupt the student two-arm contract."""
+    thought: str
+    push_to: PushTarget
+    stop: bool
+
+
 class Stage3Response(BaseModel):
     """Full parsed Stage 3 (critic) response."""
     diagnosis: str
@@ -78,6 +103,7 @@ _RPY3 = rf"R={_INT}\s+P={_INT}\s+Y={_INT}"
 _RPY2 = rf"P={_INT}\s+Y={_INT}"
 _GRIP = r"(open|closed)"
 _BOOL = r"(true|false)"
+_PUSH = rf"X={_INT}\s+Y={_INT}"   # WP1-③a PUSH_TO: 2-DoF cube waypoint
 
 
 def _extract(pattern: str, text: str, label: str) -> re.Match:
@@ -180,6 +206,24 @@ def parse_stage1(
         right=VLMAction(position=right_pos, rpy=right_rpy, gripper=right_grip),
         stop=stop,
     )
+
+
+def parse_stage1_push(text: str) -> PushStage1Response:
+    """Parse a Stage-1 PUSH response (ControlMode.PUSH_WAYPOINT, teacher-only).
+
+    Format:  THOUGHT: ...\n  PUSH_TO: X=<int> Y=<int>\n  STOP: true|false
+    Returns a PushStage1Response (distinct from Stage1Response). This is a
+    SEPARATE function, not a branch in parse_stage1, so the two-arm parse and
+    the student contract are never touched. Workspace-bounds validation (PUSH_TO
+    inside Pin-4a+margin) is a SEPARATE concern done at the format-contract gate
+    / converter, not here — here we only parse + range-check [-100,100]."""
+    thought_m = re.search(r"THOUGHT:\s*(.+?)(?=\n(?:PUSH_TO|$))", text, re.DOTALL | re.IGNORECASE)
+    thought = thought_m.group(1).strip() if thought_m else ""
+    m = _extract(rf"PUSH_TO:\s*{_PUSH}", text, "PUSH_TO")
+    push_to = PushTarget(x=int(m.group(1)), y=int(m.group(2)))
+    stop_m = _extract(rf"STOP:\s*{_BOOL}", text, "STOP")
+    stop = stop_m.group(1).lower() == "true"
+    return PushStage1Response(thought=thought, push_to=push_to, stop=stop)
 
 
 def parse_stage3(text: str, has_rpy: bool = False, has_gripper: bool = False, rpy_2dof: bool = False) -> Stage3Response:

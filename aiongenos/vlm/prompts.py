@@ -108,10 +108,32 @@ _S1_FULL: Final[str] = (
     "STOP: <true|false>"
 )
 
+# WP1-③a PUSH template (teacher-only, ControlMode.PUSH_WAYPOINT). The teacher
+# emits ONE cube waypoint per round (PUSH_TO x,y). Two-leg oracle reveal
+# (EE→cube, cube→goal) follows the L0a Fix-3 convention: base-frame integer
+# vectors at the SAME scale as the output, oracle source declared in-prompt.
+# NOT added to any student variant map — teacher-only until gen-0.
+_S1_PUSH: Final[str] = (
+    "TASK: {instruction}\nCONTROL_MODE: cube_push_waypoint_2dof\n\n"
+    "CURRENT STATE (oracle-revealed, base-frame integers, same scale as your output):\n"
+    "  CUBE_POS      = (X={cube_x}, Y={cube_y})\n"
+    "  GOAL_POS      = (X={goal_x}, Y={goal_y})\n"
+    "  EE_TO_CUBE    = (dX={ee_to_cube_x}, dY={ee_to_cube_y})   # left EE → cube\n"
+    "  CUBE_TO_GOAL  = (dX={cube_to_goal_x}, dY={cube_to_goal_y})   # cube → goal\n\n"
+    "You push the cube toward the goal. Emit the CUBE's next waypoint (where the\n"
+    "cube should end up after this push segment). The controller owns the\n"
+    "behind-cube approach and contact; you only choose where to push the cube.\n"
+    "One bounded push per round (~5-8cm); re-plan next round from the new state.\n\n"
+    "THOUGHT: <one paragraph physics reasoning>\n"
+    "PUSH_TO: X=<int> Y=<int>\n"
+    "STOP: <true|false>"
+)
+
 STAGE1_TEMPLATES: Final[dict[ControlMode, str]] = {
     ControlMode.POSITION_ONLY: _S1_POS,
     ControlMode.POSITION_RPY_2DOF: _S1_RPY2,
     ControlMode.POSITION_RPY_GRIPPER: _S1_FULL,
+    ControlMode.PUSH_WAYPOINT: _S1_PUSH,
 }
 
 
