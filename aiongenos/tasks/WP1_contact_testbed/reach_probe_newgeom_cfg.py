@@ -3,7 +3,7 @@
 # Old reachability sweeps are VOID: they ran on the mis-assembled scene (no
 # table, arm base on the floor, cube at z=0.02). This cfg re-runs the SAME
 # validated instrument — L2 DiffIK in orientation-FREE (command_type="position")
-# mode — but on the NEW geometry: table Table_sor_1.usd, robot base at z=0.65,
+# mode — but on the NEW geometry: table Table_sor_1.usd, robot base at z=0.55,
 # so the contact height z_b≈0.37 (cube-on-table) can be confirmed reachable.
 #
 # This is CONFIRMATION not exploration: z_b≈0.37 is already in the NEAR-verified

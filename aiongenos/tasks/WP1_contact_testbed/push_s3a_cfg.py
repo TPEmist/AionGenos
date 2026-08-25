@@ -29,7 +29,7 @@ from aiongenos.tasks.WP1_contact_testbed.osc_testbed_cfg import WP1ContactTestbe
 _TABLE_USD = "/home/control/AionGenos/localProps/Table_sor_1.usd"
 _TABLE_POS = (0.55, 0.0, 0.0)          # PI-defined table placement
 _TABLE_TOP_Z = 0.9941                  # sim-measured bbox top (PI ruling: use sim value)
-_ROBOT_BASE_Z = 0.65                   # PI-defined: arm base on a stand, clear of the table
+_ROBOT_BASE_Z = 0.55                   # PI-defined 2026-08-25: 0.65 too high to reach; 0.55 makes all Pin-4a corners human-verified reachable
 _CUBE_HALF_H = 0.0240                  # DexCube half-height at scale 0.8, MEASURED via bbox (assembly-verify 2026-08-24)
 _CUBE_REST_Z = _TABLE_TOP_Z + _CUBE_HALF_H          # ≈1.0181 (cube centre at rest, matches settle)
 _CUBE_SPAWN_Z = _TABLE_TOP_Z + 0.02                 # spawn slightly above → settles onto top

@@ -1,13 +1,14 @@
 """WP1-③a step 6 — reachability CONFIRMATION on the REBUILT geometry.
 
 Old sweeps VOID (mis-assembled scene). This re-runs the validated L2 DiffIK
-instrument (orientation-free) on the NEW scene (table + base z=0.65) and
+instrument (orientation-free) on the NEW scene (table + base z=0.55 (PI-defined)) and
 CONFIRMS the contact height z_b≈0.37 (cube-on-table, base frame) is reachable
 across the Pin-4 region. Confirmation, not exploration.
 
 Baseline-first (self-referential). Targets are BASE-frame (what the interface
-consumes). Sweeps Pin-4 x∈{0.40,0.45,0.50,0.55,0.60} × y∈{-0.15,0,0.15} at the
-contact height z_b, LEFT and RIGHT arm. PASS = min_err < 3cm (servo tol).
+consumes). Sweeps the Pin-4 goal region DERIVED FROM CFG (5×3 grid over the
+live goal x/y range — no hardcoded copy) at the contact height z_b, LEFT and
+RIGHT arm. PASS = min_err < 3cm (servo tol).
 
 Reads [RC]. Headless + cameras.
 """
@@ -38,9 +39,10 @@ from aiongenos.tasks.WP1_contact_testbed.push_s3a_cfg import _CUBE_REST_Z, _ROBO
 
 GID = "Isaac-AionGenos-WP1-ReachProbe-NewGeom-v0"
 # cube-on-table contact height in BASE frame = world rest z − base z
-Z_CONTACT_B = round(_CUBE_REST_Z - _ROBOT_BASE_Z, 4)  # ≈1.0181-0.65 = 0.3681
-XS = [0.40, 0.45, 0.50, 0.55, 0.60]   # Pin-4 x region
-YS = [-0.15, 0.0, 0.15]               # Pin-4 y region
+Z_CONTACT_B = round(_CUBE_REST_Z - _ROBOT_BASE_Z, 4)  # base 0.55 → ≈0.468
+# XS/YS are DERIVED from the cfg goal range at runtime (see main) — never
+# hardcoded, so the sweep always covers the ACTUAL Pin-4(a) region, not a
+# stale copy. (Hardcoding 0.40-0.60 here was the drift bug.)
 REACH_TOL_CM = 3.0        # sweep REACH judgement (strict servo tol)
 BASELINE_TOL_CM = 4.0     # instrument-sanity bar (looser: confirms servo works;
                           # R arm's extended rest converges to ~3.2cm, which
@@ -53,7 +55,16 @@ def _p(m): print(f"[RC] {m}", flush=True)
 
 def main():
     os.makedirs(args_cli.out, exist_ok=True)
-    env = gym.make(GID, cfg=parse_env_cfg(GID, num_envs=1), render_mode=None)
+    _cfg = parse_env_cfg(GID, num_envs=1)
+    # DERIVE the sweep grid from the cfg goal range (no hardcoded copy → no
+    # drift). 5 x-steps across the goal x-range, 3 y-steps across y-range.
+    _gr = _cfg.commands.left_ee_pose.ranges
+    _xlo, _xhi = _gr.pos_x
+    _ylo, _yhi = _gr.pos_y
+    XS = [round(_xlo + (_xhi - _xlo) * i / 4, 3) for i in range(5)]
+    YS = [round(_ylo, 3), round((_ylo + _yhi) / 2, 3), round(_yhi, 3)]
+    _p(f"Pin-4 sweep grid FROM CFG: x={XS} y={YS}")
+    env = gym.make(GID, cfg=_cfg, render_mode=None)
     iface = IsaacLabEnvInterface(env)
     robot = iface.robot
     u = env.unwrapped

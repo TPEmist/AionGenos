@@ -68,7 +68,7 @@ def main():
     obj = u.scene["object"]
     stage = u.sim.stage
 
-    _p(f"robot base world z = {float(r.data.root_pos_w[0,2]):.4f} (expect 0.65)")
+    _p(f"robot base world z = {float(r.data.root_pos_w[0,2]):.4f} (expect 0.55, PI-defined)")
     tb = _bbox(stage, "/World/envs/env_0/Table")
     if tb:
         _p(f"table top z = {tb[5]:.4f} (expect ~0.9941)  x=[{tb[0]:.2f},{tb[3]:.2f}] y=[{tb[1]:.2f},{tb[4]:.2f}]")
