@@ -18,7 +18,7 @@ from isaaclab.sim.spawners.from_files.from_files_cfg import UsdFileCfg
 
 from aiongenos.tasks.L2_dual_push.dual_push_cfg import L2DualPushEnvCfg
 from aiongenos.tasks.WP1_contact_testbed.push_s3a_cfg import (
-    _TABLE_USD, _TABLE_POS, _ROBOT_BASE_Z,
+    _TABLE_USD, _TABLE_POS, _ROBOT_BASE_Z, _PIN4_X, _PIN4_Y, _CUBE_REST_Z_B,
 )
 
 
@@ -36,6 +36,15 @@ class WP1ReachProbeNewGeomEnvCfg(L2DualPushEnvCfg):
             init_state=AssetBaseCfg.InitialStateCfg(pos=list(_TABLE_POS), rot=[1.0, 0.0, 0.0, 0.0]),
             spawn=UsdFileCfg(usd_path=_TABLE_USD),
         )
+
+        # Pin-4a goal range — IMPORT the SAME constants as push_s3a, so the
+        # reach-confirm sweep (which reads this env's goal range) tests the
+        # ACTUAL Pin-4a region, not L2's inherited x 0.15-0.3 (that mismatch
+        # made the earlier confirm sweep test the wrong region entirely).
+        g = self.commands.left_ee_pose
+        g.ranges.pos_x = _PIN4_X
+        g.ranges.pos_y = _PIN4_Y
+        g.ranges.pos_z = (_CUBE_REST_Z_B, _CUBE_REST_Z_B)   # BASE-frame contact height
 
         # Orientation-FREE IK on both arms (position-only 3-DoF task) — the
         # clean reachability tester (isolates position reach from wrist slew).

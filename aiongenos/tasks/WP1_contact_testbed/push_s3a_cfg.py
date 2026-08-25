@@ -31,8 +31,13 @@ _TABLE_POS = (0.55, 0.0, 0.0)          # PI-defined table placement
 _TABLE_TOP_Z = 0.9941                  # sim-measured bbox top (PI ruling: use sim value)
 _ROBOT_BASE_Z = 0.55                   # PI-defined 2026-08-25: 0.65 too high to reach; 0.55 makes all Pin-4a corners human-verified reachable
 _CUBE_HALF_H = 0.0240                  # DexCube half-height at scale 0.8, MEASURED via bbox (assembly-verify 2026-08-24)
-_CUBE_REST_Z = _TABLE_TOP_Z + _CUBE_HALF_H          # ≈1.0181 (cube centre at rest, matches settle)
-_CUBE_SPAWN_Z = _TABLE_TOP_Z + 0.02                 # spawn slightly above → settles onto top
+_CUBE_REST_Z = _TABLE_TOP_Z + _CUBE_HALF_H          # ≈1.0181 WORLD (cube centre at rest, matches settle)
+_CUBE_SPAWN_Z = _TABLE_TOP_Z + 0.02                 # spawn slightly above → settles onto top (WORLD)
+# BASE-FRAME contact height = world rest − base z. The command term's ranges
+# are in the ROBOT BASE FRAME (IsaacLab UniformPoseCommand generates in base
+# frame), so the goal pos_z MUST be this base value, NOT the world _CUBE_REST_Z
+# (the frame bug that sent the push target 0.55m too high → arm missed cube).
+_CUBE_REST_Z_B = _CUBE_REST_Z - _ROBOT_BASE_Z       # base-frame contact height ≈0.468
 # Contact-surface friction (Pin-10, PI ruling): EXPLICIT, not sim-inherited.
 _FRICTION_STATIC = 0.6
 _FRICTION_DYNAMIC = 0.5
@@ -43,6 +48,11 @@ _FRICTION_DYNAMIC = 0.5
 # happens inside the comfortable envelope, not at full stretch.
 _PIN4_INSHIFT = 0.06        # move goal region + cube −60mm in x (toward base)
 _CUBE_START_X = 0.45 - _PIN4_INSHIFT   # = 0.39
+# Pin-4a goal region — SINGLE SOURCE OF TRUTH. Any probe/diagnostic that needs
+# the goal range MUST import these (not read a different env's inherited range,
+# which was the drift that made the reach-confirm sweep test the wrong region).
+_PIN4_X = (0.40 - _PIN4_INSHIFT, 0.60 - _PIN4_INSHIFT)   # (0.34, 0.54)
+_PIN4_Y = (-0.15, 0.15)
 
 # Pin-7a (2026-08-25): standby pose TUNED BY THE PI in the free-drive tuner,
 # on the rebuilt scene (base 0.65, table). SINGLE SOURCE OF TRUTH — used by
@@ -148,9 +158,9 @@ class WP1PushS3aEnvCfg(WP1ContactTestbedEnvCfg):
         # reads this goal + the cube pose and computes the behind-cube
         # approach; the teacher only picks push-this-cube-to-this-goal.
         g = self.commands.left_ee_pose
-        g.ranges.pos_x = (0.40 - _PIN4_INSHIFT, 0.60 - _PIN4_INSHIFT)   # Pin-4a: −60mm in → (0.34, 0.54)
-        g.ranges.pos_y = (-0.15, 0.15)
-        g.ranges.pos_z = (_CUBE_REST_Z, _CUBE_REST_Z)   # cube resting height on the table (planar)
+        g.ranges.pos_x = _PIN4_X   # Pin-4a: −60mm in → (0.34, 0.54)
+        g.ranges.pos_y = _PIN4_Y
+        g.ranges.pos_z = (_CUBE_REST_Z_B, _CUBE_REST_Z_B)   # BASE-frame contact height (was world → frame bug)
         g.ranges.roll = (0.0, 0.0)
         g.ranges.pitch = (0.0, 0.0)
         g.ranges.yaw = (0.0, 0.0)          # position-region goal; orient N/A

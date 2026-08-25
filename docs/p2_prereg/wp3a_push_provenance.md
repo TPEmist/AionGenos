@@ -1279,3 +1279,59 @@ rewrite reset_robot_joints, and run the config-effect gate.
 corrected cfg (Pin-7a + Pin-4a −60mm) — the earlier step-6 fail used base 0.65
 with Pin-4 at full x 0.40-0.60. With Pin-4a shifted in, re-confirm contact
 height reachable before Pin-9a.
+
+### 2026-08-25 WP1-③a INVENTORY + re-scoping — the mechanical layer is DONE; "command quality" is the model's job, not mine
+
+Turning point (PI, watching the push GUI): "EEF fully reachable, posture
+distorted, feels like the command is just given badly." That judgement
+re-scopes everything and corrects my error of the last many rounds.
+
+**What I was doing wrong:** manually playing teacher — hand-writing waypoints
+(one-step absolute far targets, forced identity orientation). When I wrote bad
+commands, OSC contorted the arm to force the bad target → distorted posture +
+τ saturation → I then debugged the saturation as if the TASK/sim were broken.
+It never was. I was debugging my own bad commands. Generating good commands is
+the ENTIRE POINT of AionGenos (the teacher/model learns situation→action);
+me hand-writing them either bypasses the research or manufactures fake bugs.
+
+**Marginal vs conditional, corrected (founding-intent):** the APPROACH
+trajectory shape (move_to / hover / descend primitives) is marginal (given
+mechanical form); WHICH primitives to chain and with what waypoints/params is
+CONDITIONAL — the teacher must learn it. Hand-writing a full hover-descend
+approach = injecting conditional knowledge. So the "saturation from one-step
+direct-slam" is not a bug to fix by hand — it's exactly the kind of bad
+command a competent teacher learns NOT to emit. r-tracking is meant to watch
+the teacher improve this across generations.
+
+**WP1-③a mechanical layer — DONE (verified):**
+- scene: real table (Table_sor_1.usd) at arm work height, cube-on-table,
+  base z=0.55, deterministic settle (0.00mm), camera framing ✓
+- standby: Pin-7a PI-tuned, applied via rewritten reset event (symmetric-not-
+  required, zero jitter), config-effect gate PASS ✓
+- standby holds under the FIRST servo command (HELD, τ 0.75) — the "collapse"
+  was a zero-action artifact, not a real-rollout state ✓
+- reachability: EEF reaches Pin-4a cells (PI human-verified in the tuner;
+  full envelope) ✓
+- OSC executes commands (impedance servo works when the target is sane) ✓
+- Pin-10 contact material sealed (friction 0.6/0.5), Pin-4a goal −60mm ✓
+- goal frame bug fixed (base-frame contact z 0.468, not world 1.018) ✓
+
+**What is NOT mine to solve (the model's job, defer to teacher/rollout):**
+- approach/command QUALITY (waypoint choice, chaining, when to hover-descend
+  vs direct) — CONDITIONAL, the teacher learns it; my hand-written one-step
+  slam is a deliberately-dumb stand-in that (correctly) fails.
+- these are r-tracking's SUBJECT, not preconditions.
+
+**Re-scoping decision:** stop hand-debugging approach waypoints. The
+mechanical testbed is sufficient to carry the P2 experiment. Next step is to
+connect the REAL teacher (model emits push-this-cube-to-here → push_toward
+primitive → OSC), NOT to keep hand-writing better waypoints. The distorted-
+posture/saturation the PI saw is the teacher's problem to learn away, which is
+precisely what P2 measures.
+
+**Process note (the recurring signature):** the PI's interventions — headless,
+gripper, scene geometry, standby, "just bad commands" — are all cross-layer
+abstraction judgements I could not make from the numbers. The last one caught
+that I was solving the wrong layer entirely (hand-writing what must be learned).
+That is the harness_grant_ledger's gap map in action: where a human still
+supplies the abstraction the system can't yet reach.
