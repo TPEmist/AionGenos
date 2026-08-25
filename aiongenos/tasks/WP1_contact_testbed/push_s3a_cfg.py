@@ -37,6 +37,29 @@ _CUBE_SPAWN_Z = _TABLE_TOP_Z + 0.02                 # spawn slightly above → s
 _FRICTION_STATIC = 0.6
 _FRICTION_DYNAMIC = 0.5
 
+# Pin-4a (2026-08-25): the PI eyeballed the standby tuner — the farthest Pin-4
+# goal corners are reachable but only at FULL arm extension. Shift the whole
+# goal region (and the cube start) IN toward the robot by 60mm so contact
+# happens inside the comfortable envelope, not at full stretch.
+_PIN4_INSHIFT = 0.06        # move goal region + cube −60mm in x (toward base)
+_CUBE_START_X = 0.45 - _PIN4_INSHIFT   # = 0.39
+
+# Pin-7a (2026-08-25): standby pose TUNED BY THE PI in the free-drive tuner,
+# on the rebuilt scene (base 0.65, table). SINGLE SOURCE OF TRUTH — used by
+# BOTH init_state AND the reset event so they cannot drift (the drift was the
+# recurring standby bug). NOT symmetric: the arms mirror physically (the
+# shoulder j2 opens the opposite way, the elbow bends the opposite way), so
+# left/right values legitimately differ — symmetry is NOT a correctness test.
+_STANDBY_POSE = {
+    "openarm_left_joint1": 0.090,  "openarm_right_joint1": 0.090,
+    "openarm_left_joint2": -0.640, "openarm_right_joint2": 0.430,
+    "openarm_left_joint3": 0.130,  "openarm_right_joint3": -0.030,
+    "openarm_left_joint4": 1.830,  "openarm_right_joint4": 1.830,
+    "openarm_left_joint5": -0.480, "openarm_right_joint5": 0.330,
+    "openarm_left_joint6": -0.120, "openarm_right_joint6": -0.210,
+    "openarm_left_joint7": -0.220, "openarm_right_joint7": 0.080,
+}
+
 
 @configclass
 class WP1PushS3aEnvCfg(WP1ContactTestbedEnvCfg):
@@ -57,42 +80,23 @@ class WP1PushS3aEnvCfg(WP1ContactTestbedEnvCfg):
             spawn=UsdFileCfg(usd_path=_TABLE_USD),
         )
 
-        # Pin-7 (2026-08-17, corrected 2026-08-24): BI standby WORKING pose,
-        # SYMMETRIC across both arms (left/right same-sign — the arm's mirror
-        # convention, per the reset-event target which used same-sign L/R).
-        # Previously the right arm set only j1/j4/j6 (the other 4 fell to 0),
-        # giving an asymmetric standby.
+        # Pin-7a standby (PI-tuned 2026-08-25) — set on BOTH init_state and the
+        # reset event from the SAME _STANDBY_POSE constant (no drift).
         self.scene.robot.init_state.joint_pos = {
-            "openarm_left_joint1": 0.6, "openarm_left_joint2": 0.0,
-            "openarm_left_joint3": 0.0, "openarm_left_joint4": 1.2,
-            "openarm_left_joint5": 0.0, "openarm_left_joint6": 0.5,
-            "openarm_left_joint7": 0.0,
-            "openarm_right_joint1": 0.6, "openarm_right_joint2": 0.0,
-            "openarm_right_joint3": 0.0, "openarm_right_joint4": 1.2,
-            "openarm_right_joint5": 0.0, "openarm_right_joint6": 0.5,
-            "openarm_right_joint7": 0.0,
+            **_STANDBY_POSE,
             "openarm_left_finger_joint.*": 0.0, "openarm_right_finger_joint.*": 0.0,
         }
 
         # CRITICAL (2026-08-24): the inherited reach-base reset event
-        # `reset_robot_joints` OVERRODE Pin-7 at every reset — it forced only
-        # j2/j4 to 0.5/0.8 and added ±0.2 rad jitter to ALL joints, so the
-        # standby was asymmetric + non-deterministic (the flop/self-collide/
-        # jitter the PI saw). Setting it to None was wrong: with no reset event,
-        # reset falls back to the USD default (all-0), NOT init_state. So we
-        # REWRITE the event to apply the FULL Pin-7 symmetric pose with ZERO
-        # jitter — the deterministic standby the task actually uses. (r-tracking
-        # needs a constant body per the freeze clause; jitter would confound it.)
-        self.events.reset_robot_joints.params["target_joint_pos"] = {
-            "openarm_left_joint1": 0.6, "openarm_left_joint2": 0.0,
-            "openarm_left_joint3": 0.0, "openarm_left_joint4": 1.2,
-            "openarm_left_joint5": 0.0, "openarm_left_joint6": 0.5,
-            "openarm_left_joint7": 0.0,
-            "openarm_right_joint1": 0.6, "openarm_right_joint2": 0.0,
-            "openarm_right_joint3": 0.0, "openarm_right_joint4": 1.2,
-            "openarm_right_joint5": 0.0, "openarm_right_joint6": 0.5,
-            "openarm_right_joint7": 0.0,
-        }
+        # `reset_robot_joints` OVERRODE the standby at every reset — it forced
+        # only j2/j4 + added ±0.2 rad jitter to ALL joints, so the pose never
+        # took effect and was non-deterministic (the flop/jitter the PI saw).
+        # Setting it to None was ALSO wrong: with no reset event, reset falls
+        # back to the USD default (all-0), NOT init_state. Correct fix: REWRITE
+        # the event to apply the FULL Pin-7a pose with ZERO jitter — the
+        # deterministic standby (r-tracking needs a constant body, freeze clause).
+        # Verified by scripts/diagnostics/check_config_effect.py.
+        self.events.reset_robot_joints.params["target_joint_pos"] = dict(_STANDBY_POSE)
         self.events.reset_robot_joints.params["position_range"] = (0.0, 0.0)  # ZERO jitter
         self.events.reset_robot_joints.params["velocity_range"] = (0.0, 0.0)
 
@@ -103,7 +107,7 @@ class WP1PushS3aEnvCfg(WP1ContactTestbedEnvCfg):
         # silently-inherited sim default.
         self.scene.object = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/PushCube",
-            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.45, 0.0, _CUBE_SPAWN_Z], rot=[1.0, 0.0, 0.0, 0.0]),
+            init_state=RigidObjectCfg.InitialStateCfg(pos=[_CUBE_START_X, 0.0, _CUBE_SPAWN_Z], rot=[1.0, 0.0, 0.0, 0.0]),
             spawn=UsdFileCfg(
                 usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
                 scale=(0.8, 0.8, 0.8),
@@ -144,7 +148,7 @@ class WP1PushS3aEnvCfg(WP1ContactTestbedEnvCfg):
         # reads this goal + the cube pose and computes the behind-cube
         # approach; the teacher only picks push-this-cube-to-this-goal.
         g = self.commands.left_ee_pose
-        g.ranges.pos_x = (0.40, 0.60)
+        g.ranges.pos_x = (0.40 - _PIN4_INSHIFT, 0.60 - _PIN4_INSHIFT)   # Pin-4a: −60mm in → (0.34, 0.54)
         g.ranges.pos_y = (-0.15, 0.15)
         g.ranges.pos_z = (_CUBE_REST_Z, _CUBE_REST_Z)   # cube resting height on the table (planar)
         g.ranges.roll = (0.0, 0.0)

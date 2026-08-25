@@ -1239,3 +1239,43 @@ z, on the NEW layout. Candidates to resolve WITH the PI (not unilateral):
    at reachable x.
 Reported to PI with the envelope data + error vectors. Step 7 (Pin-9a) BLOCKED
 until the contact workspace is confirmed reachable.
+
+### 2026-08-25 Pin-7a standby (PI-tuned) + Pin-4a goal region −60mm + config-effect gate
+
+**Pin-7a standby pose** — PI tuned it in the free-drive tuner on the rebuilt
+scene (base 0.65, table). NOT symmetric, and correctly so: the arms mirror
+physically (shoulder j2 opens opposite ways, elbow bends opposite ways), so
+L/R joint values legitimately differ. Symmetry is NOT a correctness test —
+my earlier "same-sign symmetric" assumption was wrong. Values (rad):
+  L: j1 0.09 j2 -0.64 j3 0.13 j4 1.83 j5 -0.48 j6 -0.12 j7 -0.22
+  R: j1 0.09 j2 0.43 j3 -0.03 j4 1.83 j5 0.33 j6 -0.21 j7 0.08
+Set as a SINGLE module constant `_STANDBY_POSE` used by BOTH init_state AND
+the reset event (no drift — the drift was the recurring bug). reset event
+rewritten to apply it with ZERO jitter (constant body for r-tracking).
+
+**Pin-4a goal region** — PI eyeballed: the farthest Pin-4 corners are reachable
+but only at FULL arm extension. Shifted the whole goal region + cube start IN
+toward the base by 60mm: goal x (0.40,0.60)→(0.34,0.54); cube start x 0.45→0.39.
+So contact happens inside the comfortable envelope, not at full stretch.
+
+**config-effect gate (scripts/diagnostics/check_config_effect.py)** — new
+PERMANENT gate for the bug family that recurred 4× on the standby pose (cfg
+value silently overridden/not-applied at runtime). Builds env → reset →
+mechanically asserts runtime joint pose == cfg intent + two-reset determinism
+(no jitter). PASS on the current cfg (14 joints match, deterministic). Any
+geometry/pose/reachability conclusion is invalid until this gate passes.
+Mirrors the check_eval_format_contract.py precedent.
+
+**Audit of the bug class across the repo** (agent, read-only): only one other
+active HIGH — osc_bi_leftposed_cfg.py sets a deliberate init pose but inherits
+the stock reset_joints_by_scale(0.5,1.5) which randomly scales it every reset
+(diagnostic-only cfg, no current use). No AionGenos main-line task besides
+push_s3a sets a custom init_state.joint_pos, so the bug is not silently
+replicated. Latent trap documented: `events.* = None` reverts to USD default,
+not init_state. Future rule: any task setting init_state.joint_pos MUST also
+rewrite reset_robot_joints, and run the config-effect gate.
+
+**Next (step 6 re-run):** the reachability confirm must be re-run on this
+corrected cfg (Pin-7a + Pin-4a −60mm) — the earlier step-6 fail used base 0.65
+with Pin-4 at full x 0.40-0.60. With Pin-4a shifted in, re-confirm contact
+height reachable before Pin-9a.
