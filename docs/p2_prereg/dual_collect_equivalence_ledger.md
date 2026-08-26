@@ -65,6 +65,23 @@ to collect.py: pure move, zero semantic diff, one L2 short-verify.
    The divergence is task-semantic, not a drift defect, and is exactly why
    push is a separate instrument.
 
+## Step-1 relocation verification (2026-08-26) — collect.py surgery cleared
+
+The three shared helpers (`_active_arm_for_level`, `_make_vlm_interaction`,
+`_write_episode`) were extracted to `collect_common.py` by PURE RELOCATION.
+Verified at BOTH layers spec-required:
+- **Static:** per-function SHA(pre-move) == SHA(post-move), byte-identical for
+  all three; collect.py diff = import block added + bodies deleted, ZERO logic
+  lines added.
+- **Dynamic (L2 regression, teacher gemma-4-31B on 148):** an L2 episode ran
+  end-to-end through the relocated path and wrote replay
+  `aa99ddd2/failure/209ac5a8-65b.json` with a fully intact schema —
+  `_write_episode` produced all fields (level=2, outcome, rgb paths, trajectory
+  300 steps, total_vlm_latency); `_make_vlm_interaction` produced 10 intact
+  vlm_interactions (full_response=thought 679 chars, parsed_left_pos,
+  latency_ms); `_active_arm_for_level` drove both arms (L2 non-single-arm)
+  correctly. Products equivalent to pre-move. **collect.py relocation CLEARED.**
+
 ## Sign-off
 
 Each ☐ becomes ☑ when push_collect.py implements it and a test/inspection
