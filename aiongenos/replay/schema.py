@@ -26,6 +26,12 @@ class EpisodeOutcome(str, Enum):
     # Treated as failure for replay purposes (does NOT enter Stage 4-A
     # training data) so the success_replay/ folder stays clean.
     VLM_STOP_PREMATURE = "vlm_stop_premature"
+    # WP1-③a push outcomes (2026-08-25, PURE ADDITION — existing values
+    # untouched). PUSH_PLATEAU: 3 consecutive rounds with cube displacement
+    # <1cm (Pin-11 early-termination). PUSH_OBJECT_OFF_TABLE: cube left the
+    # table surface (pushed off the edge) — a distinct failure from OBJECT_LOST.
+    PUSH_PLATEAU = "push_plateau"
+    PUSH_OBJECT_OFF_TABLE = "push_object_off_table"
 
 
 class TimeStep(BaseModel):
