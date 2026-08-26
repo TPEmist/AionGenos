@@ -471,3 +471,84 @@ class IsaacLabEnvInterface:
         right_dist = float(np.linalg.norm(right_pos_w - right_target_pos))
         return {"dist_red": left_dist, "dist_blue": right_dist}
 
+    # ─── WP1-③a push execution (OSC, teacher-only) ──────────────────────────
+    _ARM_TORQUE_LIMITS = (40.0, 40.0, 27.0, 27.0, 7.0, 7.0, 7.0)  # real hw N·m
+
+    def execute_push_segment(self, approach_b, steps: int, right_hold: bool = True):
+        """Servo the LEFT OSC arm to a base-frame approach target for N steps,
+        monitoring PRE-CLIP commanded torque per step (Rule 9, innermost loop).
+
+        This is the push analogue of execute_command, for the OSC push env
+        (action_dim≥13: [pos(3), quat(4), stiffness(6...)]). The behind-cube
+        approach point + lead clamp already came from push_segment_from_waypoint
+        (the primitive); this only drives the servo + records τ.
+
+        Returns a dict: min_err_cm, ee_final_b, tau summary
+        (peak_preclip, peak_postclip, warn_steps>0.85, flag_steps>=1.0,
+        per_step_peak_preclip list), n_steps.
+        """
+        import torch as _torch
+        u = self.env.unwrapped
+        r = self.robot
+        left_ids, _ = r.find_joints("openarm_left_joint.*")
+        lid = _torch.tensor(left_ids, device=u.device)
+        lim = _torch.tensor(self._ARM_TORQUE_LIMITS, device=u.device)
+        ee_idx = self.left_body_idx
+        act_dim = self.env.action_space.shape[-1]
+        term = u.action_manager._terms.get("left_arm_action")
+
+        tb = _torch.as_tensor(approach_b, device=u.device, dtype=_torch.float32)
+        action = _torch.zeros((u.num_envs, act_dim), device=u.device)
+        action[:, 0:3] = tb
+        action[:, 3:7] = _torch.tensor([1.0, 0.0, 0.0, 0.0], device=u.device)
+        if act_dim >= 13:
+            action[:, 7:13] = 300.0  # variable_kp stiffness (Pin-1 hold gate)
+
+        peak_pre = 0.0; peak_post = 0.0; warn = 0; flag = 0
+        per_step_pre = []
+        dmin = 1e9
+        for _ in range(steps):
+            self.env.step(action)
+            # POST-clip (actuator applied)
+            post = float((r.data.applied_torque[0, lid].abs() / lim).max())
+            # PRE-clip (OSC commanded, before actuator clip) — Rule 9 monitor
+            pre = post
+            if term is not None and hasattr(term, "_joint_efforts"):
+                try:
+                    pre = float((term._joint_efforts[0].abs() / lim).max())
+                except Exception:
+                    pre = post
+            peak_pre = max(peak_pre, pre); peak_post = max(peak_post, post)
+            per_step_pre.append(round(pre, 3))
+            if pre > 0.85:
+                warn += 1
+            if pre >= 1.0:
+                flag += 1
+            ee = r.data.body_pos_w[0, ee_idx, :3]
+            dmin = min(dmin, float(_torch.norm(ee - tb) * 100))
+
+        ee_final = r.data.body_pos_w[0, ee_idx, :3]
+        root = r.data.root_pos_w[0, :3]
+        ee_final_b = (ee_final - root).cpu().numpy().tolist()
+        return {
+            "min_err_cm": dmin,
+            "ee_final_b": [round(v, 4) for v in ee_final_b],
+            "tau_peak_preclip": round(peak_pre, 3),
+            "tau_peak_postclip": round(peak_post, 3),
+            "tau_warn_steps": warn,      # steps with pre-clip τ/limit > 0.85
+            "tau_flag_steps": flag,      # steps with pre-clip τ/limit >= 1.0
+            "n_steps": steps,
+        }
+
+    def get_cube_pose_b(self):
+        """Cube (scene['object']) position in the robot base frame (x,y,z)."""
+        u = self.env.unwrapped
+        root = self.robot.data.root_pos_w[0, :3].cpu().numpy()
+        cube_w = u.scene["object"].data.root_pos_w[0, :3].cpu().numpy()
+        return (cube_w - root).tolist()
+
+    def get_goal_pose_b(self):
+        """Push goal (re-purposed left_ee_pose command term) in base frame."""
+        u = self.env.unwrapped
+        return u.command_manager.get_term("left_ee_pose").command[0, :3].cpu().numpy().tolist()
+
