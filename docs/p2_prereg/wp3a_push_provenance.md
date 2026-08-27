@@ -1422,3 +1422,66 @@ without gravity/comp, OSC fights the pose on position-error feedback alone
 the weight, the pose sits near equilibrium, feedback only trims → total τ
 lower. τ budget accounting is CORRECT, no redo. gravity_compensation is
 sim-to-real honest AND cheaper on τ.
+
+### 2026-08-26 Pin-9 TRANSPORT phase ACTIVATED (contact phase stays pure OSC)
+
+First end-to-end push episode ran (pipeline green) but execute_push_segment
+slammed the absolute approach point in one step → OSC saw a ~40-60cm span →
+pre-clip τ/limit 2.4-3.0 (numerical over-command), post-clip pinned 1.00,
+servo_err 60cm, cube moved only 2.7cm then stuck (plateau). The live τ monitor
+(Rule 9, now in collect) gave the decisive read: pre-clip 3.0 = a
+transport-span pathology, NOT a hardware limit — exactly Pin-9's pre-committed
+trigger. So this is mechanical execution of the pre-written fallback, not a
+grey-area decision.
+
+**Fix:** execute_push_segment's transport leg (standby → approach) now uses
+CARROT-style segmented position servo (setpoint advances ≤δ toward approach
+each burst, via the existing verified base_frame_target path — not new code);
+OSC only takes over the CONTACT push from the approach point (its ±12cm
+comfortable envelope). Pin-9 TRANSPORT phase = ACTIVATED; CONTACT phase stays
+pure OSC.
+
+**Two-layer accounting (PI, prevents a mislabel from this bug):** the earlier
+philosophy ruling "the teacher must learn segmented approach" refers to the
+PUSH_TO DECISION layer (where to push, how far). The standby→approach
+TRANSPORT is primitive-internal mechanical common sense — Ledger entry (b)'s
+existing scope, a harness obligation. The teacher's learning target is the
+PUSH strategy, NOT "don't make the spring jump 40cm" — the latter is the
+harness's job. This bug was a harness defect (my one-step slam), not a teacher
+deficiency; do not conflate the two layers.
+
+### 2026-08-26 Human-eye gate (PI 5th intervention) — identity-quat orientation pollution; contact orientation = f(push_dir), not a constant
+
+PI watched the push servo GUI and diagnosed in one glance what the numbers hid:
+"left wrist keeps hitting the table, won't rotate the wrist to bring the EEF to
+the red target — instead the EEF gripper joint turns to FACE THE SKY." Root
+cause: execute_push_segment commanded position + a HARD-CODED identity quat
+[1,0,0,0], but identity = gripper-up for this arm. OSC fought to hold
+"face-sky" against the position target → wrist hit table, gripper flipped up,
+position stalled ~10cm short (the err_base 10-13cm plateau). NOT a reachability
+limit, NOT OSC-transport awkwardness — a wrong orientation COMMAND. Same class
+as the reach-sweep "identity quat pollutes position servo" bug; I repeated it.
+
+This is the PI's 5TH cross-layer human-eye intervention (headless, gripper,
+scene geometry, standby, now orientation) — all low-signal→structural leaps the
+system couldn't make from numbers. The harness_grant_ledger gap map in action.
+
+**Fix (PI ruling, revised after the PI overturned my constant-quat proposal):**
+1. Contact orientation is a FUNCTION the primitive computes from the push
+   direction (palm/contact-face toward the push dir; Pin-7a orientation as the
+   null/reference basis, rotated about world-z to align with the push heading).
+   NOT a constant, NOT teacher output. Gauge note: the choice among equivalent
+   orientations = 0 bits; the direction-dependence = deterministic mechanical
+   geometry, same family as approach-behind/IK — the primitive owns it.
+2. Orientation stiffness softened to ~1/5 of position stiffness (position firm,
+   orientation soft) so an imperfect orientation guides the wrist, not drags
+   it. Value pinned in Pin-9a.
+
+**Rule (executor no literal pose/quat constants):** executor code
+(execute_push_segment) may NOT hard-code a pose/quat — orientation, like
+position, comes from the primitive. Added to the format-contract dry-run as a
+grep lint (executor files must not contain literal quaternion tuples).
+
+**Two-frame servo_err bug also fixed:** push_collect's servo_err used
+world-vs-base (the 66cm phantom); true base-vs-base error is ~13.5cm. Fixed in
+execute_push_segment (ee_world − root vs tb).

@@ -474,18 +474,28 @@ class IsaacLabEnvInterface:
     # ─── WP1-③a push execution (OSC, teacher-only) ──────────────────────────
     _ARM_TORQUE_LIMITS = (40.0, 40.0, 27.0, 27.0, 7.0, 7.0, 7.0)  # real hw N·m
 
-    def execute_push_segment(self, approach_b, steps: int, right_hold: bool = True):
-        """Servo the LEFT OSC arm to a base-frame approach target for N steps,
+    _TRANSPORT_LEAD_M = 0.06   # carrot lead: 3cm stalled at ~13.5cm short (OSC
+                               # force from a 3cm error too small to keep moving);
+                               # 6cm doubles the position error → sustained push
+                               # while still well below the one-step-slam span.
+
+    def execute_push_segment(self, approach_b, contact_quat_b, steps: int, right_hold: bool = True):
+        """Drive the LEFT OSC arm to a base-frame approach target + orientation,
         monitoring PRE-CLIP commanded torque per step (Rule 9, innermost loop).
 
-        This is the push analogue of execute_command, for the OSC push env
-        (action_dim≥13: [pos(3), quat(4), stiffness(6...)]). The behind-cube
-        approach point + lead clamp already came from push_segment_from_waypoint
-        (the primitive); this only drives the servo + records τ.
+        contact_quat_b (w,x,y,z, base frame) is the primitive-computed contact
+        orientation = f(push_dir); the executor NEVER hard-codes a quat (that
+        identity-quat 'gripper faces sky' bug was the PI's 5th human-eye catch).
+        Orientation stiffness is softened (~1/5 of position) so an imperfect
+        orientation guides the wrist rather than dragging it.
 
-        Returns a dict: min_err_cm, ee_final_b, tau summary
-        (peak_preclip, peak_postclip, warn_steps>0.85, flag_steps>=1.0,
-        per_step_peak_preclip list), n_steps.
+        Pin-9 TRANSPORT phase: the setpoint is CARROTED — each step it advances
+        at most _TRANSPORT_LEAD_M toward the approach point FROM THE CURRENT EE
+        (not the absolute far target), so OSC never sees a large position error
+        (that one-step-slam span was the pre-clip τ 3.0 saturation). Once the EE
+        reaches the approach point the setpoint pins to it (CONTACT phase = pure
+        OSC in its ±12cm comfortable envelope). Approach point + lead clamp came
+        from push_segment_from_waypoint (the primitive); this drives servo + τ.
         """
         import torch as _torch
         u = self.env.unwrapped
@@ -496,18 +506,33 @@ class IsaacLabEnvInterface:
         ee_idx = self.left_body_idx
         act_dim = self.env.action_space.shape[-1]
         term = u.action_manager._terms.get("left_arm_action")
+        root = r.data.root_pos_w[0, :3]
 
         tb = _torch.as_tensor(approach_b, device=u.device, dtype=_torch.float32)
+        qb = _torch.as_tensor(contact_quat_b, device=u.device, dtype=_torch.float32)
         action = _torch.zeros((u.num_envs, act_dim), device=u.device)
-        action[:, 0:3] = tb
-        action[:, 3:7] = _torch.tensor([1.0, 0.0, 0.0, 0.0], device=u.device)
+        action[:, 3:7] = qb   # primitive-computed contact orientation (NOT identity)
         if act_dim >= 13:
-            action[:, 7:13] = 300.0  # variable_kp stiffness (Pin-1 hold gate)
+            # variable_kp: slots 7-9 = position stiffness (firm), 10-12 =
+            # orientation stiffness (soft, ~1/5) so an imperfect orientation
+            # guides the wrist rather than dragging it (Pin-9a).
+            action[:, 7:10] = 300.0
+            action[:, 10:13] = 60.0
 
         peak_pre = 0.0; peak_post = 0.0; warn = 0; flag = 0
         per_step_pre = []
         dmin = 1e9
         for _ in range(steps):
+            # carrot setpoint: current EE (base frame) + ≤lead toward approach
+            ee_b = r.data.body_pos_w[0, ee_idx, :3] - root
+            d = tb - ee_b
+            dist = float(_torch.norm(d))
+            if dist <= self._TRANSPORT_LEAD_M:
+                setpoint = tb
+            else:
+                setpoint = ee_b + d / dist * self._TRANSPORT_LEAD_M
+            action[:, 0:3] = setpoint
+
             self.env.step(action)
             # POST-clip (actuator applied)
             post = float((r.data.applied_torque[0, lid].abs() / lim).max())
@@ -524,8 +549,11 @@ class IsaacLabEnvInterface:
                 warn += 1
             if pre >= 1.0:
                 flag += 1
-            ee = r.data.body_pos_w[0, ee_idx, :3]
-            dmin = min(dmin, float(_torch.norm(ee - tb) * 100))
+            # servo_err in the SAME frame as tb (BASE): ee_world − root, not
+            # ee_world − tb (that cross-frame compare was the 66cm phantom;
+            # the true base-vs-base error is ~13.5cm).
+            ee_b_now = r.data.body_pos_w[0, ee_idx, :3] - root
+            dmin = min(dmin, float(_torch.norm(ee_b_now - tb) * 100))
 
         ee_final = r.data.body_pos_w[0, ee_idx, :3]
         root = r.data.root_pos_w[0, :3]

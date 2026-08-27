@@ -122,10 +122,10 @@ def run_push_collect_loop(
             import torch as _torch
             cube_t = _torch.tensor(cube_b, dtype=_torch.float32)
             waypoint_t = _torch.tensor([wx, wy, cube_b[2]], dtype=_torch.float32)
-            approach_b, target_b, pinfo = push_segment_from_waypoint(cube_t, waypoint_t)
+            approach_b, target_b, contact_quat_b, pinfo = push_segment_from_waypoint(cube_t, waypoint_t)
 
             cube_before = env.get_cube_pose_b()
-            seg = env.execute_push_segment(approach_b, steps_per_segment)
+            seg = env.execute_push_segment(approach_b, contact_quat_b, steps_per_segment)
             cube_after = env.get_cube_pose_b()
             cube_disp = float(np.linalg.norm(np.array(cube_after) - np.array(cube_before)))
 

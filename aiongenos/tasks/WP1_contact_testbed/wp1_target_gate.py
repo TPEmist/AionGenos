@@ -37,6 +37,43 @@ _IDENTITY_QUAT = (1.0, 0.0, 0.0, 0.0)
 # (which only checks workspace bounds / format).
 _LEAD_BUDGET_M = 0.08
 
+# Contact-orientation reference basis (base frame, w,x,y,z): the Pin-7a standby
+# EE orientation, measured in-sim (a sensible palm-toward-workspace pose the PI
+# tuned). The contact orientation is this basis ROTATED about world-z to align
+# the palm with the per-round push heading (see contact_orientation_b). The
+# basis is a reference, not a hard-coded command — the executor never sees a
+# literal quat; it gets the computed, direction-dependent orientation.
+_CONTACT_QUAT_BASIS = (-0.217, -0.658, 0.226, -0.685)
+
+
+def _quat_mul(a, b):
+    """Hamilton product (w,x,y,z), pure-torch, no sim import."""
+    aw, ax, ay, az = a[0], a[1], a[2], a[3]
+    bw, bx, by, bz = b[0], b[1], b[2], b[3]
+    return torch.stack([
+        aw * bw - ax * bx - ay * by - az * bz,
+        aw * bx + ax * bw + ay * bz - az * by,
+        aw * by - ax * bz + ay * bw + az * bx,
+        aw * bz + ax * by - ay * bx + az * bw,
+    ])
+
+
+def contact_orientation_b(push_dir: torch.Tensor) -> torch.Tensor:
+    """Contact EE orientation (base frame quat w,x,y,z) as a FUNCTION of the
+    per-round push direction: the Pin-7a basis rotated about world-z so the
+    palm faces the push heading. Direction-dependence is deterministic
+    mechanical geometry (primitive-owned, Ledger entry b); the choice among
+    equivalent orientations is gauge (0 bits). Degenerate push_dir → basis."""
+    basis = torch.tensor(_CONTACT_QUAT_BASIS, dtype=push_dir.dtype, device=push_dir.device)
+    if float(torch.norm(push_dir[:2])) < 1e-6:
+        return basis
+    heading = torch.atan2(push_dir[1], push_dir[0])   # world-z angle of push
+    half = heading * 0.5
+    zrot = torch.stack([torch.cos(half), torch.zeros_like(half),
+                        torch.zeros_like(half), torch.sin(half)])  # rot about +z
+    q = _quat_mul(zrot, basis)
+    return q / torch.norm(q)
+
 
 def base_frame_target_from_world(env, pos_w: torch.Tensor) -> torch.Tensor:
     """World position → base-frame position, via IsaacLab's
@@ -111,6 +148,7 @@ def push_segment_from_waypoint(cube_pos_b: torch.Tensor, waypoint_b: torch.Tenso
         seg = min(n, _LEAD_BUDGET_M)            # clamp to lead budget
         target_b = cube_pos_b + push_dir * seg  # clamped cube target this round
         approach_b = cube_pos_b - push_dir * _APPROACH_OFFSET_M  # behind cube
+    contact_quat_b = contact_orientation_b(push_dir)  # f(push_dir), palm→heading
     info = {
         "requested_disp_m": n,
         "clamped_disp_m": min(n, _LEAD_BUDGET_M),
@@ -118,6 +156,7 @@ def push_segment_from_waypoint(cube_pos_b: torch.Tensor, waypoint_b: torch.Tenso
         "push_dir": push_dir.tolist(),
         "approach_b": approach_b.tolist(),
         "target_b": target_b.tolist(),
+        "contact_quat_b": contact_quat_b.tolist(),
         "lead_budget_m": _LEAD_BUDGET_M,
     }
-    return approach_b, target_b, info
+    return approach_b, target_b, contact_quat_b, info
