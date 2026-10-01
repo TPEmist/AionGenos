@@ -132,11 +132,52 @@ _S1_PUSH: Final[str] = (
     "STOP: <true|false>"
 )
 
+# WP1-③a GENERAL EEF-action template (teacher-only, ControlMode.PUSH_WAYPOINT).
+# This is the A-spec v2-final rung-1 PRIMARY language (docs/p2_prereg/
+# action_space_spec.md): a general body-DoF language (position + OPTIONAL
+# orientation + grip), written ONCE over the body — NOT a push-specific one.
+# The push TASK is enforced only by the affordance contract below, never by the
+# action vocabulary. Two-leg oracle reveal (EE→cube, cube→goal) follows the L0a
+# Fix-3 convention: base-frame integer vectors at the SAME scale as the output,
+# oracle source declared in-prompt. ORI semantics/examples are quoted word-for-
+# word from the A-spec. NOT added to any student variant map — teacher-only
+# until gen-0.
+_S1_EEF_PUSH: Final[str] = (
+    "TASK: {instruction}\nCONTROL_MODE: left_eef_waypoint_ori_optional\n\n"
+    "CURRENT STATE (oracle-revealed, base-frame integers, same scale as your output):\n"
+    "  LEFT_EE_POS   = (X={left_x}, Y={left_y}, Z={left_z})\n"
+    "  CUBE_POS      = (X={cube_x}, Y={cube_y})\n"
+    "  GOAL_POS      = (X={goal_x}, Y={goal_y})\n"
+    "  EE_TO_CUBE    = (dX={ee_to_cube_x}, dY={ee_to_cube_y})   # left EE → cube\n"
+    "  CUBE_TO_GOAL  = (dX={cube_to_goal_x}, dY={cube_to_goal_y})   # cube → goal\n\n"
+    "AFFORDANCE CONTRACT: the cube must be moved to the goal BY PUSHING. The\n"
+    "gripper is held CLOSED for the entire task and CANNOT open, close, grasp,\n"
+    "or lift — it is a rigid pushing tool, nothing more. Your ONLY action is to\n"
+    "emit a left end-effector target: a position waypoint (REQUIRED) and an\n"
+    "optional orientation offset. Move the end-effector into contact behind the\n"
+    "cube and drive it toward the goal; re-plan next round from the new state.\n\n"
+    "ORIENTATION (OPTIONAL) — LEFT_TARGET_ORI is an integer-degree OFFSET from the\n"
+    "neutral contact orientation:\n"
+    "  P = pitch (about the motion frame's lateral axis; + = fingertip presses down)\n"
+    "  Y = yaw   (about the vertical)\n"
+    "  R = roll  (about the motion axis)\n"
+    "Omitting ORI → neutral orientation (contact face aligned to push direction,\n"
+    "palm flat on table). Examples: palm push = omit ORI; fingertip push =\n"
+    "LEFT_TARGET_ORI: P=60 Y=0 R=0.\n\n"
+    "THOUGHT: <one paragraph physics reasoning>\n"
+    "LEFT_TARGET_POS: X=<int> Y=<int> Z=<int>        (required; integer cm, base frame)\n"
+    "LEFT_TARGET_ORI: P=<int> Y=<int> R=<int>        (OPTIONAL; integer degrees, OFFSET from the neutral contact orientation; omit for neutral)\n"
+    "STOP: <true|false>"
+)
+
 STAGE1_TEMPLATES: Final[dict[ControlMode, str]] = {
     ControlMode.POSITION_ONLY: _S1_POS,
     ControlMode.POSITION_RPY_2DOF: _S1_RPY2,
     ControlMode.POSITION_RPY_GRIPPER: _S1_FULL,
-    ControlMode.PUSH_WAYPOINT: _S1_PUSH,
+    # A-spec v2-final rung ladder: rung-1 (general EEF language) is the default
+    # start. _S1_PUSH (cube-waypoint PUSH_TO) is the sealed rung-3 fallback —
+    # kept defined, no longer the active default.
+    ControlMode.PUSH_WAYPOINT: _S1_EEF_PUSH,
 }
 
 
