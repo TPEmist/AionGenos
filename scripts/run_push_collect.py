@@ -45,7 +45,17 @@ def main():
     cfg = AionGenosConfig()
     teacher_url = args_cli.teacher_url or cfg.teacher_url
 
-    env = gym.make(GID, cfg=parse_env_cfg(GID, num_envs=1), render_mode=None)
+    _cfg = parse_env_cfg(GID, num_envs=1)
+    # For the GIF (human-eye gate ONLY — not the training observation), disable
+    # the command-pose debug visualizers (big RGB axes + goal cuboids) that
+    # obstruct the small 4.8cm cube. Does NOT affect control or the real
+    # observation pipeline — purely the rendered frames for the PI to inspect.
+    if args_cli.gif_frame_every:
+        for term in ("left_ee_pose", "right_ee_pose"):
+            c = getattr(_cfg.commands, term, None)
+            if c is not None and hasattr(c, "debug_vis"):
+                c.debug_vis = False
+    env = gym.make(GID, cfg=_cfg, render_mode=None)
     iface = IsaacLabEnvInterface(env)
 
     # Push level config — a minimal LevelConfig carrying the PUSH control mode
