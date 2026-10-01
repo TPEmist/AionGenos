@@ -78,12 +78,44 @@ class PushTarget(BaseModel):
 
 class PushStage1Response(BaseModel):
     """Parsed Stage-1 PUSH response (teacher-only, ControlMode.PUSH_WAYPOINT).
+    RUNG-3 FALLBACK (see action_space_spec.md): a cube waypoint, not the
+    primary EEF language. Kept, not deleted.
 
     A DISTINCT model, NOT Stage1Response — a push waypoint is one cube target,
     not two EE targets; overloading left/right would route it into the per-arm
     IK path and corrupt the student two-arm contract."""
     thought: str
     push_to: PushTarget
+    stop: bool
+
+
+class OriOffset(BaseModel):
+    """A-spec v2 LEFT_TARGET_ORI: integer-degree Euler OFFSET from the neutral
+    contact orientation (p=pitch, y=yaw, r=roll). Optional — omitted → neutral."""
+    p: int = 0
+    y: int = 0
+    r: int = 0
+
+    @field_validator("p", "y", "r")
+    @classmethod
+    def in_range(cls, v: int) -> int:
+        if not -180 <= v <= 180:
+            raise ValueError(f"Angle {v} out of [-180, 180] deg")
+        return v
+
+
+class EEFStage1Response(BaseModel):
+    """RUNG-1 primary language (A-spec v2-final, teacher-only for smoke): a
+    general left-EEF action — required integer-cm base-frame POSITION, OPTIONAL
+    integer-degree ORIENTATION offset, and GRIP. This is the body-DoF language
+    (3 pos + 3 ori + grip), NOT a push-specific one; the push task is enforced
+    by the affordance contract (GRIP locked CLOSE in the prompt), not by the
+    language. Separate model (not Stage1Response) — single-arm, ori-as-offset,
+    teacher-only; student pipeline unchanged until the gen-0 controlled change."""
+    thought: str
+    target_pos: PositionTarget
+    target_ori: Optional[OriOffset] = None   # None → neutral contact orientation
+    grip: Optional[str] = None               # "open"/"close"; contract may lock
     stop: bool
 
 
@@ -224,6 +256,41 @@ def parse_stage1_push(text: str) -> PushStage1Response:
     stop_m = _extract(rf"STOP:\s*{_BOOL}", text, "STOP")
     stop = stop_m.group(1).lower() == "true"
     return PushStage1Response(thought=thought, push_to=push_to, stop=stop)
+
+
+def parse_stage1_eef(text: str) -> EEFStage1Response:
+    """Parse the RUNG-1 primary EEF action (A-spec v2-final, teacher-only).
+
+    Format:
+      THOUGHT: ...
+      LEFT_TARGET_POS: X=<int> Y=<int> Z=<int>        (required)
+      LEFT_TARGET_ORI: P=<int> Y=<int> R=<int>        (optional → neutral)
+      GRIP: OPEN|CLOSE                                (optional)
+      STOP: true|false
+
+    POS required; ORI optional (omitted → neutral contact orientation, computed
+    by the primitive); GRIP optional (the push affordance contract locks CLOSE
+    in the prompt). SEPARATE function — reach/L2 parse_stage1 untouched; student
+    pipeline unchanged until the gen-0 controlled change (action_space_spec.md)."""
+    thought_m = re.search(r"THOUGHT:\s*(.+?)(?=\n(?:LEFT_TARGET_POS|$))", text, re.DOTALL | re.IGNORECASE)
+    thought = thought_m.group(1).strip() if thought_m else ""
+    m = _extract(rf"LEFT_TARGET_POS:\s*{_POS}", text, "LEFT_TARGET_POS")
+    target_pos = PositionTarget(x=int(m.group(1)), y=int(m.group(2)), z=int(m.group(3)))
+
+    target_ori = None
+    om = re.search(rf"LEFT_TARGET_ORI:\s*P={_INT}\s+Y={_INT}\s+R={_INT}", text, re.IGNORECASE)
+    if om:
+        target_ori = OriOffset(p=int(om.group(1)), y=int(om.group(2)), r=int(om.group(3)))
+
+    grip = None
+    gm = re.search(r"GRIP:\s*(open|close)", text, re.IGNORECASE)
+    if gm:
+        grip = gm.group(1).lower()
+
+    stop_m = _extract(rf"STOP:\s*{_BOOL}", text, "STOP")
+    stop = stop_m.group(1).lower() == "true"
+    return EEFStage1Response(thought=thought, target_pos=target_pos,
+                             target_ori=target_ori, grip=grip, stop=stop)
 
 
 def parse_stage3(text: str, has_rpy: bool = False, has_gripper: bool = False, rpy_2dof: bool = False) -> Stage3Response:
