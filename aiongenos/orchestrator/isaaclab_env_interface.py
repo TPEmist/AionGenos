@@ -479,7 +479,8 @@ class IsaacLabEnvInterface:
                                # 6cm doubles the position error → sustained push
                                # while still well below the one-step-slam span.
 
-    def execute_push_segment(self, approach_b, contact_quat_b, steps: int, right_hold: bool = True):
+    def execute_push_segment(self, approach_b, contact_quat_b, steps: int,
+                             right_hold: bool = True, frame_every: int = 0):
         """Drive the LEFT OSC arm to a base-frame approach target + orientation,
         monitoring PRE-CLIP commanded torque per step (Rule 9, innermost loop).
 
@@ -488,6 +489,9 @@ class IsaacLabEnvInterface:
         identity-quat 'gripper faces sky' bug was the PI's 5th human-eye catch).
         Orientation stiffness is softened (~1/5 of position) so an imperfect
         orientation guides the wrist rather than dragging it.
+
+        frame_every>0: capture an RGB frame every N steps into the returned
+        dict's "frames" (PNG bytes list) for the human-eye-gate GIF.
 
         Pin-9 TRANSPORT phase: the setpoint is CARROTED — each step it advances
         at most _TRANSPORT_LEAD_M toward the approach point FROM THE CURRENT EE
@@ -521,8 +525,9 @@ class IsaacLabEnvInterface:
 
         peak_pre = 0.0; peak_post = 0.0; warn = 0; flag = 0
         per_step_pre = []
+        frames = []
         dmin = 1e9
-        for _ in range(steps):
+        for _si in range(steps):
             # carrot setpoint: current EE (base frame) + ≤lead toward approach
             ee_b = r.data.body_pos_w[0, ee_idx, :3] - root
             d = tb - ee_b
@@ -555,6 +560,11 @@ class IsaacLabEnvInterface:
             ee_b_now = r.data.body_pos_w[0, ee_idx, :3] - root
             dmin = min(dmin, float(_torch.norm(ee_b_now - tb) * 100))
 
+            if frame_every and (_si % frame_every == 0):
+                png = self.get_rgb()
+                if png:
+                    frames.append(png)
+
         ee_final = r.data.body_pos_w[0, ee_idx, :3]
         root = r.data.root_pos_w[0, :3]
         ee_final_b = (ee_final - root).cpu().numpy().tolist()
@@ -566,6 +576,7 @@ class IsaacLabEnvInterface:
             "tau_warn_steps": warn,      # steps with pre-clip τ/limit > 0.85
             "tau_flag_steps": flag,      # steps with pre-clip τ/limit >= 1.0
             "n_steps": steps,
+            "frames": frames,            # PNG bytes (if frame_every>0) for the GIF
         }
 
     def get_cube_pose_b(self):

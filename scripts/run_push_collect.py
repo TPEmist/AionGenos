@@ -18,6 +18,8 @@ parser.add_argument("--seed", type=int, default=4700)
 parser.add_argument("--label", type=str, default="pilot", choices=["pilot", "confirmatory"])
 parser.add_argument("--teacher-url", type=str, default="http://10.80.9.148:18888")
 parser.add_argument("--segment-steps", type=int, default=90)
+parser.add_argument("--gif-frame-every", type=int, default=0,
+                    help=">0: capture an RGB frame every N servo steps → logs/push_gif_<run>.gif (human-eye gate)")
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
 args_cli.enable_cameras = True
@@ -69,6 +71,7 @@ def main():
         episode_label=args_cli.label,
         recap_buffer=None,   # smoke: defer recap buffer; trigger-check separately
         steps_per_segment=args_cli.segment_steps,
+        gif_frame_every=args_cli.gif_frame_every,
     )
     _p(f"SUMMARY run_id={summary['run_id']} success={summary['n_success']}/{args_cli.episodes}")
     for ep in summary["episodes"]:

@@ -74,6 +74,7 @@ def run_push_collect_loop(
     episode_label: str = "pilot",   # pilot (smoke) | confirmatory (gen-0)
     recap_buffer: Optional[object] = None,
     steps_per_segment: int = 90,
+    gif_frame_every: int = 0,   # >0: collect RGB frames every N steps → summary["gif_frames"]
 ) -> dict:
     """Drive `num_episodes` push episodes. Returns a summary dict.
 
@@ -84,6 +85,7 @@ def run_push_collect_loop(
     run_id = ReplayBuffer.new_run_id()
     logger.info(f"push_collect run_id={run_id} episodes={num_episodes} label={episode_label}")
     summary = {"run_id": run_id, "episodes": [], "n_success": 0}
+    gif_frames = []   # PNG bytes across the run (if gif_frame_every>0)
 
     for ep_idx in range(num_episodes):
         ep_seed = None if env_seed_base is None else env_seed_base + ep_idx
@@ -141,7 +143,10 @@ def run_push_collect_loop(
                 contact_quat_b = neutral_q
 
             cube_before = env.get_cube_pose_b()
-            seg = env.execute_push_segment(target_t, contact_quat_b, steps_per_segment)
+            seg = env.execute_push_segment(target_t, contact_quat_b, steps_per_segment,
+                                           frame_every=gif_frame_every)
+            if gif_frame_every and seg.get("frames"):
+                gif_frames.extend(seg["frames"])
             cube_after = env.get_cube_pose_b()
             cube_disp = float(np.linalg.norm(np.array(cube_after) - np.array(cube_before)))
 
@@ -211,6 +216,16 @@ def run_push_collect_loop(
                 logger.warning(f"  ep{ep_idx} recap failed: {e}")
 
     logger.info(f"push_collect DONE: {summary['n_success']}/{num_episodes} success")
+    if gif_frame_every and gif_frames:
+        try:
+            import imageio.v2 as _imageio, io as _io
+            imgs = [_imageio.imread(_io.BytesIO(f)) for f in gif_frames]
+            gif_path = f"logs/push_gif_{run_id}.gif"
+            _imageio.mimsave(gif_path, imgs, duration=0.08)
+            summary["gif_path"] = gif_path
+            logger.info(f"push_collect GIF: {gif_path} ({len(imgs)} frames)")
+        except Exception as e:
+            logger.warning(f"GIF save failed: {e}")
     return summary
 
 
