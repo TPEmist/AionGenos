@@ -98,6 +98,7 @@ def run_push_collect_loop(
         round_meta = []
         outcome = EpisodeOutcome.TIMEOUT
         plateau_count = 0
+        prev_x_n = None   # neutral-orientation hysteresis across segments
         cube0_b = env.get_cube_pose_b()
 
         for round_idx in range(PUSH_ROUND_CAP):
