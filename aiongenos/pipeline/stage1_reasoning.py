@@ -17,7 +17,10 @@ from aiongenos.vlm.client import (
     encode_image_bytes_base64,
     EpisodeConversation,
 )
-from aiongenos.vlm.parser import parse_stage1, parse_stage1_push, Stage1Response, PushStage1Response
+from aiongenos.vlm.parser import (
+    parse_stage1, parse_stage1_push, parse_stage1_eef,
+    Stage1Response, PushStage1Response, EEFStage1Response,
+)
 from aiongenos.vlm.prompts import (
     CRITIC_FEEDBACK_INJECTION_HEADER,
     get_stage1_prompt,
@@ -204,6 +207,72 @@ def run_stage1_push(
         except Exception as e:
             latency_ms = (time.time() - t0) * 1000
             logger.error(f"Stage 1 PUSH VLM error: {e}")
+            return None, latency_ms, f"vlm_error: {e}"
+
+    return None, 0.0, "max_retries_exceeded"
+
+
+def run_stage1_eef(
+    level_config: LevelConfig,
+    teacher_url: str,
+    rgb_bytes: bytes,
+    state: dict[str, str | int],
+    conversation: Optional[EpisodeConversation] = None,
+    temperature: float = 0.7,
+    max_retries: int = 2,
+    memory_preamble_text: Optional[str] = None,
+    memory_preamble_images_b64: Optional[list[str]] = None,
+) -> tuple[Optional[EEFStage1Response], float, Optional[str]]:
+    """Stage 1 for the RUNG-1 general EEF push language (A-spec v2-final,
+    teacher-only). Same VLM-call/retry/raw-capture machinery as run_stage1;
+    uses the EEF prompt (get_stage1_prompt on PUSH_WAYPOINT → _S1_EEF_PUSH) and
+    parses with parse_stage1_eef → EEFStage1Response (POS + optional ORI + GRIP).
+    Separate function — reach/L2 run_stage1 byte-untouched."""
+    system_prompt = get_stage1_system_prompt()
+    user_prompt = get_stage1_prompt(level_config, state)  # _S1_EEF_PUSH via control_mode
+    img_b64 = encode_image_bytes_base64(rgb_bytes)
+
+    if conversation is not None:
+        conversation.append_user_turn(
+            user_prompt, img_b64,
+            preamble_text=memory_preamble_text,
+            preamble_image_base64_list=memory_preamble_images_b64,
+        )
+
+    for attempt in range(max_retries + 1):
+        t0 = time.time()
+        try:
+            if conversation is not None:
+                raw_response = call_vlm_history_sync(
+                    url=teacher_url, conversation=conversation,
+                    temperature=temperature, max_tokens=2048, timeout=300.0,
+                )
+            else:
+                raw_response = call_vlm_sync(
+                    url=teacher_url, system_prompt=system_prompt,
+                    user_prompt=user_prompt, image_base64=img_b64,
+                    temperature=temperature, max_tokens=2048, timeout=300.0,
+                )
+            latency_ms = (time.time() - t0) * 1000
+            parsed = parse_stage1_eef(raw_response)
+            ori = parsed.target_ori
+            logger.info(
+                f"Stage 1 EEF OK (attempt {attempt + 1}): "
+                f"POS=({parsed.target_pos.x},{parsed.target_pos.y},{parsed.target_pos.z}) "
+                f"ORI={'neutral' if ori is None else (ori.p, ori.y, ori.r)} "
+                f"stop={parsed.stop} latency={latency_ms:.0f}ms"
+            )
+            if conversation is not None:
+                conversation.append_assistant_turn(raw_response)
+            return parsed, latency_ms, None
+        except ValueError as e:
+            latency_ms = (time.time() - t0) * 1000
+            logger.warning(f"Stage 1 EEF parse fail (attempt {attempt + 1}/{max_retries + 1}): {e}")
+            if attempt == max_retries:
+                return None, latency_ms, f"vlm_parse_fail: {e}"
+        except Exception as e:
+            latency_ms = (time.time() - t0) * 1000
+            logger.error(f"Stage 1 EEF VLM error: {e}")
             return None, latency_ms, f"vlm_error: {e}"
 
     return None, 0.0, "max_retries_exceeded"

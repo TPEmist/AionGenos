@@ -580,3 +580,11 @@ class IsaacLabEnvInterface:
         u = self.env.unwrapped
         return u.command_manager.get_term("left_ee_pose").command[0, :3].cpu().numpy().tolist()
 
+    def get_left_ee_pose_b(self):
+        """Left EE position in the robot base frame (x,y,z) — translation
+        (base root is identity-rot, verified). Used for the EEF motion
+        direction that sets the neutral contact orientation."""
+        root = self.robot.data.root_pos_w[0, :3].cpu().numpy()
+        ee_w = self.robot.data.body_pos_w[0, self.left_body_idx, :3].cpu().numpy()
+        return (ee_w - root).tolist()
+

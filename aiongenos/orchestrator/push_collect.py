@@ -4,9 +4,10 @@ Sibling of collect.py (P1 reach/L2), NEVER integrated back into it. Equivalence
 with collect.py is audited in docs/p2_prereg/dual_collect_equivalence_ledger.md.
 
 Loop per round:
-  RGB + two-leg state → run_stage1_push (teacher emits PUSH_TO x,y)
-  → convert_push_to_waypoint_metric (translate int→base-frame metric)
-  → push_segment_from_waypoint (primitive: lead-clamp + behind-cube approach)
+  RGB + two-leg state → run_stage1_eef (teacher emits a left-EEF target:
+    LEFT_TARGET_POS + optional LEFT_TARGET_ORI — A-spec v2 rung-1)
+  → de-normalize int→base-frame metric; neutral contact orientation from the
+    EEF motion direction, compose the optional ORI offset
   → iface.execute_push_segment (OSC servo + inner-loop τ monitor)
   → record round (push 3 nums + τ) → Pin-11 termination → next round
 End: shared _write_episode + recap.
@@ -26,12 +27,12 @@ from typing import Optional
 import numpy as np
 
 from aiongenos.config import LevelConfig, WorkspaceBounds
-from aiongenos.pipeline.stage1_reasoning import run_stage1_push
-from aiongenos.pipeline.stage2_attempt import convert_push_to_waypoint_metric
+from aiongenos.pipeline.stage1_reasoning import run_stage1_eef
+from aiongenos.vlm.scalar_guard import int_to_metric
 from aiongenos.replay.buffer import ReplayBuffer
 from aiongenos.replay.schema import EpisodeOutcome
 from aiongenos.orchestrator.collect_common import _make_vlm_interaction, _write_episode
-from aiongenos.tasks.WP1_contact_testbed.wp1_target_gate import push_segment_from_waypoint
+from aiongenos.tasks.WP1_contact_testbed.wp1_target_gate import neutral_contact_orientation_b, _euler_zyx_to_quat, _quat_mul
 
 logger = logging.getLogger(__name__)
 
@@ -42,21 +43,21 @@ PUSH_PLATEAU_ROUNDS = 3
 PUSH_PLATEAU_MIN_DISP_M = 0.01
 
 
-def _make_push_vlm_interaction(response, latency_ms: float):
-    """VLMInteraction for a push response. _make_vlm_interaction (shared)
-    assumes a two-arm Stage1Response; the push response has a single PUSH_TO.
-    We adapt to the SAME VLMInteraction schema, storing the waypoint in the
-    left-pos slot (z=0) and thought in full_response, so replay/recap consume
-    it identically. A push-shaped shim, not a schema change."""
+def _make_eef_vlm_interaction(response, latency_ms: float):
+    """VLMInteraction for the EEF push response (A-spec v2). Adapts to the SAME
+    VLMInteraction schema: EEF target POS in the left-pos slot, ORI offset in
+    the left-rpy slot (None → neutral), thought in full_response. A push-shaped
+    shim, not a schema change — replay/recap consume it identically."""
     from aiongenos.replay.schema import VLMInteraction
+    ori = response.target_ori
     return VLMInteraction(
-        stage="stage1_push",
+        stage="stage1_eef",
         full_response=getattr(response, "thought", ""),
-        parsed_left_pos=(response.push_to.x, response.push_to.y, 0),
+        parsed_left_pos=(response.target_pos.x, response.target_pos.y, response.target_pos.z),
         parsed_right_pos=(0, 0, 0),
-        parsed_left_rpy=None,
+        parsed_left_rpy=((ori.r, ori.p, ori.y) if ori is not None else None),
         parsed_right_rpy=None,
-        parsed_left_gripper=None,
+        parsed_left_gripper=response.grip,
         parsed_right_gripper=None,
         parsed_stop=response.stop,
         latency_ms=latency_ms,
@@ -106,7 +107,7 @@ def run_push_collect_loop(
             # from task_instruction_template) — the PUSH prompt has {instruction}
             state["instruction"] = level_config.task_instruction_template
 
-            parsed, latency_ms, err = run_stage1_push(
+            parsed, latency_ms, err = run_stage1_eef(
                 level_config, teacher_url, rgb, state,
             )
             if parsed is None:
@@ -114,18 +115,32 @@ def run_push_collect_loop(
                 outcome = EpisodeOutcome.VLM_PARSE_FAIL
                 logger.warning(f"  ep{ep_idx} round{round_idx+1} parse fail → bail ({err})")
                 break
-            vlm_interactions.append(_make_push_vlm_interaction(parsed, latency_ms))
+            vlm_interactions.append(_make_eef_vlm_interaction(parsed, latency_ms))
 
-            # translate PUSH_TO → base-frame waypoint metric (x,y); z from cube
-            wx, wy = convert_push_to_waypoint_metric(parsed, bounds)
-            cube_b = env.get_cube_pose_b()
+            # A-spec v2: teacher emits a DIRECT left-EEF target (base-frame cm).
+            # De-normalize int→metric (same grid as every other target). The EEF
+            # target IS the servo target; the neutral contact orientation is
+            # computed from the EEF's MOTION direction (current EE → target),
+            # then the optional ORI offset composes on top.
             import torch as _torch
-            cube_t = _torch.tensor(cube_b, dtype=_torch.float32)
-            waypoint_t = _torch.tensor([wx, wy, cube_b[2]], dtype=_torch.float32)
-            approach_b, target_b, contact_quat_b, pinfo = push_segment_from_waypoint(cube_t, waypoint_t)
+            tx = int_to_metric(parsed.target_pos.x, bounds.x_bounds)
+            ty = int_to_metric(parsed.target_pos.y, bounds.y_bounds)
+            tz = int_to_metric(parsed.target_pos.z, bounds.z_bounds)
+            ee_b = env.get_left_ee_pose_b()           # current EE (base frame)
+            target_t = _torch.tensor([tx, ty, tz], dtype=_torch.float32)
+            motion = target_t - _torch.tensor(ee_b, dtype=_torch.float32)
+            neutral_q, x_n = neutral_contact_orientation_b(motion, prev_x_n=prev_x_n)
+            prev_x_n = x_n
+            ori = parsed.target_ori
+            if ori is not None and (ori.p or ori.y or ori.r):
+                off = _euler_zyx_to_quat(ori.p, ori.y, ori.r, motion.device, motion.dtype)
+                contact_quat_b = _quat_mul(neutral_q, off)
+                contact_quat_b = contact_quat_b / _torch.norm(contact_quat_b)
+            else:
+                contact_quat_b = neutral_q
 
             cube_before = env.get_cube_pose_b()
-            seg = env.execute_push_segment(approach_b, contact_quat_b, steps_per_segment)
+            seg = env.execute_push_segment(target_t, contact_quat_b, steps_per_segment)
             cube_after = env.get_cube_pose_b()
             cube_disp = float(np.linalg.norm(np.array(cube_after) - np.array(cube_before)))
 
@@ -134,15 +149,16 @@ def run_push_collect_loop(
 
             round_meta.append({
                 "round": round_idx + 1,
-                "push_to_int": [parsed.push_to.x, parsed.push_to.y],
-                "waypoint_m": [round(wx, 4), round(wy, 4)],
-                # push primitive 3 numbers (r-tracking raw material)
-                "requested_disp_m": round(pinfo["requested_disp_m"], 4),
-                "clamped_disp_m": round(pinfo["clamped_disp_m"], 4),
-                "was_clamped": pinfo["was_clamped"],
+                # A-spec v2 EEF action (r-tracking raw material)
+                "eef_target_int": [parsed.target_pos.x, parsed.target_pos.y, parsed.target_pos.z],
+                "eef_target_m": [round(tx, 4), round(ty, 4), round(tz, 4)],
+                "ori_offset_deg": ([ori.p, ori.y, ori.r] if ori is not None else None),
+                "ori_applied": ori is not None,     # did the brain exercise orientation?
+                "neutral_x_n": [round(v, 4) for v in x_n.tolist()],
+                "grip": parsed.grip,
                 "cube_disp_m": round(cube_disp, 4),
                 "cube_goal_dist_m": round(cube_goal_dist, 4),
-                # τ monitor summary (Rule 9)
+                # τ monitor summary (Rule 9) incl. clamp flag
                 "tau_peak_preclip": seg["tau_peak_preclip"],
                 "tau_peak_postclip": seg["tau_peak_postclip"],
                 "tau_warn_steps": seg["tau_warn_steps"],
@@ -204,8 +220,10 @@ def _emit_push_recap(recap_buffer, ep_id, level_config, round_meta, outcome, rgb
     from aiongenos.pipeline.stage4_recap import generate_recap
     # minimal round adaptation — push rounds carry vlm_thought + outcome signal
     text_rounds = [
-        f"round {rm['round']}: PUSH_TO {rm['push_to_int']} → cube moved {rm['cube_disp_m']*100:.1f}cm, "
-        f"cube-goal {rm['cube_goal_dist_m']*100:.1f}cm, τ_peak {rm['tau_peak_preclip']}"
+        f"round {rm['round']}: EEF→{rm['eef_target_int']}"
+        f"{' +ORI'+str(rm['ori_offset_deg']) if rm['ori_applied'] else ''} → "
+        f"cube moved {rm['cube_disp_m']*100:.1f}cm, cube-goal "
+        f"{rm['cube_goal_dist_m']*100:.1f}cm, τ_peak {rm['tau_peak_preclip']}"
         for rm in round_meta
     ]
     logger.info(f"  recap ep {ep_id[:8]}: {len(round_meta)} rounds, outcome={outcome.value}")
