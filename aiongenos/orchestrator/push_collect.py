@@ -145,13 +145,19 @@ def run_push_collect_loop(
             cube_before = env.get_cube_pose_b()
             seg = env.execute_push_segment(target_t, contact_quat_b, steps_per_segment,
                                            frame_every=gif_frame_every)
-            if gif_frame_every and seg.get("frames"):
-                gif_frames.extend(seg["frames"])
             cube_after = env.get_cube_pose_b()
             cube_disp = float(np.linalg.norm(np.array(cube_after) - np.array(cube_before)))
 
             goal_b = env.get_goal_pose_b()
             cube_goal_dist = float(np.linalg.norm(np.array(cube_after[:2]) - np.array(goal_b[:2])))
+
+            # GIF frames tagged with this round's cube→goal distance (cm) — the
+            # overlay the PI reads to see progress (axis markers obstruct the
+            # tiny cube, so the number is the ground truth, not the pixels).
+            if gif_frame_every and seg.get("frames"):
+                tag = f"R{round_idx+1}  cube->goal {cube_goal_dist*100:.1f}cm"
+                for f in seg["frames"]:
+                    gif_frames.append((f, tag))
 
             round_meta.append({
                 "round": round_idx + 1,
@@ -218,12 +224,21 @@ def run_push_collect_loop(
     logger.info(f"push_collect DONE: {summary['n_success']}/{num_episodes} success")
     if gif_frame_every and gif_frames:
         try:
-            import imageio.v2 as _imageio, io as _io
-            imgs = [_imageio.imread(_io.BytesIO(f)) for f in gif_frames]
+            import imageio.v2 as _imageio, io as _io, numpy as _np
+            from PIL import Image as _Image, ImageDraw as _ImageDraw
+            imgs = []
+            for png, tag in gif_frames:
+                im = _Image.open(_io.BytesIO(png)).convert("RGB")
+                d = _ImageDraw.Draw(im)
+                # black bg bar + white text, top-left (default PIL font; size
+                # scales with image, legible at 256px)
+                d.rectangle([0, 0, im.width, 14], fill=(0, 0, 0))
+                d.text((2, 2), tag, fill=(255, 255, 0))
+                imgs.append(_np.asarray(im))
             gif_path = f"logs/push_gif_{run_id}.gif"
             _imageio.mimsave(gif_path, imgs, duration=0.08)
             summary["gif_path"] = gif_path
-            logger.info(f"push_collect GIF: {gif_path} ({len(imgs)} frames)")
+            logger.info(f"push_collect GIF: {gif_path} ({len(imgs)} frames, cube→goal overlay)")
         except Exception as e:
             logger.warning(f"GIF save failed: {e}")
     return summary

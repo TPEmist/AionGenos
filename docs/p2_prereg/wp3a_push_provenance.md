@@ -1485,3 +1485,28 @@ grep lint (executor files must not contain literal quaternion tuples).
 **Two-frame servo_err bug also fixed:** push_collect's servo_err used
 world-vs-base (the 66cm phantom); true base-vs-base error is ~13.5cm. Fixed in
 execute_push_segment (ee_world − root vs tb).
+
+### 2026-10-02 (correction) contact is PALM-push not finger-push; goal marker was hidden
+
+**PI correction to the previous commit's wording.** The commit said the
+orientation "aligns the gripper FINGERS" — WRONG. EE local +Z is the hand-link
+forward direction; the actual FINGERTIPS are further out along +Z by an offset
+(the gripper's triangular tip; openarm_left_ee_tcp sits +0.093 past the hand,
+and the fingers extend beyond that). So the current behaviour is a PALM push
+(contact at the hand/wrist-forward face), NOT a fingertip push.
+
+Per the PI this is CORRECT for the current task: the prompt only says "push",
+and a palm push is what a human would do. It would be WRONG only if the prompt
+ever says "push with the fingertips" — in that case the target point must be
+EXTENDED along +Z by the fingertip offset so the actual fingertips (not the
+palm) make contact. Recording the offset's existence so a future "fingertip"
+semantic does not silently become a palm push (a contact-point lie).
+
+**Red line reaffirmed:** the finger-axis / tip-offset measurements are for EE-
+local-frame calibration ONLY, never leaked into a prompt.
+
+**GIF goal-marker bug:** to make the 4.8cm cube visible I disabled ALL command
+visualizers (debug_vis=False) — but the GREEN GOAL marker is also a command
+visualizer, so it got hidden too → the PI could not judge whether the cube
+reached the goal. Fix: keep the goal cuboid visible, disable only the obstructing
+pose AXES, so cube-vs-goal is visible in the GIF.
