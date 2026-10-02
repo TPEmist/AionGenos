@@ -120,18 +120,27 @@ def neutral_contact_orientation_b(push_dir: torch.Tensor,
             x_n = torch.tensor([1.0, 0.0, 0.0], dtype=push_dir.dtype, device=push_dir.device)
     else:
         x_n = xy / n
-    y_n = torch.linalg.cross(z_n, x_n)
-    y_n = y_n / torch.norm(y_n)
-    # EE orientation: contact-face normal = −x_n, palm normal = z_n (flat on
-    # table), third axis = their cross. Build R_be with columns = where the EE
-    # body's (approach, lateral, palm) axes point in base. Calibrated so that
-    # the EE "forward/contact" axis maps to −x_n and "up/palm" to z_n.
-    approach = -x_n          # contact face points along −x_n (into the push)
-    palm = z_n               # palm flat, normal up
-    lateral = torch.linalg.cross(palm, approach)
-    lateral = lateral / torch.norm(lateral)
-    palm = torch.linalg.cross(approach, lateral)   # re-orthogonalize
-    R = torch.stack([approach, lateral, palm], dim=1)  # columns = EE axes in base
+    # The EE body's local +Z axis is the GRIPPER FINGER / CONTACT direction
+    # (measured in-sim: openarm_left_ee_tcp offset = [0,0,+0.093] in hand-local
+    # → +Z points out of the fingers). So the EE local +Z column must point
+    # along the CONTACT direction = −x_n (the fingers face the cube, into the
+    # push). The EE local +X was wrongly used before → fingers pointed at the
+    # ceiling, the wrist did the pushing (PI human-eye catch 2026-10-02).
+    #
+    # Build R_be with columns = EE body (X, Y, Z) axes expressed in base:
+    #   Z_col (fingers)  = −x_n            (point fingers into the push)
+    #   X_col            = chosen so the palm/hand lies flat (use z_n up as a
+    #                       reference), re-orthogonalized.
+    z_col = -x_n                               # fingers point into the push
+    # X_col ⟂ z_col, as close to table-up (z_n) as possible → palm flat
+    x_col = z_n - torch.dot(z_n, z_col) * z_col
+    if float(torch.norm(x_col)) < 1e-6:        # z_col ∥ z_n (vertical push) → fall back
+        x_col = torch.tensor([1.0, 0.0, 0.0], dtype=push_dir.dtype, device=push_dir.device)
+    x_col = x_col / torch.norm(x_col)
+    y_col = torch.linalg.cross(z_col, x_col)
+    y_col = y_col / torch.norm(y_col)
+    x_col = torch.linalg.cross(y_col, z_col)   # re-orthogonalize
+    R = torch.stack([x_col, y_col, z_col], dim=1)  # columns = EE X,Y,Z in base
     q = _mat_to_quat(R)
     return q, x_n
 
