@@ -1510,3 +1510,44 @@ visualizers (debug_vis=False) — but the GREEN GOAL marker is also a command
 visualizer, so it got hidden too → the PI could not judge whether the cube
 reached the goal. Fix: keep the goal cuboid visible, disable only the obstructing
 pose AXES, so cube-vs-goal is visible in the GIF.
+
+### 2026-10-02 rung-1 10-ep smoke — SR 0/10 → escalate to rung-2 (CONTROL-dominant failure)
+
+Ran the pre-committed 10-ep rung-1 EEF smoke (seeds 4700-4709, label=pilot,
+run bed0e663). Result: **SR = 0/10** → mechanical escalation to rung-2 per the
+A-spec rung ladder (10-ep SR=0 → next rung).
+
+Per-episode (min cube→goal / cube moved / saturated rounds):
+- ep0 plateau 14.3cm / 3.3cm / 1-of-4 sat
+- ep1 plateau 12.2cm / 0cm / 1-of-3
+- ep2 plateau 19.7cm / 20.2cm / 9-of-9 sat
+- ep3 plateau 31.9cm / 115.5cm(!) / 5-of-6 sat
+- ep4-9 plateau 36-61cm / 0cm / 3-of-3 sat each
+
+**Failure routing (pre-committed classes): CONTROL=8, INFORMATION=2, PHYSICS=0.**
+Dominant class = CONTROL. Signature: the teacher emits EEF targets that are
+too far / too high, so the arm maxes out (τ pre-clip ≥1.0 saturated nearly
+every round) — the EEF target is often reachable-in-principle but the one-shot
+EEF waypoint per round + the carrot transport can't deliver it in the step
+budget, OR the teacher's targets wander far from the cube (ep3 moved the cube
+115cm total yet never converged — flailing). ep0/ep1 are INFORMATION (teacher
+targets miss contact, cube barely moves at low τ).
+
+**Honesty on the n=2 pilot:** the earlier 1-success was genuine luck — the full
+10-ep shows rung-1 the frozen teacher cannot reliably push. This is the
+EXPECTED unstable gen-0 start; r-tracking's job is to show SR climb across
+generations. The 0/10 is a baseline reading, not a harness failure (the one
+clean success a26bd170 proves the pipeline CAN succeed when the teacher emits
+good targets).
+
+**Interpretation caveat (CONTROL-dominant):** before concluding "teacher
+command quality", note 8/10 are τ-saturated — part of CONTROL here is that the
+EEF-target → carrot-transport → OSC chain saturates when the teacher asks for a
+far/high target in one round. This blurs "teacher asked badly" vs "executor
+can't deliver a sane-but-far target". rung-2 (textual scaffold) addresses the
+teacher side; if saturation persists under rung-2 with good targets, that's an
+executor item (transport budget / multi-step). The τ monitor in collect is
+what lets us keep these separable.
+
+Human-eye gate: GIF logs/push_gif_bed0e663.gif (overlay cube→goal per round),
+PI to view before the SR=0 reading is trusted / rung-2 is started.
