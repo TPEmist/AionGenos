@@ -1810,3 +1810,11 @@ AFTER the memory→climb mechanism is shown on this bootstrappable task.
   output line said "integer cm" — it is the position grid (x 0.45cm/unit,
   y 0.4cm/unit); label corrected. Both runs e81261c8 + 579329e1 are VOID for
   the eye gate; gate (a) re-run on the fixed instrument.
+- **Eye-gate (a) candidate run 098975dd** (both bugs fixed, no memory, seeds
+  4700–4702): 0/3, all push_plateau after 3 rounds. Teacher now reads dX=+20
+  correctly and aims behind the cube in x/y, but keeps the hand at the
+  standby height (Z≈0.518 m base vs cube centre 0.468, top 0.492): the
+  prompt reveals CUBE_POS as (X,Y) only, so contact height is never given —
+  the horizontal fingers pass over the cube (cube moved ≤0.4cm). Open PI
+  question (not changed): is contact height a marginal grant (reveal cube Z)
+  or a lesson for memory to earn? GIF `logs/push_gif_098975dd.gif`.
