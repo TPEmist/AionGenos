@@ -175,6 +175,123 @@ Pre-registration frozen at:
 
 ## 12. Amendment log
 
+### Amendment 15 — 2026-10-05 (before any A15 number exists) — Inference-only reinforcement arms + R1' slope probe
+
+**Status**: LOCKED by this commit. Lifted from the paper session's draft
+(`docs/paper/amendments/A15_draft.md`, paper-v1.1-wip `e2d1b6a`), text
+unchanged except heading levels. No A15 protocol has been run; the
+predictions and fallbacks below are fixed before any A15 number exists.
+
+**Honest boundary**: the five D11 arms' raw SR is already public
+(Amendment 14). Protocol (c) re-analyses those existing replays; the R1'
+slope (round-1 ΔX vs `target_X − init_EE_X`, Spearman + permutation band)
+has not been computed for any arm before this lock. Protocols (a)/(b) are
+new inference runs on seed base 4500, paired with the five D11 arms.
+
+#### Why these four
+
+Reviewers and the self-audit converge on one gap: the +34 pp
+identical-weights effect is measured from `A_ctrl_rat` (15/100, the weakest
+distilled arm), and we have not isolated how much of the recipe is the
+*adapter* vs the *retrieval*. A15 adds the inference-only controls that
+decide this — all are pure-inference (attach/detach retrieval, swap the
+base), so they cost no training and can run on the frozen buffer.
+
+---
+
+#### Protocol (a) — base model + retrieval, NO adapter
+
+Base Gemma (no LoRA) + frozen retrieval buffer at inference, student
+protocol, **n=100, seed base 4500, paired** (same seeds as the five D11
+arms).
+
+- **Prediction**: SR \< `C_retrieval` (49/100). The gap = what the adapter
+  contributes, namely the ability to *act in the cheap canonical format*;
+  retrieval supplies the conditional correction but the base model is
+  weaker at emitting the servo-ready subgoal.
+- **Fallback (locked)**: if SR ≈ `C_retrieval` (within the paired MDE),
+  then **"distil the competence" is downgraded** — the adapter is not
+  necessary and retrieval is independently sufficient. We rewrite the
+  recipe accordingly and report it plainly; no spin.
+
+#### Protocol (b) — frozen buffer attached to A_action_only / B_main / D_gist
+
+Attach the frozen retrieval buffer at inference to each of the other three
+adapters, **n=100 each, seed base 4500, paired**.
+
+- **Prediction**: all three rise into the teacher band (≈45–55% SR),
+  showing the retrieval effect is not specific to `A_ctrl_rat`'s weights.
+- **Fallback (locked)**: if any adapter does **not** rise, we report it as
+  **adapter-dependent**, and the +34 pp is explicitly scoped as
+  `A_ctrl_rat`-specific rather than a general property of retrieval on
+  fixed weights.
+
+#### Protocol (c) — R1' slope probe (re-analysis, five arms + teacher)
+
+For the five arms + the D10 teacher pool: round-1 ΔX vs the *required*
+correction (`target_X − init_EE_X`), per episode. Report **Spearman
+correlation + a permutation band** (reuse `p2_r_tracker` for the band).
+
+- **Prediction**: `C_retrieval` slope \> 0 (its round-1 move tracks the
+  required correction); the four distilled arms' slope ≈ 0 (static prior,
+  no tracking); teacher slope \> 0 with wide σ (and this re-fits Fig. 2 —
+  teacher σ added).
+- **Fallback (locked)**: if `C_retrieval`'s slope sits **inside** the
+  permutation band (not distinguishable from zero), the mechanism section
+  is **downgraded** to "retrieval changes the first-step distribution; the
+  conditional structure is not demonstrated," and the σ-based argument is
+  **withdrawn** in favour of the slope result.
+
+#### Protocol (d) — D6 memoryless-teacher true SR
+
+Report the D6 memoryless-teacher's actual SR **if a log exists**; if not,
+keep the derived value and label it "derived, not measured" (unchanged
+from current).
+
+---
+
+#### Analysis rules (carry from D11, locked)
+
+- Paired design on seed base 4500 for (a)/(b); McNemar primary, two-prop z
+  fallback per A14 §14.2.
+- (c) is exploratory re-analysis (labelled exploratory); the slope sign +
+  band is the pre-registered reading, fixed here before the numbers.
+- All A15 outputs tagged confirmatory/exploratory against THIS amendment's
+  predictions, not re-chosen after seeing them.
+
+#### What A15 can change in the paper (pre-committed routing)
+
+- (a) gap confirms → "distil the competence, externalise the memory" stands
+  with the adapter's role now quantified.
+- (a) no gap → recipe rewrite (adapter non-essential).
+- (b) all rise → +34 pp generalised beyond `A_ctrl_rat`.
+- (b) some don't → +34 pp scoped `A_ctrl_rat`-specific.
+- (c) slope > band → mechanism strengthened, Fig. 2 gains teacher σ + the
+  R1' slope figure (replaces or sits beside the σ argument).
+- (c) in band → mechanism downgraded, σ argument withdrawn.
+
+These routes are written before the run so the result selects the wording,
+not the other way round.
+
+#### A15 add-on (non-inferential) — same-hardware cost re-measure (descriptive)
+
+Run in the same batch, same servers, back-to-back: teacher (two-pass,
+with memory), student bare (A_ctrl_rat), student + retrieval
+(C_retrieval), ~20 replayed steps each. Record server `usage` prompt /
+completion tokens, wall-clock per call, retrieval overhead (embedding +
+query ms) listed separately, and store student `full_response` text.
+Standalone measurement script; frozen `collect.py` untouched. This is
+descriptive (no prediction, no test) and replaces the unanchored
+"50–75×" cost figure with a measured token ratio.
+
+#### A15 anchors
+
+- Amendment 15 lock commit SHA: **(backfilled in the next commit)**.
+- Run outputs are tagged to the lock SHA (run dir name + manifest).
+- Locked by: TPEmist (chat) — 2026-10-05, zero A15 numbers computed.
+
+---
+
 ### Amendment 14 — 2026-07-13 (collect complete, raw SR seen, NO p-values computed) — Analysis-time decision lock
 
 **Status**: LOCKED — filed after all five collects finished and raw
