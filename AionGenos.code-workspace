@@ -5,6 +5,15 @@
 		},
 		{
 			"path": "../IsaacLab"
+		},
+		{
+			"path": "../AionGenos-libero"
+		},
+		{
+			"path": "../AionGenos-paper"
+		},
+		{
+			"path": "../AionGenos-cameraready"
 		}
 	],
 	"settings": {}

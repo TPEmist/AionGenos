@@ -286,7 +286,7 @@ descriptive (no prediction, no test) and replaces the unanchored
 
 #### A15 anchors
 
-- Amendment 15 lock commit SHA: **(backfilled in the next commit)**.
+- Amendment 15 lock commit SHA: **`989a753`**.
 - Run outputs are tagged to the lock SHA (run dir name + manifest).
 - Locked by: TPEmist (chat) — 2026-10-05, zero A15 numbers computed.
 
