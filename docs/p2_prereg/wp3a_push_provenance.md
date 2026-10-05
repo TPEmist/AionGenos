@@ -1787,3 +1787,26 @@ collect to estimate gen-0 r (the Δr-prior unblocker). SR=0 under a FROZEN teach
 is NOT the question; whether the task can bootstrap (MVC cold-start) and what
 gen-0 r is, are. Reach-around + agent-picks-arm (iii) is a HARDER rung/task for
 AFTER the memory→climb mechanism is shown on this bootstrappable task.
+
+## 2026-10-05 (16:10) — Pin-4b region + two push-path instrument bugs (pre-freeze)
+
+- **Pin-4b** (PI ruling): cube region x(0.38,0.42) y(0.05,0.15); goal = cube +
+  (0.07..0.10, ±0.04) clipped to x(0.44,0.50) y(0.07,0.19) (fine left reach
+  sweep `logs/reach_table_left_fine.log`: y≥0.07 reachable to x=0.50, y=0.05
+  only to 0.46). `wp3a_pin4b_gate.py` 12 seeds ALL PASS (region/clip/static
+  goal/determinism/approach reach); angle mean 8° max 19°; cube→goal
+  7.1–9.8cm (`logs/pin4b_gate.log`, `logs/pin4b_layout.png`). Scripted
+  closed-loop oracle 1/12 — informational, oracle is naive.
+- **Bug 1 — silent auto-reset at 24 s** (720 env steps = round 8 at 90-step
+  segments): cube/goal/robot re-sampled inside env.step, `truncated` never
+  checked; run e81261c8 void (one cube launched 11.5m). Fix: push
+  `episode_length_s=300`. Same latent behaviour in the frozen L0a path — see
+  D11 Amendment 15 pin 8 (not changed there; pairing).
+- **Bug 2 — biased push deltas**: EE_TO_CUBE / CUBE_TO_GOAL were computed by
+  passing a METRIC delta through the POSITION int map, whose x-axis has an
+  offset (0 m ↦ −33). A goal 9cm ahead read dX=−13 ("behind"). Run 579329e1
+  (post bug-1 fix): teacher never drove +x; cube pushed away (→17–19cm). Fix:
+  delta = difference of grid positions (dX=+20 for the same layout). Also the
+  output line said "integer cm" — it is the position grid (x 0.45cm/unit,
+  y 0.4cm/unit); label corrected. Both runs e81261c8 + 579329e1 are VOID for
+  the eye gate; gate (a) re-run on the fixed instrument.

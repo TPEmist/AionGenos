@@ -273,10 +273,16 @@ class IsaacLabEnvInterface:
                         bounds.x_bounds, bounds.y_bounds, bounds.z_bounds)
                     return xi, yi
 
+                # DELTAS must be the difference of two grid POSITIONS, not a
+                # metric delta pushed through the position map: the x map has
+                # an offset (bounds −0.3..0.6 → 0 m ↦ −33), so the old
+                # _xy_int(delta) showed a goal 9cm AHEAD as dX=−13 ("behind").
+                # Found 2026-10-05 (eye-gate 579329e1: teacher never pushed +x).
+                ee_xi, ee_yi = _xy_int(ee_b[0], ee_b[1])
                 cube_xi, cube_yi = _xy_int(cube_b[0], cube_b[1])
                 goal_xi, goal_yi = _xy_int(goal_b[0], goal_b[1])
-                ee_cube_xi, ee_cube_yi = _xy_int(cube_b[0] - ee_b[0], cube_b[1] - ee_b[1])
-                cube_goal_xi, cube_goal_yi = _xy_int(goal_b[0] - cube_b[0], goal_b[1] - cube_b[1])
+                ee_cube_xi, ee_cube_yi = cube_xi - ee_xi, cube_yi - ee_yi
+                cube_goal_xi, cube_goal_yi = goal_xi - cube_xi, goal_yi - cube_yi
                 state.update({
                     "cube_x": cube_xi, "cube_y": cube_yi,
                     "goal_x": goal_xi, "goal_y": goal_yi,

@@ -167,7 +167,7 @@ _S1_EEF_PUSH: Final[str] = (
     "palm flat on table). Examples: palm push = omit ORI; fingertip push =\n"
     "LEFT_TARGET_ORI: P=60 Y=0 R=0.\n\n"
     "THOUGHT: <one paragraph physics reasoning>\n"
-    "LEFT_TARGET_POS: X=<int> Y=<int> Z=<int>        (required; integer cm, base frame)\n"
+    "LEFT_TARGET_POS: X=<int> Y=<int> Z=<int>        (required; base-frame integers on the SAME grid as CURRENT STATE — not cm)\n"
     "LEFT_TARGET_ORI: P=<int> Y=<int> R=<int>        (OPTIONAL; integer degrees, OFFSET from the neutral contact orientation; omit for neutral)\n"
     "STOP: <true|false>"
 )
