@@ -284,6 +284,43 @@ Standalone measurement script; frozen `collect.py` untouched. This is
 descriptive (no prediction, no test) and replaces the unanchored
 "50–75×" cost figure with a measured token ratio.
 
+#### A15 operational pins (filed after the lock, still before any A15 run)
+
+Implementation details the draft leaves open, fixed before any A15 episode:
+
+1. **(a) template**: `--eval_template_variant rationale_with_retrieval`
+   (identical to C_retrieval) — the ONLY difference from C_retrieval is the
+   adapter (none). Base served by restarting the student llama-server
+   without `--lora` (`server_side/reload_student_base.sh`), not a scale-0
+   hot-swap; `/lora-adapters` verified empty before the run.
+2. **(b) templates**: each arm's own D11 variant (A_action_only
+   `action_only`, B_main `rationale_with_gist`, D_gist `gist_only`) +
+   `--recap_buffer_root workspace/recaps_d10_frozen_c_retrieval --use_memory
+   --recap_buffer_readonly`, same retrieval defaults as C_retrieval
+   (top_k 3, image weight 0.4, state scale 30 cm, success floor 2/3).
+3. **Everything else identical to D11 Step 8**: `run_collect.py --level -2
+   --num_episodes 100 --freeze_level --env_seed_base 4500`, student URL
+   passed as `--teacher_url`. Buffer tarball sha256 `a762386b…0eb9c` and
+   unpacked tree hash `7d4f3f9e…432ec7` asserted before AND after every
+   arm (readonly gate, Amendment 12 §12.3).
+4. **Parse failures** count as failures (intent-to-treat); the per-arm
+   parse-fail count is reported beside SR.
+5. **(c) target recovery**: replays never stored the absolute target. For
+   the five D11 arms, `target_X` is recovered by re-resetting the L0a env
+   at seed 4500+k and reading the command term; a recovery gate asserts the
+   recovered target reproduces the stored t0 `dist_red` (|Δ| < 1 mm) per
+   episode, else that episode is excluded and counted. The D10 teacher pool
+   was collected unseeded → its target is **not recoverable from disk**; the
+   teacher slope is reported as "not computable" (no proxy substituted),
+   and the "teacher > 0 wide σ" prediction is reported as untested.
+6. **(d)**: measured memoryless-teacher logs exist — D6b run `fa7f4571`
+   22/100 (freeze_level, Fix 1/3, no memory, unseeded) and D6 run
+   `67685984` 21/100 (no freeze_level). D6b is reported as the measured
+   value (it matches the D11 prompt conditions), labelled "not seed-paired".
+7. **Schedule**: ~30–40 h serial → night-only, multiple nights; order (a),
+   (b) A_action_only, (b) B_main, (b) D_gist. Each output tagged with the
+   lock SHA in `logs/a15_manifest.jsonl`.
+
 #### A15 anchors
 
 - Amendment 15 lock commit SHA: **`989a753`**.
