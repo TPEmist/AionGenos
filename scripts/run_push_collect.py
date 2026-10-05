@@ -7,6 +7,10 @@ runs run_push_collect_loop. For smoke: --episodes small, --label pilot.
 Run:
   PYTHONPATH=/home/control/AionGenos /home/control/env_isaaclab/bin/python \
     scripts/run_push_collect.py --episodes 1 --seed 4700 --headless --enable_cameras
+
+Memory-ON pilot (wp3a_pilot_plan.md step (c)):
+  ... --episodes 50 --label pilot --use_memory \
+      --recap_buffer_root workspace/recaps_push_pilot --headless --enable_cameras
 """
 from __future__ import annotations
 import argparse
@@ -20,6 +24,25 @@ parser.add_argument("--teacher-url", type=str, default="http://10.80.9.148:18888
 parser.add_argument("--segment-steps", type=int, default=90)
 parser.add_argument("--gif-frame-every", type=int, default=0,
                     help=">0: capture an RGB frame every N servo steps → logs/push_gif_<run>.gif (human-eye gate)")
+# ── cross-episode memory (push_memory; mirrors run_collect.py's flag set) ──
+parser.add_argument("--recap_buffer_root", type=str, default=None,
+                    help="When set, write a push recap per episode here (and read it for "
+                         "--use_memory). PUSH-ONLY root (e.g. workspace/recaps_push_pilot): "
+                         "retrieval has no task filter, so never share a root with reach/L2.")
+parser.add_argument("--use_memory", action="store_true",
+                    help="At round 1 of each ep, retrieve top-K past push recaps and inject "
+                         "them as a preamble. Requires --recap_buffer_root.")
+parser.add_argument("--recap_buffer_readonly", action="store_true",
+                    help="Read memory but persist NO new recaps this run (collect.py A8 §8.5 gate).")
+parser.add_argument("--memory_top_k", type=int, default=3, help="Top-K retrieved recaps.")
+parser.add_argument("--memory_image_weight", type=float, default=0.4,
+                    help="α in score = α·img_cos + (1−α)·state_sim.")
+parser.add_argument("--memory_state_scale_cm", type=float, default=5.0,
+                    help="state_sim = exp(−‖Δ(cube_xy,goal_xy)‖_cm / scale). 5 cm ≈ median "
+                         "pairwise Pin-4b situation distance (reach default 30 cm is flat here).")
+parser.add_argument("--dump_images_root", type=str, default="data/collect_dumps",
+                    help="Per-ep round PNGs + meta.json under {root}/{run_id}/{ep_id}/ "
+                         "(memory needs round_01_pre.png as the recap image anchor). '' disables.")
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
 args_cli.enable_cameras = True
@@ -27,6 +50,18 @@ app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
 
 import json
+import logging
+import sys
+from pathlib import Path
+
+# AppLauncher reconfigures the root logger (same fix as run_collect.py): put a
+# stdout handler on aiongenos.* so push_collect / push_memory INFO lines show.
+_handler = logging.StreamHandler(sys.stdout)
+_handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
+_alog = logging.getLogger("aiongenos")
+_alog.setLevel(logging.INFO)
+_alog.addHandler(_handler)
+_alog.propagate = False
 import gymnasium as gym
 import aiongenos.tasks  # noqa (registers WP1-Push)
 from isaaclab_tasks.utils import parse_env_cfg
@@ -76,6 +111,32 @@ def main():
     replay = ReplayBuffer(cfg.local_replay_path)
     _p(f"teacher={teacher_url} episodes={args_cli.episodes} label={args_cli.label}")
 
+    # Memory wiring (same gate shape as run_collect.py)
+    recap_buffer = None
+    memory_retriever = None
+    dump_root = Path(args_cli.dump_images_root) if args_cli.dump_images_root else None
+    if args_cli.recap_buffer_root:
+        from aiongenos.memory.recap_buffer import RecapBuffer
+        from aiongenos.orchestrator.push_memory import PushMemoryRetriever, assert_push_only_buffer
+        recap_buffer = RecapBuffer(root=args_cli.recap_buffer_root)
+        recap_buffer.load()
+        assert_push_only_buffer(recap_buffer)   # refuse a root holding reach/L2 recaps
+        _p(f"recap buffer {args_cli.recap_buffer_root}: {len(recap_buffer)} existing records"
+           f"{' (READONLY)' if args_cli.recap_buffer_readonly else ''}")
+        if dump_root is None:
+            _p("WARNING: --dump_images_root disabled → recaps have no init_pre anchor and "
+               "retrieval will drop every hit")
+        if args_cli.use_memory:
+            memory_retriever = PushMemoryRetriever(
+                buffer=recap_buffer, top_k=args_cli.memory_top_k,
+                image_weight=args_cli.memory_image_weight,
+                state_scale_cm=args_cli.memory_state_scale_cm,
+            )
+            _p(f"memory ON: top_k={args_cli.memory_top_k} img_w={args_cli.memory_image_weight} "
+               f"state_scale={args_cli.memory_state_scale_cm}cm")
+    elif args_cli.use_memory:
+        _p("WARNING: --use_memory ignored (no --recap_buffer_root)")
+
     summary = run_push_collect_loop(
         env=iface,
         level_config=level_config,
@@ -84,9 +145,12 @@ def main():
         num_episodes=args_cli.episodes,
         env_seed_base=args_cli.seed,
         episode_label=args_cli.label,
-        recap_buffer=None,   # smoke: defer recap buffer; trigger-check separately
+        recap_buffer=recap_buffer,
         steps_per_segment=args_cli.segment_steps,
         gif_frame_every=args_cli.gif_frame_every,
+        memory_retriever=memory_retriever,
+        recap_buffer_readonly=args_cli.recap_buffer_readonly,
+        dump_images_root=dump_root,
     )
     _p(f"SUMMARY run_id={summary['run_id']} success={summary['n_success']}/{args_cli.episodes}")
     for ep in summary["episodes"]:
