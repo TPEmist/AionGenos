@@ -78,6 +78,20 @@ TAR_SHA=$(sha256sum "$FROZEN_BUFFER_TAR" | awk '{print $1}')
 [ "$(tree_hash)" = "$BUFFER_TREE_EXPECTED" ] || { say "buffer tree hash mismatch before run"; exit 3; }
 say "pre-flight OK (lock $A15_LOCK_SHA, buffer tar + tree hash pinned)"
 
+# ── A15 add-on: same-hardware cost re-measure (descriptive), once, first ──
+# Needs the A_ctrl_rat adapter on the student (bare + retrieval protocols);
+# ~60 calls ≈ 20–30 min, then the queue reloads its own adapter per arm.
+if ! ls logs/cost_remeasure_run_*.log >/dev/null 2>&1 && in_window && [ "$DRY_RUN" -eq 0 ]; then
+  say "cost re-measure: load A_ctrl_rat, record GPU placement, run all 3 protocols"
+  ssh "$REMOTE_HOST" "cd $REMOTE_ROOT && bash server_side/reload_student_dual.sh \
+    data/lora_gguf/d11_A_ctrl_rat_sft/adapter.gguf data/lora_gguf/d11_A_ctrl_rat_kto/adapter.gguf"
+  CLOG="logs/cost_remeasure_run_$(date +%Y%m%d_%H%M%S).log"
+  ssh "$REMOTE_HOST" "nvidia-smi --query-compute-apps=pid,gpu_uuid,used_memory --format=csv; \
+    nvidia-smi --query-gpu=index,uuid,name --format=csv; pgrep -fa llama-server | cut -c1-200" > "$CLOG" 2>&1
+  PYTHONPATH="$PWD" /home/control/env_isaaclab/bin/python scripts/analysis/cost_remeasure.py \
+    --protocol all --n_steps 20 >> "$CLOG" 2>&1 || say "cost re-measure FAILED (see $CLOG) — continuing with A15 arms"
+fi
+
 for prot in "${PROTOCOLS[@]}"; do
   if protocol_done "$prot"; then say "$prot already complete — skip"; continue; fi
   if ! in_window; then say "outside night window — stop before $prot (re-launch tonight)"; exit 0; fi
