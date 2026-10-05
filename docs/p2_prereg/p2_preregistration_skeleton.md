@@ -91,6 +91,21 @@ the Ledger's **Pending** section and ruled on only after P2 closes. See
 [aiongenos_founding_intent.md](../aiongenos_founding_intent.md) for the
 marginal/conditional basis of what may be granted at all.
 
+**What the freeze protects, and what may be fixed before it (PI ruling
+2026-10-05).** Task geometry is frozen together with the body, so it must
+be right *before* gen-0. The pre-freeze cut is between two kinds of
+difficulty: **the difficulty r needs** (conditional richness — push
+direction and distance vary per episode, so the correct round-1 correction
+depends on the situation) is kept; **the difficulty that cannot bootstrap**
+(kinematic pathology — e.g. the 71° reach-around side-push of run
+3ca3b769, where the cube squirts off sideways regardless of language) is
+removed. Removing the second does not reduce r's signal; leaving it in
+starves gen-0 of successes (§3a P-MVC-teacher). The freeze is the act of
+pilot-plan step (e) (`wp3a_pilot_plan.md`), not of geometry lock: if the
+memory-ON pilot shows the geometry is still insufficient (successes below
+threshold, or situation variance too thin), geometry changes before (e)
+and the pilot re-runs.
+
 ## 3. A-priori hypothesis list (post-hoc P1 threads → pre-registered P2 predictions)
 
 Each P1 exploratory thread is promoted here to an a-priori prediction with
