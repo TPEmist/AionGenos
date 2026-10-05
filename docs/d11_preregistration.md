@@ -334,6 +334,26 @@ Implementation details the draft leaves open, fixed before any A15 episode:
    (trajectory index < boundary, boundary located per episode from the
    step counter). The primary SR stays the as-run SR.
 
+#### A15.1 — (c) recovery-gate re-registration (2026-10-05, before any (a)/(b) episode)
+
+**What happened (disclosed in full).** Pin 5's 1 mm recovery gate was set
+before the residual was measured. It fails on instrument grounds:
+`trajectory[0]` is logged during the first execute step, not at reset, so
+the arm has already moved — residual |‖EE_reset − T‖ − dist_red_t0| median
+≈ 4 mm, max 12.1 mm over all 500 D11 episodes. At 1 mm the gate excluded
+80–99% per arm (C_retrieval n=1). **The pinned (c) reading for the five D11
+arms is therefore UNAVAILABLE as pre-registered.** I then ran a 15 mm gate
+and SAW the result (C_retrieval r=+0.31 above band; the four distilled arms
+r −0.16…−0.30). Those D11 numbers are **post-hoc exploratory** and may never
+be cited as confirmatory.
+
+**Re-registered gate (for data not yet analysed).** Recovery validity = residual
+< 15 mm (above the 12.1 mm instrument maximum; a wrong target produces
+residuals of order 10 cm). Reading unchanged: slope > 0 iff Spearman r is
+above the permutation band's upper edge. This applies with
+pre-registered status ONLY to the R1 slopes of the A15 (a)/(b) arms, which
+are run after this commit and whose slopes have not been computed.
+
 #### A15 anchors
 
 - Amendment 15 lock commit SHA: **`989a753`**.
