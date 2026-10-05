@@ -69,7 +69,7 @@ def main():
         level=99,
         name="WP1_3a_push",
         control_mode=ControlMode.PUSH_WAYPOINT,
-        task_instruction_template="Push the yellow cube onto the green goal marker.",
+        task_instruction_template="Push the yellow cube onto the green zone on the table.",
         workspace_bounds=WorkspaceBounds(),
     )
 
