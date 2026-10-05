@@ -320,6 +320,19 @@ Implementation details the draft leaves open, fixed before any A15 episode:
 7. **Schedule**: ~30–40 h serial → night-only, multiple nights; order (a),
    (b) A_action_only, (b) B_main, (b) D_gist. Each output tagged with the
    lock SHA in `logs/a15_manifest.jsonl`.
+8. **Inherited 24 s auto-reset (found 2026-10-05, before any A15 run).**
+   The L0a env times out at `episode_length_s = 24` (720 env steps) and
+   IsaacLab auto-resets inside `env.step`; the orchestrator does not check
+   `truncated`, so episodes longer than ~718 steps continue on a re-sampled
+   robot pose + target. On the existing D11 replays: episodes crossing the
+   boundary / successes among them = A_action_only 28/4, A_ctrl_rat 33/3,
+   B_main 28/7, D_gist 30/2, C_retrieval 8/1 (dist_red jump > 4 cm at the
+   boundary in 23/21/21/21/7). A15 runs keep the code UNCHANGED (pairing
+   with the D11 arms requires the identical instrument). Pre-registered
+   **sensitivity** (reported beside every A15 and D11 SR, never replacing
+   it): SR counting only successes reached before the first auto-reset
+   (trajectory index < boundary, boundary located per episode from the
+   step counter). The primary SR stays the as-run SR.
 
 #### A15 anchors
 

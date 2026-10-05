@@ -162,6 +162,17 @@ class WP1PushS3aEnvCfg(WP1ContactTestbedEnvCfg):
     def __post_init__(self):
         super().__post_init__()
 
+        # SILENT MID-EPISODE RESET (found 2026-10-05, eye-gate run e81261c8):
+        # the inherited reach env times out at episode_length_s=24 s = 720 env
+        # steps (dt 1/60, decimation 2) and IsaacLab AUTO-RESETS inside
+        # env.step — robot, cube (now a seeded region) and goal all jump. The
+        # orchestrator never checks `truncated`. With 90-step segments that is
+        # round 8 of 12: all 3 eye-gate episodes showed a 9–15cm cube "push" at
+        # R8 and one cube was launched 11.5m (respawned into the hand). Push
+        # rounds are bounded by PUSH_ROUND_CAP × segment steps, so lift the
+        # time-out well past that; push_collect asserts the margin at start.
+        self.episode_length_s = 300.0
+
         # Raise the robot base onto its stand (PI layout). Base-relative coord
         # pipeline auto-adapts (recon-verified); only this literal changes.
         self.scene.robot.init_state.pos = (0.0, 0.0, _ROBOT_BASE_Z)
