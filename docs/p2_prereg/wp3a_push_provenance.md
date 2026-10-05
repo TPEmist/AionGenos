@@ -1551,3 +1551,239 @@ what lets us keep these separable.
 
 Human-eye gate: GIF logs/push_gif_bed0e663.gif (overlay cube→goal per round),
 PI to view before the SR=0 reading is trusted / rung-2 is started.
+
+### 2026-10-02 cube-reset bug — ROOT CAUSE + FIX (invalidates the SR=0/10 smoke)
+
+**PI-caught** (watched GUI): the cube was NOT reset between episodes — it drifted
+below/across the table cumulatively. PI ordered: dispatch an opus agent to find
+the TRUE root cause BEFORE fixing. Done.
+
+**Root cause (opus agent, file:line evidence):** IsaacLab's
+`ManagerBasedRLEnv._reset_idx` (manager_based_rl_env.py:349-362) never restores a
+RigidObject's spawn pose on its own — `scene.reset()` → `RigidObject.reset()`
+(rigid_object.py:126-132) resets ONLY the external-wrench composers; it does NOT
+write `default_root_state` back to sim. The ONLY thing that restores a rigid body
+is an `EventTerm(mode="reset")` calling `reset_root_state_uniform`. The inherited
+reach chain (ReachEnvCfg → AionGenosReachEnvBaseCfg → WP1ContactTestbed →
+WP1PushS3a) had exactly ONE reset event — `reset_robot_joints` (robot-only) —
+because the reach base never had a dynamic object. push_s3a added `scene.object`
+(a RigidObjectCfg) WITHOUT a corresponding reset event → cube left wherever
+physics shoved it. (The GOAL resampled every reset because command terms
+self-resample in CommandManager.reset() independent of any object reset — hence
+the asymmetry PI saw: goal moved, cube didn't.)
+
+**This POLLUTES the SR=0/10 smoke (bed0e663):** per-episode first-round cube→goal
+rose monotonically (ep0 14.3cm → ep5 61.4cm) = the cube accumulating drift, not
+teacher behavior. Later episodes were unwinnable (cube off its spot / off table),
+so the CONTROL=8 routing is partly a reset-bug artifact. **The 0/10 reading and
+its failure routing are VOID.** rung-2 escalation is NOT yet justified — rung-1
+must be re-run on the fixed env first.
+
+**Fix (push_s3a_cfg.py):** added `self.events.reset_object = EventTerm(func=
+mdp.reset_root_state_uniform, mode="reset", params={pose_range:{}, velocity_range:
+{}, asset_cfg:SceneEntityCfg("object")})`. Empty ranges → every axis (0,0) →
+deterministic restart at exact init_state (_CUBE_START_X, 0, _CUBE_SPAWN_Z), zero
+velocity (freeze clause). Kept ORTHOGONAL to reset_robot_joints (did NOT use
+reset_scene_to_default, which would re-apply robot state and fight the Pin-7a
+standby event).
+
+**Config-effect gate PASS** (verify_cube_reset.py): reset(4700) cube=(0.392,0.000,
+1.018) → shoved to (0.671,0.310) → reset(4701) cube=(0.391,0.001,1.018), drift
+0.15cm < 1cm → RESTORED ✓. Bug fixed.
+
+**Latent twin:** L3 pick_place_cfg.py has the identical omission (scene.object at
+line 52, no object-reset event). Flagged; fix when L3 push/pick is next touched.
+
+### 2026-10-02 Q1 — does the teacher VISUALLY see the goal in its RGB? NO (design gap)
+
+PI's challenge: "prompt 裡有寫座標 不代表 visual 看得到；要 visual 看得到才能正確
+識別要怎麼推". My earlier answer (grep-based) guessed the command-visualizer
+markers do NOT render into the sensor camera — **that guess was WRONG.** Probe
+(goal_in_rgb.py, rendered the actual sensor RGB → logs/sensor_rgb_check.png):
+
+- The command visualizers DO render into the tiled sensor camera (not GUI-only).
+- BUT the "goal" is drawn as an **RGB coordinate-frame triad** (red-X/green-Y/
+  blue-Z arrows), visually IDENTICAL to the two EE-pose triads also in frame.
+  There are multiple triads; nothing marks WHICH one is the goal.
+- There is **no distinct solid goal block** (the green/red pixels my heuristic
+  counted were the axis ARROWS, not a goal cuboid).
+- The yellow cube IS visible (small, center).
+
+**Verdict:** the teacher CANNOT visually identify the goal — it can only know the
+goal via the prompt's oracle TEXT coordinates. For a general-purpose zero-demo
+visual-grounding VLA (π0 / Gemini-Robotics target), a text-only oracle goal is a
+crutch that conflicts with the founding intent. **Design gap, not a quick fix:**
+the scene needs a real VISIBLE goal marker (a distinct solid-colored flat
+disc/decal on the table at the goal pose) that renders into the sensor RGB and is
+unambiguous vs the EE triads — THEN the oracle text can be dropped (or kept only
+as a scaffold rung). Deferred to a PI ruling: (a) add a visible goal decal now vs
+(b) keep text-oracle for rung-1 baseline and add the visible marker as the
+visual-grounding rung. Not starting either without the ruling.
+
+### 2026-10-05 reachability math — table plane × BOTH arms (PI question)
+
+PI asked, before any cube/goal randomization: is the green goal reachable, and
+what is the pure-math intersection of the table plane with each arm's working
+envelope? Ran the VALIDATED L2 DiffIK instrument (instrument rule) over the
+table contact height z_B=0.468, sweeping x∈[0.28..0.58]×y∈[-0.30..0.30] for
+LEFT and RIGHT (hold-orient pure-position servo, ≤4cm = reachable). Base-frame
+kinematics is invariant to base world-height, so the L2 DiffIK envelope = the
+push env's kinematic reach. (reach_table_both.py; log logs/reach_table_both.log.)
+
+Base frame: +y = robot LEFT, −y = robot RIGHT. Result (min servo err cm; OK≤4):
+```
+LEFT arm (reaches +y side + center):           RIGHT arm (reaches −y side + center):
+        x.28 .34 .40 .46 .52 .58                      x.28 .34 .40 .46 .52 .58
+y-0.30   --  --  --  --  --  --              y-0.30   OK  OK  OK  OK  --  --
+y-0.20   --  --  --  --  --  --              y-0.20   OK  OK  OK  OK  --  --
+y-0.10   --  --  --  --  --  --              y-0.10   OK  OK  OK  OK  --  --
+y+0.00   OK  OK  OK  --  --  --              y+0.00   OK  OK  --  --  --  --
+y+0.10   OK  OK  OK  OK  OK  --              y+0.10   --  --  --  --  --  --
+y+0.20   OK  OK  OK  OK  OK  --              y+0.20   --  --  --  --  --  --
+y+0.30   OK  OK  OK  OK  --  --              y+0.30   --  --  --  --  --  --
+```
+Clean mirror symmetry: LEFT owns +y + center, RIGHT owns −y + center.
+
+**Findings:**
+1. **The CURRENT goal region is PARTLY UNREACHABLE.** Pin-4a goal x-range is
+   (0.34, 0.54) — but x≥0.52 is marginal-to-unreachable (left-only, |y|≥0.1),
+   and x=0.58 is unreachable by either arm. A sampled goal at e.g. (0.54, 0.0)
+   is a ~14cm-unreachable dead cell. The goal region MUST be tightened to the
+   measured envelope.
+2. **Far-center dead zone:** (x≈0.46, y≈0.0) is unreachable by EITHER arm (left
+   10.0cm, right 10.8cm) — the two envelopes don't overlap there.
+3. **Fully-reachable-by-some-arm rectangle (no holes):** x ∈ [0.28, 0.40],
+   y ∈ [-0.30, +0.30]. Beyond x=0.40 the center opens a gap and the sides
+   shrink. Conservative sampling region with margin: **x ∈ [0.30, 0.40],
+   y ∈ [-0.25, +0.25]** (reachable by ≥1 arm everywhere inside).
+4. **Caveat:** this is KINEMATIC reach (DiffIK). OSC contact dynamics / torque
+   under push load are a separate gate (the τ monitor); reach ≠ can-push-hard.
+
+### 2026-10-05 LEFT baseline region locked + 3 bugs fixed before rerun (PI Option-1)
+
+PI ruled: Option-1 (clean LEFT-arm baseline first, then build the embodied
+cube-randomize + agent-picks-arm version "iii"). PI constraint: cube AND goal
+must both lie in LEFT reach ∩ table. Getting there surfaced 3 real bugs (all
+caught by the pre-rerun gates, none shipped):
+
+1. **Old goal region was LEFT-unreachable.** _PIN4_Y=(−0.15,+0.15) and
+   _PIN4_X→0.54, but the sweep proved the LEFT arm reaches NO negative y and
+   nothing past x≈0.46 center. ~half the old goals were unwinnable — the other
+   half of why the void 0/10 looked catastrophic (with the cube-reset bug).
+   Fix: new LEFT box _LEFT_GOAL_X=(0.40,0.46), _LEFT_GOAL_Y=(0.12,0.22), all
+   inside the measured LEFT envelope, forward-left of the cube (push away from
+   body). New constants (NOT a mutation of the historical _PIN4_* which a
+   diagnostic still imports).
+2. **Cube spawned INTO the table.** _CUBE_SPAWN_Z = table_top+0.02 but
+   half-height is 0.024 → 4mm penetration → solver popped it out laterally,
+   sliding it ~4.5cm off config and non-reproducibly. Fix: spawn at rest+1mm
+   (_CUBE_REST_Z+0.001), no penetration.
+3. **Cube spawn collided with the standby LEFT hand.** First pick (0.32,0.14)
+   was 6.4cm from the resting hand → hand shoved it 4.3cm with 0.94cm
+   run-to-run non-determinism (freeze-clause violation). slide_diag showed all
+   hand-clear spots (≥16cm) drift ~0 deterministically (table is level; slope
+   hypothesis rejected). Fix: cube at (0.38, 0.06), 16cm clear of the hand.
+
+**FINAL pre-rerun gate (final_gate.py) — ALL PASS:**
+- cube start deterministic + stays put: t0=(0.380,0.060), settle=(0.380,0.060),
+  drift 0.00cm, non-determinism 0.01cm → STABLE (freeze clause satisfied).
+- all 10 seeds (4700-4709): cube≈(0.38,0.06), goal in the LEFT box, cube→goal
+  8.5–14.8cm (all real pushes >5cm success radius), approach point reachable by
+  the REAL push executor (5.4–6.6cm, within OSC reality) → OK.
+- layout RGB logs/left_baseline_layout.png: cube + green zone both left, clean
+  (triads gone), green zone forward-left of cube = natural left push.
+
+Also fixed this session (recorded above): cube-reset EventTerm, visible green
+goal disc, all command triads removed, prompt wording ("green zone").
+
+**The void 0/10 (bed0e663) is superseded.** Re-running the pre-committed 10-ep
+rung-1 smoke on this fixed env. New run id recorded on completion. Rung-2
+escalation remains gated on THIS clean reading, not the void one.
+
+### 2026-10-05 CLEAN rung-1 10-ep smoke — SR 0/10 (run 3ca3b769), awaiting human-eye gate
+
+Re-ran the pre-committed 10-ep rung-1 EEF smoke on the validated-clean env
+(cube resets ✓, spawn deterministic+stable ✓, cube/goal/approach all LEFT-
+reachable ✓, visible green zone ✓, triads gone ✓, teacher gemma-4-31B up).
+Seeds 4700-4709, label=pilot, GIF logs/push_gif_3ca3b769.gif, records
+logs/push_smoke_3ca3b769.json.
+
+**Result: SR = 0/10. ALL 10 episodes = PUSH_PLATEAU** (not timeout, not
+off-table). This is a REAL baseline (the void bed0e663 0/10 is superseded).
+
+Per-episode (start_cg = round-1 cube→goal; min_cg = closest ever; totdisp =
+total cube motion; sat = τ-saturated rounds):
+```
+ep        outcome       rnds start_cg min_cg totdisp  sat
+826af205  push_plateau   11   11.8    11.8   32.4cm  8/11
+78fc18d1  push_plateau   11   14.4    14.4   24.0cm  3/11
+ad1684ba  push_plateau    6   14.0    14.0    7.4cm  2/6
+9dd6fece  push_plateau    7   17.5    17.5   10.9cm  2/7
+f73179ec  push_plateau    7   13.5    13.5    7.7cm  2/7
+d3d78a6d  push_plateau   11   16.6    11.1   19.8cm  3/11
+5255216f  push_plateau   11   13.2     9.9   31.5cm  5/11
+f660443d  push_plateau    7    9.3     9.3   11.8cm  2/7
+c1ea083b  push_plateau    6   12.8    12.2   12.5cm  6/6
+200a6d46  push_plateau   11   15.6    13.2   25.0cm  4/11
+```
+
+**Key signatures (vs the void run):**
+1. **All episodes WINNABLE and stayed winnable** — start_cg 9.3–17.5cm (the gate
+   held: no off-table, no unreachable goal, no cumulative drift). Contrast the
+   void run (start_cg climbed to 61cm from the cube-reset bug). The env is now
+   honest.
+2. **The cube MOVES but does NOT approach the goal.** Mean total displacement
+   18.3cm/ep, yet min_cg never drops below 9.3cm (success needs ≤5.0) and in
+   6/10 episodes min_cg == start_cg (round 1 was the closest it EVER got — every
+   later push made zero net progress). 0/10 episodes even reached within 8cm.
+3. **τ saturation 43% of rounds** — present but NOT dominant (down from ~80% in
+   the void run); the arm is pushing, just not productively.
+
+**Pre-committed reading:** SR=0/10 → mechanical escalation trigger to rung-2 per
+the A-spec rung ladder. BUT per the standing human-eye rule (3492b96) the SR is
+NOT trusted and rung-2 is NOT started until the PI views the GIF. The "cube
+moves 18cm but min_cg flat" signature is consistent with EITHER (a) teacher
+emitting EEF targets that don't drive the cube goalward (INFORMATION), or (b)
+the cube squirting off the side of the EE on contact (PHYSICS/geometry) — these
+look identical in the numbers; the PI's eyes on the GIF disambiguate. I do NOT
+judge the GIF.
+
+### 2026-10-05 FORWARD-dominant geometry locked (PI steer: fix the pathological hard, keep conditional richness)
+
+PI corrected the whole framing (recorded in rung1_smoke_criterion.md CORRECTION):
+this smoke is a FEASIBILITY pilot with a FROZEN, NO-MEMORY teacher
+(recap_buffer=None) — SR=0 is expected and carries NO rung-language signal; the
+"10-ep SR=0 → rung-2" rule was MISAPPLIED to a no-learning pilot. The task's real
+role (prereg §8b step 2) is to UNBLOCK a gen-0 collect so gen-0 r can be
+estimated. The correct pilot criterion is the MVC cold-start test (§3a): can the
+frozen generator get ANY success (>0) → can the task bootstrap gen-0.
+
+The void+clean 0/10 runs both had a KINEMATICALLY PATHOLOGICAL geometry: cube at
+low y, goal at high y, arm base at center → the LEFT hand had to reach AROUND the
+cube to its body-side face and SWEEP it leftward (mean push angle 71°, 9/10
+sideways). The cube squirts off the side on a sideways push → 18cm moved, min
+cube→goal never <9cm. That is the WRONG kind of hard: it crushes SR without
+adding the conditional richness r needs.
+
+**Fix (data-driven, not guessed):**
+- hand_map measured the standby LEFT hand/fingers at x≈0.21–0.27, y≈0.06–0.13,
+  and a cube settle map: cube is shoved for x≤0.34 at mid-y but STAYS for all y
+  at x≥0.38 → hand keep-out floor x≥0.38.
+- New geometry: cube (0.38, 0.10); goal x(0.44,0.50), y(0.05,0.15) spanning
+  AROUND the cube's y → FORWARD-dominant pushes with per-episode direction+
+  distance variation (conditional signal preserved), no reach-around.
+
+**fwd_gate re-gate — ALL PASS:** cube stable (drift 0.20cm, nondeterm 0.10cm);
+all 10 seeds push angle 2–29° (mean 17°, forward-dominant), cube→goal 6.5–11.3cm
+(real pushes >5cm success radius), approach points left-reachable (4.2–7.6cm) and
+hand-clear (appr_y 0.07–0.12). Layout logs/fwd_layout.png: green zone directly
+AHEAD of the cube, both left-reachable. Geometry LOCKED pending the gen-0 /
+memory decision (prereg §2c FREEZE clause: body+geometry must be constant from
+gen-0 until P2 collection completes).
+
+**NEXT (PI decision pending):** the pipeline is feasibility-clean. The real
+forward step is prereg §8b step 2 — wire the recap/memory buffer and run a gen-0
+collect to estimate gen-0 r (the Δr-prior unblocker). SR=0 under a FROZEN teacher
+is NOT the question; whether the task can bootstrap (MVC cold-start) and what
+gen-0 r is, are. Reach-around + agent-picks-arm (iii) is a HARDER rung/task for
+AFTER the memory→climb mechanism is shown on this bootstrappable task.

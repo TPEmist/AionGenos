@@ -4,6 +4,29 @@
 > routing are fixed here so the result is read mechanically, not rationalized
 > post-hoc.
 
+> **CORRECTION 2026-10-05 (PI steer — read this first).** The SR-band /
+> rung-SR framing BELOW was a MISREAD of this pilot's purpose and is RETIRED.
+> Why: (1) this smoke runs a FROZEN teacher with NO cross-episode inheritance
+> (`recap_buffer=None`, verified) — there is no learning mechanism, so SR=0 is
+> EXPECTED and carries no signal about "rung-1 language quality"; applying the
+> "10-ep SR=0 → rung-2" rule to a no-learning feasibility pilot is a category
+> error. (2) Per the P2 prereg (§2), SR is SECONDARY and competence-floor-
+> confounded; r (situation-conditional correction) is the confirmatory measure.
+> (3) This task's ONLY role (prereg §8b, step 2) is to be the contact task that
+> UNBLOCKS a gen-0 collect so gen-0 r can be estimated — it is a pre-flight
+> unblocker, not r-tracking itself.
+>
+> **Correct criterion for THIS pilot** = the minimum-viable-competence
+> cold-start test (prereg §3a, P-MVC-teacher): can the frozen data-generator
+> get ANY success (>0) on this task? If yes → the task can bootstrap gen-0
+> (buffer can accumulate successes to retrieve/distil). If 0 → the task is
+> below the cold-start floor and CANNOT seed expert-iteration as-is (not a
+> language failure — a task-difficulty/kinematics failure). The "difficulty"
+> r-tracking needs is CONDITIONAL RICHNESS (push direction varies with contact
+> geometry per episode), NOT a kinematically pathological reach (reach-around-
+> and-side-push), which crushes SR to 0 WITHOUT adding conditional signal — the
+> wrong kind of hard. See wp3a_push_provenance.md 2026-10-05 entries.
+
 ## Run
 
 10 episodes, EEF rung-1 language (A-spec v2), teacher gemma-4-31B on 148,
