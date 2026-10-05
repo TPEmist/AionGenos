@@ -18,6 +18,8 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.markers import VisualizationMarkersCfg
 from isaaclab.sim.spawners.from_files.from_files_cfg import UsdFileCfg
 from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg
+
+from .cube_relative_goal import CubeRelativePoseCommandCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 
@@ -118,10 +120,22 @@ _PIN4_X = (0.40 - _PIN4_INSHIFT, 0.60 - _PIN4_INSHIFT)   # (0.34, 0.54)
 #    (max angle ~40°, dist 8–13cm), per-episode direction+distance variation
 #    (the conditional signal r wants), all left-reachable, cube+approach
 #    hand-clear. Re-gated by fwd_gate before any gen-0 collect.
-_CUBE_START_X = 0.38        # hand keep-out floor (settle map: x≥0.38 STAYS for all y)
-_CUBE_START_Y = 0.10        # left; goal y spans around this (not a sideways sweep)
-_LEFT_GOAL_X = (0.44, 0.50)  # AHEAD of the cube → forward-dominant push
-_LEFT_GOAL_Y = (0.05, 0.15)  # spans AROUND cube y (0.10) → mild per-ep direction variation
+#
+# Pin-4b (2026-10-05, PI ruling): the cube spawns in a REGION, not a point — a
+# single cube pose leaves only the goal's 2D as situation space, too thin for r.
+# The goal is sampled RELATIVE to the cube (CubeRelativePoseCommand), so every
+# push stays forward-dominant while direction + distance vary per episode.
+# Bounds from MEASURED data: hand_map (x≥0.38 stays for all y) and the fine
+# left reach sweep logs/reach_table_left_fine.log (y≥0.07 reachable to x=0.50;
+# y=0.05 only to x=0.46). Goal clip keeps the push END (≈goal−3cm) reachable.
+_CUBE_REGION_X = (0.38, 0.42)    # hand keep-out floor 0.38
+_CUBE_REGION_Y = (0.05, 0.15)
+_CUBE_START_X = sum(_CUBE_REGION_X) / 2   # region centre = init_state; reset event samples ± half-width
+_CUBE_START_Y = sum(_CUBE_REGION_Y) / 2
+_GOAL_OFFSET_X = (0.07, 0.10)    # goal − cube: AHEAD; min 7cm > 5cm success radius (no pre-solved ep)
+_GOAL_OFFSET_Y = (-0.04, 0.04)   # ≤30° off forward
+_GOAL_CLIP_X = (0.44, 0.50)      # left-reachable box for the goal
+_GOAL_CLIP_Y = (0.07, 0.19)
 _PIN4_Y = (-0.15, 0.15)
 
 # Pin-7a (2026-08-25): standby pose TUNED BY THE PI in the free-drive tuner,
@@ -231,12 +245,19 @@ class WP1PushS3aEnvCfg(WP1ContactTestbedEnvCfg):
         # the Pin-7a standby event). ZERO jitter (empty pose/velocity ranges →
         # every axis defaults to (0,0)) = deterministic restart at exactly
         # init_state (_CUBE_START_X, 0, _CUBE_SPAWN_Z), zero velocity — the
-        # freeze clause (r-tracking needs a constant body).
+        # freeze clause (r-tracking needs a constant body). Pin-4b (10-05)
+        # superseded the zero x/y jitter with a seeded REGION (below).
         self.events.reset_object = EventTerm(
             func=mdp.reset_root_state_uniform,
             mode="reset",
             params={
-                "pose_range": {},        # empty → exact init_state position/rotation
+                # Pin-4b: x/y uniform over _CUBE_REGION_* (world offset from the
+                # region-centre init_state; base has identity yaw, so world xy
+                # offsets = base xy offsets). Seeded per episode → paired.
+                "pose_range": {
+                    "x": (_CUBE_REGION_X[0] - _CUBE_START_X, _CUBE_REGION_X[1] - _CUBE_START_X),
+                    "y": (_CUBE_REGION_Y[0] - _CUBE_START_Y, _CUBE_REGION_Y[1] - _CUBE_START_Y),
+                },
                 "velocity_range": {},    # empty → zero velocity (cube at rest)
                 "asset_cfg": SceneEntityCfg("object"),
             },
@@ -264,13 +285,19 @@ class WP1PushS3aEnvCfg(WP1ContactTestbedEnvCfg):
         # Pin 4 (on-table, planar, position-only). The push_toward primitive
         # reads this goal + the cube pose and computes the behind-cube
         # approach; the teacher only picks push-this-cube-to-this-goal.
+        # Pin-4b: swap to the cube-relative term (same fields as the parent
+        # UniformPoseCommandCfg; x/y = cube + offset, clipped to the reachable box).
+        # pos_x/pos_y ranges are overwritten by the cube-relative sample; set to
+        # the clip box so the parent draw is in-range even before the override.
+        self.commands.left_ee_pose = CubeRelativePoseCommandCfg(
+            **{f: getattr(self.commands.left_ee_pose, f)
+               for f in self.commands.left_ee_pose.__dataclass_fields__ if f != "class_type"},
+            offset_x=_GOAL_OFFSET_X, offset_y=_GOAL_OFFSET_Y,
+            clip_x=_GOAL_CLIP_X, clip_y=_GOAL_CLIP_Y,
+        )
         g = self.commands.left_ee_pose
-        # LEFT baseline goal region (2026-10-05): inside LEFT reach ∩ table, and
-        # forward-left of the cube so the push is away from the body (no reach-
-        # past-cube pull). NOT the old _PIN4_X/_PIN4_Y (which included LEFT-
-        # unreachable −y and far-x cells → unwinnable episodes).
-        g.ranges.pos_x = _LEFT_GOAL_X   # (0.38, 0.46) — all left-reachable
-        g.ranges.pos_y = _LEFT_GOAL_Y   # (0.10, 0.22) — left side only
+        g.ranges.pos_x = _GOAL_CLIP_X
+        g.ranges.pos_y = _GOAL_CLIP_Y
         g.ranges.pos_z = (_CUBE_REST_Z_B, _CUBE_REST_Z_B)   # BASE-frame contact height (was world → frame bug)
         g.ranges.roll = (0.0, 0.0)
         g.ranges.pitch = (0.0, 0.0)
