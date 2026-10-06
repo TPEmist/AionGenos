@@ -1886,3 +1886,30 @@ execute_push_segment beside the position error.
 - **r-estimator variance** (exploratory 4×4 (c, s) grid, nothing pinned): no
   candidate above its permutation band; bootstrap σ(r) = 0.13–0.15 at n = 50
   (band half-width ≈ 0.27–0.30). Report: `logs/pilot_report_e4aebf36.json`.
+
+## 2026-10-06 — PI rulings after the rung-1 pilot
+
+- **Rung-1 fact (50-ep measured):** a frozen VLM cannot infer grid depth/x-y
+  from a single oblique RGB — 0 contacts, 0 cube displacement, closest
+  fingertip approach 1.6 cm over 50 episodes.
+- **MVC law, 4th instance — recap confabulation (P2 Discussion candidate):**
+  memory-WRITE quality is bounded by the perception floor. At rung-1 the recap
+  cannot perceive the outcome, so it invents one ("the cube was pushed away
+  from the goal" while GT shows the cube never moved). Recall the three prior
+  instances (teacher / buffer / student floors); this is the write-side one.
+  Re-measure the confabulation rate at rung-1b against the contact report.
+- **rung-1b = second-viewpoint (top-down) RGB camera; NO depth** (depth
+  encoding is an untested hypothesis → rung-1c). **Pin-11 (camera extrinsics):**
+  fixed world mount, base-frame position (0.40, 0.06, 1.25) m (~0.8 m above
+  the table top), optical axis straight down (world-convention quat
+  (0.70711, 0, 0.70711, 0); image top = robot +x), pinhole focal 45 mm /
+  aperture 45 mm (≈53° FOV), 256×256 RGB = main camera resolution
+  (`push_s3a_cfg._TOPCAM_*`). Check `wp3a_topcam_check.py` PASS (cube and goal
+  visible at 4 seeds; `logs/topcam_views.png`). Prompt adds one sentence
+  naming the view; no coordinate semantics.
+- **Pin-12 (plateau arming, rung ≥ 1b):** the plateau counter starts only after
+  the first contact (cube moved); before that, rounds count only toward the
+  12-round cap. Rung-1's rule (3 rounds) stays as run — with zero contact it
+  acted as a 3-round cap for all 50 episodes.
+- **[PWR-SIM]:** σ(r) ≈ 0.13–0.15 @ n = 50 noted; NOT filled until the PI pins
+  one (c, s) pair from the 16-candidate exploration, after rung-1b contact data.
