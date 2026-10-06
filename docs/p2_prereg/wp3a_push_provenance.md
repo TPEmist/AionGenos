@@ -1868,3 +1868,21 @@ execute_push_segment beside the position error.
   `pgrep -f run_push_collect.py` matched its OWN bash command line, so it
   waited forever (seen 18:18: empty log, no process). Waiter killed (PID
   verified), driver launched manually 18:19; cost re-measure running first.
+
+## 2026-10-06 — pilot step (c), rung-1, memory ON, 50 ep (run e4aebf36, seeds 5000–5049)
+
+- **Successes 0/50** (all push_plateau, all exactly 3 rounds: the plateau rule
+  ends an episode after 3 rounds of no cube motion). **Pre-registered rule:
+  0 < 5 → rung-1b** (mechanical).
+- **Contact report**: the cube moved in 0/150 rounds, 0/50 episodes; TCP→cube
+  closest approach per episode median 5.0 cm, min 1.6 cm, 0 episodes within
+  1 cm. Static-scene guard clamped 26 targets (all table).
+- **Memory / Q7**: 50/50 recaps written (median 95 words, 0 empty); retrieval
+  injected past recaps in 49/49 episodes after ep0. Lessons are generic and
+  partly CONFABULATED: at rung-1 the recap sees only success/failure + TCP
+  targets, and several lessons assert the cube was "pushed away from the goal"
+  although GT shows it never moved. Q7 = lessons are produced, but at rung-1
+  they are not grounded in what happened.
+- **r-estimator variance** (exploratory 4×4 (c, s) grid, nothing pinned): no
+  candidate above its permutation band; bootstrap σ(r) = 0.13–0.15 at n = 50
+  (band half-width ≈ 0.27–0.30). Report: `logs/pilot_report_e4aebf36.json`.
