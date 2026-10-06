@@ -495,6 +495,18 @@ class IsaacLabEnvInterface:
             out["oracle_block"] = "\n".join(lines) + "\n"
         return out
 
+    def get_rgb_top(self) -> bytes:
+        """Top-down view (rung-1b+ sensor) as PNG bytes; b"" if the env has none."""
+        cam = self.env.unwrapped.scene.sensors.get("camera_top")
+        if cam is None or "rgb" not in cam.data.output:
+            return b""
+        img_np = cam.data.output["rgb"][0].cpu().numpy()
+        if img_np.shape[-1] == 4:
+            img_np = img_np[:, :, :3]
+        buf = io.BytesIO()
+        Image.fromarray(img_np.astype(np.uint8)).save(buf, format="PNG")
+        return buf.getvalue()
+
     def get_left_hand_quat_b(self):
         """Left hand (OSC body) orientation, base frame (root identity rot)."""
         return self.robot.data.body_quat_w[0, self.left_body_idx, :4].clone()

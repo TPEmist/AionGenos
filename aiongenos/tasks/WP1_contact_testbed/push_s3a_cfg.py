@@ -334,3 +334,44 @@ class WP1PushS3aEnvCfg(WP1ContactTestbedEnvCfg):
             _m.visible = False
         # kill BOTH right-arm triads entirely
         self.commands.right_ee_pose.debug_vis = False
+
+
+# ── rung-1b: second-viewpoint (top-down) RGB camera — a SENSOR, not an oracle ──
+# PI ruling 2026-10-06 (wp3a_pilot_plan.md ladder 1 → 1b → 2 → 3): rung-1 showed
+# 0/50 contact from a single oblique RGB; a top-down RGB view gives x/y directly
+# in the VLM's native modality. Depth is NOT added (its encoding is an untested
+# hypothesis — rung-1c). EXTRINSICS = Pin-11 (recorded in wp3a_push_provenance):
+# fixed world mount (not on the robot), straight down over the push region.
+# The prompt gains ONE sentence naming the view; no coordinate semantics.
+_TOPCAM_POS_B = (0.40, 0.06, 1.25)       # base frame (m): over the push region + left hand, ~0.8 m above the table top
+_TOPCAM_ROT_WORLD = (0.70711, 0.0, 0.70711, 0.0)   # (w,x,y,z) "world" convention: +90° about y → optical axis +X → −Z (down); image top = robot forward (+x)
+_TOPCAM_RES = 256                         # = main camera resolution
+_TOPCAM_FOCAL_MM = 45.0
+
+
+@configclass
+class WP1PushS3aTopCamEnvCfg(WP1PushS3aEnvCfg):
+    """WP1PushS3aEnvCfg + a fixed top-down RGB camera (rung-1b and above)."""
+
+    def __post_init__(self):
+        super().__post_init__()
+        from isaaclab.sensors import CameraCfg
+
+        self.scene.camera_top = CameraCfg(
+            prim_path="{ENV_REGEX_NS}/TopCamera",
+            update_period=0.0,
+            height=_TOPCAM_RES,
+            width=_TOPCAM_RES,
+            data_types=["rgb"],
+            spawn=sim_utils.PinholeCameraCfg(
+                # FOV ≈ 2·atan(45/(2·45)) ≈ 53° → ≈0.8 m footprint at the table
+                # (covers base x ≈ 0.0–0.8: hand standby, cube region, goal clip box)
+                focal_length=_TOPCAM_FOCAL_MM, focus_distance=400.0,
+                horizontal_aperture=45.0, clipping_range=(0.1, 1.0e5),
+            ),
+            offset=CameraCfg.OffsetCfg(
+                pos=(_TOPCAM_POS_B[0], _TOPCAM_POS_B[1], _TOPCAM_POS_B[2] + _ROBOT_BASE_Z),
+                rot=_TOPCAM_ROT_WORLD,
+                convention="world",
+            ),
+        )
