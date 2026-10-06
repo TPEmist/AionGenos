@@ -264,3 +264,67 @@ Each push-side deviation from the L0/L2 path:
     robot body link box (nearest-face projection) + ground, all measured live
     from USD; supersedes item 26's table-only scope. Not extended to awkward
     free poses (those are learnable). No stand prim exists in the scene.
+
+### Rung-1b additions (PI ruling 2026-10-06, after rung-1 pilot e4aebf36: 0/50, cube never moved)
+
+26. **Rung ladder is a STRING, cumulative: 1 → 1b → 2 → 3.**
+    `--obs_rung {1,1b,2,3}`. `push_memory` is the single source:
+    `norm_rung` (legacy int 1 from e4aebf36 → "1"), `oracle_level`
+    {1:1, 1b:1, 2:2, 3:3} (which GT numbers may be shown), `has_top_view`
+    (1b/2/3). `_push_state` (the only isaaclab_env_interface.py edit) uses
+    the oracle level for `oracle_block` and adds `view_block`.
+    `run_push_collect.py` builds `Isaac-AionGenos-WP1-Push-TopCam-v0` (push
+    cfg + `scene.camera_top`) for 1b/2/3, else the rung-1 env. The loop
+    refuses a top-view rung if `get_rgb_top()` is empty.
+27. **Stage-1 prompt `view_block`.** prompts.py `_S1_EEF_PUSH`: the ONLY edit
+    is `"{oracle_block}\n"` → `"{oracle_block}{view_block}\n"`. At rung 1
+    `view_block = ""`, so the rendering is byte-identical (test pins the
+    pre-change sha256). At 1b/2/3: "The last image is a top-down view of the
+    current scene." **Deviation from the PI's wording** ("Image 2: top-down
+    view"): with a memory preamble the top view is not image 2 (past-episode
+    images come first), so the sentence names it as the LAST image. Same
+    content, no coordinate semantics.
+28. **Second current image in stage 1.** `run_stage1_eef(...,
+    extra_image_bytes=None)` (push-only function; `run_stage1` byte-identical,
+    checked by an AST source compare against HEAD). Single-turn path:
+    `call_vlm_sync(image_base64=front, image_base64_list=[top])`;
+    `build_chat_request` puts `image_base64` first, so the order is front then
+    top. Conversation path (round 1 with preamble): after `append_user_turn`
+    the top view is inserted right after the current front image, before the
+    prompt text, in the last user message (no client.py change). With no extra
+    image the payload is exactly the pre-1b payload. push_collect passes
+    `[get_rgb_top()]` every round at top-view rungs.
+29. **Preamble at top-view rungs:** "The LAST TWO images below are the
+    CURRENT scene you must act on: front view, then top-down view." Rung 1
+    keeps "The LAST image below…". Past-episode images stay the FRONT start
+    images.
+30. **Retrieval key unchanged across 1 / 1b:** DINOv2 of the FRONT start
+    image + init TCP, so rung-1 and rung-1b keys are comparable. Buffers stay
+    one per rung (the run-script guard refuses other-rung recaps).
+31. **Recap at 1b** (`push_recap_v3_rung1b`): the information rule is the
+    same as rung 1 (oracle level 1: no GT numbers, predicate outcome only,
+    key round = middle). The images add the start/end top-down views. The
+    user prompt now carries an `IMAGES` block naming each image in
+    attachment order. This replaces the fixed "Image 1/2/3" references and
+    also applies at rung 1 (the version bump marks the change; the rung-1
+    pilot ran v2). New dumps: `episode_start_top.png`,
+    `round_NN_pre_top.png`, `episode_end_top.png`; anchors `init_pre_top`,
+    `final_post_top`.
+32. **Pin-12 (plateau arming, PI).** At rung ≥ 1b the PUSH_PLATEAU counter
+    arms only at the first contact round: `contact.first_cube_move` not None,
+    OR cube displacement ≥ PUSH_PLATEAU_MIN_DISP_M (1 cm). Before that,
+    rounds count only toward PUSH_ROUND_CAP (12). Rung 1 keeps the rule it was
+    piloted under (armed from round 1). Recorded: `round_meta[].plateau_armed`,
+    per-episode `plateau_armed_round` (summary + replay metadata), and
+    summary `plateau_rule`. collect.py has no plateau-arming concept; this is
+    push-only.
+33. **Recap confabulation metric** (`scripts/analysis/wp3a_pilot_report.py`,
+    offline). It covers recaps of episodes whose GT contact report saw NO
+    cube motion and reports two rates. *Keyword* = the PI's literal terms
+    (pushed / moved / shifted / drifted / away from the goal / toward)
+    anywhere in the lesson. *Assertive* = a sentence with a term that is
+    neither modal/counterfactual nor negated (heuristic). On e4aebf36: 50/50
+    recaps in never-moved episodes. Keyword rate 1.00, which over-counts:
+    counterfactuals like "to move the cube toward the zone, I should…" match.
+    Assertive rate 0.44 (22/50), a lower bound, since e.g. "pushing it away
+    from the green goal zone … slide further" is missed.

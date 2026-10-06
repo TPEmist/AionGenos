@@ -8,8 +8,12 @@ PROPRIOCEPTION only (stage-1 state = TCP grid + disclosed scaffold block of
 the env's push_obs_rung). GT cube/goal is read here ONLY for the success
 predicate and offline records (round_meta, replay metadata).
 
+Rung 1b/2/3 (PI 2026-10-06) add a fixed top-down image after the front image
+every round (extra_image_bytes), and Pin-12: the plateau counter arms only
+after first contact.
+
 Loop per round:
-  RGB + proprio state → run_stage1_eef (teacher emits a left-TCP target:
+  RGB (+ top view) + proprio state → run_stage1_eef (teacher emits a left-TCP target:
     LEFT_TARGET_POS + optional LEFT_TARGET_ORI — A-spec v2)
   → de-normalize int→base-frame metric (TCP target); orientation =
     push_body.command_quat(q_rest, ORI): the live rest (Pin-7a standby)
@@ -63,7 +67,21 @@ PUSH_PLATEAU_MIN_DISP_M = 0.01
 # budget must exceed the push round budget by this margin.
 PUSH_EP_LEN_MARGIN = 1.5
 GIF_STRIP_PX = 14         # bottom margin strip for the GIF text tag
-ORI_ERR_TAIL_STEPS = 20   # ori_err max over the segment's last N steps (settled error)
+ORI_ERR_TAIL_STEPS = 20
+# Pin-12 (PI 2026-10-06): from rung 1b on, the plateau counter ARMS only after
+# first contact (a round whose contact report saw the cube start moving, or
+# whose cube displacement ≥ PUSH_PLATEAU_MIN_DISP_M). Before that, rounds count
+# only toward PUSH_ROUND_CAP. Rung 1 keeps the rule it was piloted under
+# (armed from round 1).
+PIN12_EXEMPT_RUNGS = frozenset({"1"})
+
+
+def _plateau_arms_after_contact(obs_rung) -> bool:
+    return pm.norm_rung(obs_rung) not in PIN12_EXEMPT_RUNGS
+
+
+def _round_touched(contact: dict, cube_disp_m: float) -> bool:
+    return contact.get("first_cube_move") is not None or cube_disp_m >= PUSH_PLATEAU_MIN_DISP_M   # ori_err max over the segment's last N steps (settled error)
 
 
 def _env_unwrapped(env):
@@ -138,15 +156,18 @@ def run_push_collect_loop(
     _check_episode_budget(env, steps_per_segment)
     # disclosed-scaffold rung lives on the env (it shapes get_state); read it
     # once here so every record states which rung its data came from
-    obs_rung = int(env.push_obs_rung)
-    if memory_retriever is not None and int(memory_retriever.obs_rung) != obs_rung:
+    obs_rung = pm.norm_rung(env.push_obs_rung)
+    top_view = pm.has_top_view(obs_rung)          # rung 1b/2/3: + fixed top-down camera
+    pin12 = _plateau_arms_after_contact(obs_rung)
+    if memory_retriever is not None and pm.norm_rung(memory_retriever.obs_rung) != obs_rung:
         raise RuntimeError(f"push_collect: retriever obs_rung={memory_retriever.obs_rung} "
                            f"!= env push_obs_rung={obs_rung}")
     bounds = level_config.workspace_bounds
     run_id = ReplayBuffer.new_run_id()
     logger.info(f"push_collect run_id={run_id} episodes={num_episodes} label={episode_label} obs_rung={obs_rung}")
     summary = {"run_id": run_id, "label": episode_label, "obs_rung": obs_rung, "episodes": [],
-               "n_success": 0, "memory_on": memory_retriever is not None}
+               "n_success": 0, "memory_on": memory_retriever is not None,
+               "top_view": top_view, "plateau_rule": "pin12_after_contact" if pin12 else "pin11_from_round1"}
     gif_frames = []   # PNG bytes across the run (if gif_frame_every>0)
 
     for ep_idx in range(num_episodes):
@@ -157,6 +178,12 @@ def run_push_collect_loop(
         rgb_start = env.get_rgb()
         ep_dump_dir = pm.episode_dump_dir(dump_images_root, run_id, ep_id)
         pm.dump_png(ep_dump_dir, "episode_start.png", rgb_start)
+        if top_view:
+            rgb_start_top = env.get_rgb_top()
+            if not rgb_start_top:
+                raise RuntimeError(f"push_collect: obs_rung {obs_rung} needs the top-down camera "
+                                   f"but get_rgb_top() is empty — build the TopCam env id")
+            pm.dump_png(ep_dump_dir, "episode_start_top.png", rgb_start_top)
         # Reset-time snapshot (after reset, before any servo): init TCP
         # (proprio: retrieval key, recap) + GT cube/goal (offline records).
         init_snap = pm.snapshot_push_state(env, level_config)
@@ -170,6 +197,8 @@ def run_push_collect_loop(
         round_meta = []
         outcome = EpisodeOutcome.TIMEOUT
         plateau_count = 0
+        # Pin-12: rung-1 armed from round 1 (pilot rule); 1b+ armed at first contact
+        plateau_armed_round: Optional[int] = None if pin12 else 1
         cube0_b = env.get_cube_pose_b()
         last_step_count = _episode_step_count(env)   # auto-reset detector (ledger 15)
         auto_reset = False
@@ -199,6 +228,8 @@ def run_push_collect_loop(
         for round_idx in range(PUSH_ROUND_CAP):
             rgb = env.get_rgb()
             pm.dump_png(ep_dump_dir, f"round_{round_idx + 1:02d}_pre.png", rgb)
+            rgb_top = env.get_rgb_top() if top_view else b""
+            pm.dump_png(ep_dump_dir, f"round_{round_idx + 1:02d}_pre_top.png", rgb_top)
             state = env.get_state(level_config)
             pre_snap = pm.snapshot_push_state(env, level_config, state)
             # inject instruction (get_state doesn't; collect.py does the same
@@ -216,6 +247,8 @@ def run_push_collect_loop(
                 conversation=r1_conv,
                 memory_preamble_text=memory_text if r1_conv is not None else None,
                 memory_preamble_images_b64=memory_imgs if r1_conv is not None else None,
+                # rung 1b+: top-down view right after the front image
+                extra_image_bytes=[rgb_top] if top_view else None,
             )
             if parsed is None:
                 flags.append("vlm_parse_fail")
@@ -303,6 +336,10 @@ def run_push_collect_loop(
                 "vlm_full_response": vlm_interactions[-1].full_response,
                 "vlm_stop": parsed.stop,
             })
+            # Pin-12 arming (before termination so the arming round itself counts)
+            if plateau_armed_round is None and _round_touched(contact, cube_disp):
+                plateau_armed_round = round_idx + 1
+            round_meta[-1]["plateau_armed"] = plateau_armed_round is not None
             if seg["tau_flag_steps"] > 0:
                 logger.warning(f"  ep{ep_idx} round{round_idx+1} τ SATURATED {seg['tau_flag_steps']} steps (pre-clip≥1.0)")
 
@@ -311,7 +348,9 @@ def run_push_collect_loop(
                 outcome = EpisodeOutcome.SUCCESS
                 logger.info(f"  ep{ep_idx} SUCCESS round{round_idx+1} cube_goal={cube_goal_dist*100:.1f}cm")
                 break
-            if cube_disp < PUSH_PLATEAU_MIN_DISP_M:
+            if plateau_armed_round is None:
+                pass   # Pin-12: no contact yet → only PUSH_ROUND_CAP applies
+            elif cube_disp < PUSH_PLATEAU_MIN_DISP_M:
                 plateau_count += 1
                 if plateau_count >= PUSH_PLATEAU_ROUNDS:
                     outcome = EpisodeOutcome.PUSH_PLATEAU
@@ -328,11 +367,15 @@ def run_push_collect_loop(
         rgb_end = env.get_rgb()
         final_snap = pm.snapshot_push_state(env, level_config)
         pm.dump_png(ep_dump_dir, "episode_end.png", rgb_end)
+        if top_view:
+            pm.dump_png(ep_dump_dir, "episode_end_top.png", env.get_rgb_top())
         total_latency = sum(vi.latency_ms for vi in vlm_interactions)
         ep_meta = {
             "label": episode_label,
             "task": pm.PUSH_TASK_TAG,
             "obs_rung": obs_rung,
+            "top_view": top_view,
+            "plateau_armed_round": plateau_armed_round,
             "ee_reference": "tcp",                      # init_left_ee_pose = init TCP
             "init_left_tcp_int": list(init_snap.tcp_int),
             "rest_hand_quat_b": [round(float(v), 5) for v in q_rest],
@@ -357,6 +400,7 @@ def run_push_collect_loop(
         )
         summary["episodes"].append({"ep_id": ep_id, "outcome": outcome.value, "rounds": len(round_meta),
                                     "label": episode_label, "obs_rung": obs_rung, "env_seed": ep_seed,
+                                    "plateau_armed_round": plateau_armed_round,
                                     "init_cube_b": list(init_snap.cube_b), "goal_b": list(init_snap.goal_b),
                                     "init_tcp_b": list(init_snap.tcp_b), "memory_hits": memory_hits,
                                     "round_meta": round_meta})

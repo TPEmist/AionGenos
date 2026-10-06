@@ -463,9 +463,13 @@ class IsaacLabEnvInterface:
         (tx, ty, tz), _ = position_metric_to_int(
             float(tcp_b[0]), float(tcp_b[1]), float(tcp_b[2]),
             bounds.x_bounds, bounds.y_bounds, bounds.z_bounds)
+        # rung string "1"|"1b"|"2"|"3" (legacy int accepted); oracle level
+        # 1/1/2/3 gates GT numbers, the top view (1b/2/3) only adds view_block
+        from aiongenos.orchestrator import push_memory as _pm
+        rung = _pm.oracle_level(self.push_obs_rung)
         out = {"left_x": tx, "left_y": ty, "left_z": tz,
-               "left_gripper": "closed (locked)", "oracle_block": ""}
-        rung = int(self.push_obs_rung)
+               "left_gripper": "closed (locked)", "oracle_block": "",
+               "view_block": _pm.view_block(self.push_obs_rung)}
         if rung >= 2:
             import numpy as _np
             cube_b = _np.array(self.get_cube_pose_b())

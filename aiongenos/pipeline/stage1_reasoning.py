@@ -222,15 +222,20 @@ def run_stage1_eef(
     max_retries: int = 2,
     memory_preamble_text: Optional[str] = None,
     memory_preamble_images_b64: Optional[list[str]] = None,
+    extra_image_bytes: Optional[list[bytes]] = None,
 ) -> tuple[Optional[EEFStage1Response], float, Optional[str]]:
     """Stage 1 for the RUNG-1 general EEF push language (A-spec v2-final,
     teacher-only). Same VLM-call/retry/raw-capture machinery as run_stage1;
     uses the EEF prompt (get_stage1_prompt on PUSH_WAYPOINT → _S1_EEF_PUSH) and
     parses with parse_stage1_eef → EEFStage1Response (POS + optional ORI + GRIP).
-    Separate function — reach/L2 run_stage1 byte-untouched."""
+    Separate function — reach/L2 run_stage1 byte-untouched.
+
+    extra_image_bytes (push rung-1b+): extra current-scene views (the top-down
+    camera), placed right AFTER the current front image in both paths."""
     system_prompt = get_stage1_system_prompt()
     user_prompt = get_stage1_prompt(level_config, state)  # _S1_EEF_PUSH via control_mode
     img_b64 = encode_image_bytes_base64(rgb_bytes)
+    extra_b64 = [encode_image_bytes_base64(b) for b in (extra_image_bytes or []) if b]
 
     if conversation is not None:
         conversation.append_user_turn(
@@ -238,6 +243,13 @@ def run_stage1_eef(
             preamble_text=memory_preamble_text,
             preamble_image_base64_list=memory_preamble_images_b64,
         )
+        if extra_b64:
+            # last user content = [..., current image, user text]: insert the
+            # extra views before the trailing text (no client.py change)
+            content = conversation.messages[-1]["content"]
+            content[len(content) - 1:len(content) - 1] = [
+                {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b}"}}
+                for b in extra_b64]
 
     for attempt in range(max_retries + 1):
         t0 = time.time()
@@ -248,9 +260,11 @@ def run_stage1_eef(
                     temperature=temperature, max_tokens=2048, timeout=300.0,
                 )
             else:
+                # build_chat_request orders image_base64 first, then the list
                 raw_response = call_vlm_sync(
                     url=teacher_url, system_prompt=system_prompt,
                     user_prompt=user_prompt, image_base64=img_b64,
+                    image_base64_list=extra_b64 or None,
                     temperature=temperature, max_tokens=2048, timeout=300.0,
                 )
             latency_ms = (time.time() - t0) * 1000

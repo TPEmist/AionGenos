@@ -41,10 +41,11 @@ parser.add_argument("--memory_state_scale_cm", type=float, default=30.0,
                     help="state_sim = exp(−‖Δ init TCP grid‖ / scale) — L0a default. The TCP "
                          "starts at the fixed standby, so this term is ≈ constant; the image "
                          "term ranks (observables-only key, PI ruling 2026-10-05).")
-parser.add_argument("--obs_rung", type=int, default=1, choices=(1, 2, 3),
-                    help="Disclosed scaffold rung (wp3a_pilot_plan.md): 1 = image + proprio only; "
-                         "2 = + scalar TCP→cube / cube→goal; 3 = + coordinates. Sets "
-                         "env.push_obs_rung; recorded in every replay/summary/recap.")
+parser.add_argument("--obs_rung", type=str, default="1", choices=("1", "1b", "2", "3"),
+                    help="Disclosed scaffold rung (cumulative, wp3a_pilot_plan.md): 1 = front image + "
+                         "proprio; 1b = + fixed top-down camera (TopCam env); 2 = 1b + scalar "
+                         "TCP→cube / cube→goal; 3 = 2 + coordinates. Sets env.push_obs_rung; "
+                         "recorded in every replay/summary/recap.")
 parser.add_argument("--dump_images_root", type=str, default="data/collect_dumps",
                     help="Per-ep round PNGs + meta.json under {root}/{run_id}/{ep_id}/ "
                          "(memory needs round_01_pre.png as the recap image anchor). '' disables.")
@@ -76,6 +77,7 @@ from aiongenos.replay.buffer import ReplayBuffer
 from aiongenos.config import AionGenosConfig, LevelConfig, ControlMode, WorkspaceBounds
 
 GID = "Isaac-AionGenos-WP1-Push-v0"
+GID_TOPCAM = "Isaac-AionGenos-WP1-Push-TopCam-v0"   # push cfg + scene.camera_top (rung 1b/2/3)
 
 
 def _p(m): print(f"[PUSHCOL] {m}", flush=True)
@@ -85,7 +87,10 @@ def main():
     cfg = AionGenosConfig()
     teacher_url = args_cli.teacher_url or cfg.teacher_url
 
-    _cfg = parse_env_cfg(GID, num_envs=1)
+    from aiongenos.orchestrator.push_memory import has_top_view
+    gid = GID_TOPCAM if has_top_view(args_cli.obs_rung) else GID
+    _p(f"env id {gid} (obs_rung={args_cli.obs_rung})")
+    _cfg = parse_env_cfg(gid, num_envs=1)
     # For the GIF (human-eye gate ONLY — not the training observation): KEEP the
     # GREEN GOAL cuboid visible (the PI must see cube-vs-goal) but hide the
     # obstructing CURRENT-pose RGB axis markers that buried the 4.8cm cube.
@@ -100,7 +105,7 @@ def main():
             if hasattr(c, "current_pose_visualizer_cfg"):
                 for m in c.current_pose_visualizer_cfg.markers.values():
                     m.visible = False
-    env = gym.make(GID, cfg=_cfg, render_mode=None)
+    env = gym.make(gid, cfg=_cfg, render_mode=None)
     iface = IsaacLabEnvInterface(env)
     iface.push_obs_rung = args_cli.obs_rung   # shapes get_state's disclosed block
 

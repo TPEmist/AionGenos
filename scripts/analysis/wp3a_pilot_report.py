@@ -8,14 +8,24 @@ Inputs: the push summary JSON (logs/push_smoke_<run>.json), replays
   3. recap samples (Q7): count, word lengths, 3 verbatim lessons (first/mid/last)
   4. r-estimator variance: every exploratory (c, s) candidate from push_r_inputs,
      with r, permutation band, and bootstrap σ(r) (B resamples of episodes).
+  5. recap confabulation (PI 2026-10-06, MVC 4th instance): lessons asserting
+     cube motion in episodes where the GT contact report says the cube NEVER
+     moved (no round with contact.first_cube_move). Two rates:
+       keyword   — any of CONFAB_TERMS anywhere (the PI's literal list; also
+                   catches counterfactuals like "to move it toward the zone");
+       assertive — a SENTENCE with a motion term that is neither modal/
+                   counterfactual ("should", "would", "to move", …) nor negated
+                   ("remained", "not", "failed to", …). Heuristic, read the examples.
 Pure CPU. Usage:
   python3 scripts/analysis/wp3a_pilot_report.py <run_id> --recap_root workspace/recaps_push_pilot_rung1
+  python3 scripts/analysis/wp3a_pilot_report.py <run_id> --confab_only   (prints 5 only, writes nothing)
 """
 from __future__ import annotations
 
 import argparse
 import json
 import random
+import re
 import statistics as st
 import sys
 from collections import Counter
@@ -72,6 +82,51 @@ def recap_samples(root: Path, run_id: str) -> dict:
             "n_empty": sum(w == 0 for w in words), "samples": pick}
 
 
+CONFAB_TERMS = ("pushed", "moved", "shifted", "drifted", "away from the goal", "toward")
+_CONFAB_RE = re.compile(r"\b(" + "|".join(re.escape(t) for t in CONFAB_TERMS) + r")", re.IGNORECASE)
+_MODAL_RE = re.compile(r"\b(should|would|could|might|must|need|needs|ensure|ensuring|if|will|"
+                       r"to (move|push|drive|shift|slide)|in order to|so that)\b", re.IGNORECASE)
+_NEGATED_RE = re.compile(r"\b(not|never|no|without|remained|remain|stationary|failed to|"
+                         r"fail to|did not|didn't|unmoved|motionless)\b", re.IGNORECASE)
+
+
+def episode_cube_moved(ep: dict) -> bool:
+    """GT (offline): did the contact report see the cube start moving in ANY round?"""
+    return any((r.get("contact") or {}).get("first_cube_move") for r in ep.get("round_meta", []))
+
+
+def confab_flags(lesson: str) -> dict:
+    """keyword: any CONFAB_TERM. assertive: some sentence has a term and is
+    neither modal/counterfactual nor negated."""
+    sents = [x.strip() for x in re.split(r"(?<=[.!?])\s+", lesson) if x.strip()]
+    assertive = [x for x in sents
+                 if _CONFAB_RE.search(x) and not _MODAL_RE.search(x) and not _NEGATED_RE.search(x)]
+    return {"keyword": bool(_CONFAB_RE.search(lesson)), "assertive": bool(assertive),
+            "assertive_sentences": assertive}
+
+
+def confabulation_check(eps: list[dict], lessons: dict[str, str], n_examples: int = 3) -> dict:
+    """Rates over recaps of episodes whose cube NEVER moved (GT contact report)."""
+    still = {e["ep_id"] for e in eps if not episode_cube_moved(e)}
+    rows = [(ep_id, t, confab_flags(t)) for ep_id, t in lessons.items() if ep_id in still and t]
+    n = len(rows)
+    kw = [r for r in rows if r[2]["keyword"]]
+    asr = [r for r in rows if r[2]["assertive"]]
+    return {"n_recaps": len(lessons), "n_recaps_cube_never_moved": n,
+            "terms": list(CONFAB_TERMS),
+            "keyword_flagged": len(kw), "keyword_rate": (len(kw) / n) if n else None,
+            "assertive_flagged": len(asr), "assertive_rate": (len(asr) / n) if n else None,
+            "assertive_examples": [{"ep_id": i, "sentences": f["assertive_sentences"]}
+                                   for i, _, f in asr[:n_examples]],
+            "keyword_only_examples": [{"ep_id": i, "lesson": t} for i, t, f in kw
+                                      if not f["assertive"]][:n_examples]}
+
+
+def load_lessons(root: Path, run_id: str) -> dict[str, str]:
+    return {d.get("ep_id"): d.get("text_lesson") or ""
+            for d in (json.loads(p.read_text()) for p in sorted((root / run_id).glob("*.json")))}
+
+
 def bootstrap_sigma(eps, c_fn, s_fn, B: int = 1000, seed: int = 11) -> float | None:
     rng = random.Random(seed)
     rs = []
@@ -89,9 +144,14 @@ def main() -> int:
     ap.add_argument("run_id")
     ap.add_argument("--recap_root", type=Path, default=Path("workspace/recaps_push_pilot_rung1"))
     ap.add_argument("--rung", default="1")
+    ap.add_argument("--confab_only", action="store_true", help="print the confabulation check only")
     args = ap.parse_args()
     summ = json.loads(Path(f"logs/push_smoke_{args.run_id}.json").read_text())
     eps = summ["episodes"]
+    confab = confabulation_check(eps, load_lessons(args.recap_root, args.run_id))
+    if args.confab_only:
+        print(json.dumps(confab, indent=1, ensure_ascii=False))
+        return 0
     n_succ = sum(e["outcome"] == "success" for e in eps)
     rung = int(args.rung) if args.rung.isdigit() else args.rung
     out = {"run_id": args.run_id, "n_episodes": len(eps), "successes": n_succ,
@@ -99,7 +159,8 @@ def main() -> int:
            "rung_decision": (f"successes {n_succ} < {RUNG_THRESHOLD} → rung {NEXT_RUNG[rung]}"
                              if n_succ < RUNG_THRESHOLD else f"successes {n_succ} ≥ {RUNG_THRESHOLD} → (d) at rung {rung}"),
            "contact": contact_summary(eps),
-           "recaps": recap_samples(args.recap_root, args.run_id)}
+           "recaps": recap_samples(args.recap_root, args.run_id),
+           "recap_confabulation": confab}
     r_eps = load_push_r_inputs(Path(f"data/replays/{args.run_id}"), label="pilot")
     cands = r_for_candidates(r_eps)
     sig = {}

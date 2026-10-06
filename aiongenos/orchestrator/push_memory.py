@@ -7,11 +7,15 @@ cube/goal values appear ONLY in offline records (replay metadata, round_meta,
 recap ``metadata["offline_gt"]``) and the success predicate — never in a model
 input (stage-1 prompt, recap prompt, retrieval key, preamble). The disclosed
 scaffold ladder (``obs_rung``, set on the env as ``push_obs_rung``) is the one
-pre-registered exception, applied identically to the recap and the preamble:
-  rung 1: proprioception + images only (outcome shown as success/failure);
-  rung 2: + scalar TCP→cube and cube→goal distances (the P1 L0a condition,
-          prompts.py _S1_POS_HEAD: EE positions + scalar EE→target distance);
-  rung 3: + cube/goal grid coordinates and cube displacement.
+pre-registered exception, applied identically to the recap and the preamble.
+Cumulative ladder 1 → 1b → 2 → 3 (PI ruling 2026-10-06):
+  rung 1 : front image + proprioception (outcome shown as success/failure);
+  rung 1b: + a fixed top-down RGB view (a SENSOR, not a GT number);
+  rung 2 : 1b + scalar TCP→cube and cube→goal distances (the P1 L0a condition,
+           prompts.py _S1_POS_HEAD: EE positions + scalar EE→target distance);
+  rung 3 : 2 + cube/goal grid coordinates and cube displacement.
+"Oracle level" (what GT numbers may be shown) is 1/1/2/3; the top view is
+present at 1b/2/3.
 
 Why a separate module: the shared memory substrate (stage4_recap,
 RecapBuffer, MemoryRetriever) is frozen with the P1 submission (a D11 night
@@ -49,8 +53,11 @@ from aiongenos.vlm.scalar_guard import position_metric_to_int
 logger = logging.getLogger(__name__)
 
 PUSH_TASK_TAG = "WP1_3a_push"
-PUSH_RECAP_PROMPT_VERSION = "push_recap_v2_obs_rung"
-OBS_RUNGS = (1, 2, 3)
+PUSH_RECAP_PROMPT_VERSION = "push_recap_v3_rung1b"
+OBS_RUNGS = ("1", "1b", "2", "3")
+_ORACLE_LEVEL = {"1": 1, "1b": 1, "2": 2, "3": 3}
+_TOP_VIEW_RUNGS = frozenset({"1b", "2", "3"})
+TOP_VIEW_SENTENCE = "The last image is a top-down view of the current scene.\n"
 # Retrieval defaults = the L0a/D10 MemoryRetriever defaults (same formula,
 # same buffer.retrieve). state_scale_cm stays 30: the key is the init TCP grid,
 # which sits at the fixed standby every episode, so Δ≈0 and state_sim≈1 for
@@ -62,11 +69,30 @@ DEFAULT_SUCCESS_FLOOR_FRAC = 2.0 / 3.0
 NEAR_MISS_RADIUS_MULT = 1.5
 
 
-def _check_rung(obs_rung: int) -> int:
-    r = int(obs_rung)
+def norm_rung(obs_rung) -> str:
+    """Canonical rung string. Accepts the legacy int form (rung-1 pilot
+    e4aebf36 stored obs_rung=1) → "1"."""
+    r = str(obs_rung).strip().lower()
     if r not in OBS_RUNGS:
-        raise ValueError(f"obs_rung must be one of {OBS_RUNGS}, got {obs_rung}")
+        raise ValueError(f"obs_rung must be one of {OBS_RUNGS}, got {obs_rung!r}")
     return r
+
+
+_check_rung = norm_rung
+
+
+def oracle_level(obs_rung) -> int:
+    """1 = no GT numbers; 2 = + scalar distances; 3 = + coordinates."""
+    return _ORACLE_LEVEL[norm_rung(obs_rung)]
+
+
+def has_top_view(obs_rung) -> bool:
+    return norm_rung(obs_rung) in _TOP_VIEW_RUNGS
+
+
+def view_block(obs_rung) -> str:
+    """Stage-1 state key: names the extra top-down image (empty at rung 1)."""
+    return TOP_VIEW_SENTENCE if has_top_view(obs_rung) else ""
 
 
 def _r4(xs: Sequence[float]) -> list[float]:
@@ -231,7 +257,7 @@ def predicate_outcome(outcome: str) -> str:
 
 
 def select_push_key_round(outcome_class: str, round_dists_cm: Sequence[float],
-                          obs_rung: int = 1) -> Optional[int]:
+                          obs_rung="1") -> Optional[int]:
     """1-based round whose END scene is the key image (None on success).
     rung 1: middle round (choosing by GT distance would leak GT through the
     image choice). rung ≥ 2: near_miss → closest, wrong_direction → furthest,
@@ -239,9 +265,9 @@ def select_push_key_round(outcome_class: str, round_dists_cm: Sequence[float],
     n = len(round_dists_cm)
     if n == 0 or outcome_class == "success":
         return None
-    if obs_rung >= 2 and outcome_class == "near_miss":
+    if oracle_level(obs_rung) >= 2 and outcome_class == "near_miss":
         return int(np.argmin(round_dists_cm)) + 1
-    if obs_rung >= 2 and outcome_class == "wrong_direction":
+    if oracle_level(obs_rung) >= 2 and outcome_class == "wrong_direction":
         return int(np.argmax(round_dists_cm)) + 1
     return n // 2 + 1 if n > 1 else 1
 
@@ -258,18 +284,19 @@ def key_round_post_png(ep_dump_dir: Optional[Path], key_round: Optional[int], n_
 # ─────────────────────────── rung-gated disclosure ───────────────────────────
 
 
-def disclosed_values(obs_rung: int, init: PushStateSnapshot, round_meta: list[dict]) -> dict[str, Any]:
+def disclosed_values(obs_rung, init: PushStateSnapshot, round_meta: list[dict]) -> dict[str, Any]:
     """The GT-derived values the model MAY see at this rung — the single
     source for both the recap prompt and the stored preamble fields. Empty at
     rung 1."""
     rung = _check_rung(obs_rung)
+    lvl = oracle_level(rung)
     out: dict[str, Any] = {}
-    if rung >= 2:
+    if lvl >= 2:
         out["init_cube_goal_dist_cm"] = round(init.cube_goal_dist_cm, 1)
         out["round_cube_goal_dist_cm"] = [round(rm["cube_goal_dist_m"] * 100, 1) for rm in round_meta]
         out["round_tcp_to_cube_min_cm"] = [
             (rm.get("contact") or {}).get("tcp_to_cube_min_cm") for rm in round_meta]
-    if rung >= 3:
+    if lvl >= 3:
         out["init_cube_int"] = list(init.cube_int)
         out["goal_int"] = list(init.goal_int)
         out["round_cube_disp_cm"] = [round(rm["cube_disp_m"] * 100, 1) for rm in round_meta]
@@ -279,19 +306,22 @@ def disclosed_values(obs_rung: int, init: PushStateSnapshot, round_meta: list[di
 # ─────────────────────────── recap prompt (MODEL INPUT) ───────────────────────────
 
 
-def build_push_recap_system_prompt(max_words: int, obs_rung: int = 1) -> str:
+def build_push_recap_system_prompt(max_words: int, obs_rung="1") -> str:
     rung = _check_rung(obs_rung)
+    lvl = oracle_level(rung)
     seen = ("your own per-round fingertip (TCP) targets and where the TCP actually went"
-            + (", plus the disclosed distances listed below" if rung >= 2 else ""))
+            + (", plus the disclosed distances listed below" if lvl >= 2 else ""))
     where = ("The cube and the green zone positions are ONLY what you see in the images.\n"
-             if rung < 3 else "")
+             if lvl < 3 else "")
+    views = (" Each scene is shown as a front view and, where listed, a fixed top-down view."
+             if has_top_view(rung) else "")
     return (
         "You are a robot reviewing your own past PUSH episode. Your left "
         "end-effector is a rigid pushing tool (gripper held closed, it cannot "
         "grasp); its reference point is the fingertip (TCP). The task was to "
         "push the yellow cube onto the green goal zone. You will see the scene "
         "at the start, at the end, and optionally one key mid-episode scene, "
-        f"together with {seen}.\n"
+        f"together with {seen}.{views}\n"
         f"{where}"
         "\n"
         "Your goal is to write a short lesson that a future-you, facing a similar "
@@ -324,27 +354,29 @@ def _fmt_ori(ori: Optional[Sequence[Any]]) -> str:
 
 def build_push_recap_user_prompt(*, instruction: str, outcome: str, outcome_class: str,
                                  init: PushStateSnapshot, round_meta: list[dict], bounds,
-                                 obs_rung: int, success_cm: float, key_round: Optional[int],
-                                 has_final_image: bool, has_key_image: bool,
+                                 obs_rung, success_cm: float, image_labels: Sequence[str],
                                  max_words: int) -> str:
-    """Rung-gated. rung 1 contains ONLY: task, predicate outcome, round count,
-    per-round TCP target vs TCP reached + ORI (proprioception), images."""
+    """Rung-gated. Oracle level 1 (rungs 1, 1b) contains ONLY: task, predicate
+    outcome, round count, per-round TCP target vs TCP reached + ORI
+    (proprioception), and the images (named in an IMAGES block, in order)."""
     rung = _check_rung(obs_rung)
+    lvl = oracle_level(rung)
     disc = disclosed_values(rung, init, round_meta)
     n = len(round_meta)
     p: list[str] = [f"TASK: {instruction}"]
-    if rung >= 2:
+    if lvl >= 2:
         p.append(f"OUTCOME: {outcome}  (class: {outcome_class})")
         p.append(f"SUCCESS_RULE: cube centre within {success_cm:.1f} cm of the goal centre")
     else:
         p.append(f"OUTCOME: {predicate_outcome(outcome)}")
-    p += [f"ROUND_COUNT: {n}", "",
-          "INITIAL STATE (Image 1; proprioception, base-frame integer grid, same grid as your actions):",
+    p += [f"ROUND_COUNT: {n}", "", "IMAGES (in the order attached):"]
+    p += [f"  Image {i} = {lab}" for i, lab in enumerate(image_labels, start=1)]
+    p += ["", "INITIAL STATE (proprioception, base-frame integer grid, same grid as your actions):",
           f"  LEFT_TCP_POS = {_fmt3(init.tcp_int)}"]
-    if rung >= 3:
+    if lvl >= 3:
         p += [f"  CUBE_POS     = {_fmt2(disc['init_cube_int'])}   (disclosed)",
               f"  GOAL_POS     = {_fmt2(disc['goal_int'])}   (disclosed)"]
-    if rung >= 2:
+    if lvl >= 2:
         p.append(f"  CUBE_TO_GOAL = {disc['init_cube_goal_dist_cm']:.1f} cm   (disclosed)")
     if round_meta:
         p += ["", "PER ROUND — YOUR TCP TARGET vs WHERE THE TCP WENT (grid):"]
@@ -352,17 +384,13 @@ def build_push_recap_user_prompt(*, instruction: str, outcome: str, outcome_clas
             reached = grid_xyz(rm["tcp_final_b"], bounds) if rm.get("tcp_final_b") else None
             line = (f"  R{rm['round']}: target {_fmt3(rm['eef_target_int'])} ORI {_fmt_ori(rm.get('ori_offset_deg'))}"
                     f" → TCP reached {_fmt3(reached) if reached else '?'}")
-            if rung >= 2:
+            if lvl >= 2:
                 tc = disc["round_tcp_to_cube_min_cm"][i]
                 line += (f"; closest TCP→cube {tc:.1f} cm" if tc is not None else "")
                 line += f"; cube→goal after {disc['round_cube_goal_dist_cm'][i]:.1f} cm"
-            if rung >= 3:
+            if lvl >= 3:
                 line += f"; cube moved {disc['round_cube_disp_cm'][i]:.1f} cm"
             p.append(line)
-    if has_final_image:
-        p += ["", "FINAL STATE: Image 2"]
-    if has_key_image and key_round is not None:
-        p += [f"KEY SCENE: Image {3 if has_final_image else 2}, right after round {key_round}"]
     p += ["", f"Now write your ≤{max_words}-word lesson for future-you, ending with 'LESSON: ...'."]
     return "\n".join(p)
 
@@ -371,7 +399,7 @@ def build_push_recap_user_prompt(*, instruction: str, outcome: str, outcome_clas
 
 
 def build_push_recap_record(*, ep_id: str, run_id: str, outcome: str, outcome_class_gt: str,
-                            obs_rung: int, label: str, instruction: str, init: PushStateSnapshot,
+                            obs_rung, label: str, instruction: str, init: PushStateSnapshot,
                             final: Optional[PushStateSnapshot], round_meta: list[dict], bounds,
                             anchors: dict[str, str], text_lesson: str,
                             embedding: Sequence[float], key_round: Optional[int]) -> RecapRecord:
@@ -380,6 +408,7 @@ def build_push_recap_record(*, ep_id: str, run_id: str, outcome: str, outcome_cl
     init_L_EE = the init TCP grid (retrieval state key, L0a design).
     metadata["offline_gt"] = GT, NEVER read by the retriever or preamble."""
     rung = _check_rung(obs_rung)
+    lvl = oracle_level(rung)
     dists_cm = [round(rm["cube_goal_dist_m"] * 100, 2) for rm in round_meta]
     r1 = round_meta[0] if round_meta else {}
     state_anchor: dict[str, Any] = {
@@ -389,7 +418,7 @@ def build_push_recap_record(*, ep_id: str, run_id: str, outcome: str, outcome_cl
         "round_count": len(round_meta),
         "active_arm": "left",
         "obs_rung": rung,
-        "outcome_class": outcome_class_gt if rung >= 2 else predicate_outcome(outcome),
+        "outcome_class": outcome_class_gt if lvl >= 2 else predicate_outcome(outcome),
         "r1_eef_target_int": r1.get("eef_target_int"),
         "r1_ori_offset_deg": r1.get("ori_offset_deg"),
         "r1_tcp_reached_int": grid_xyz(r1["tcp_final_b"], bounds) if r1.get("tcp_final_b") else None,
@@ -459,7 +488,7 @@ def request_push_recap_text(*, teacher_url: str, system_prompt: str, user_prompt
 
 
 def emit_push_recap(*, recap_buffer: RecapBuffer, ep_id: str, run_id: str, outcome: str,
-                    obs_rung: int, label: str, instruction: str, init: PushStateSnapshot,
+                    obs_rung, label: str, instruction: str, init: PushStateSnapshot,
                     final: Optional[PushStateSnapshot], round_meta: list[dict], bounds,
                     ep_dump_dir: Optional[Path], rgb_start: Optional[bytes],
                     rgb_end: Optional[bytes], teacher_url: str, success_cm: float,
@@ -478,25 +507,35 @@ def emit_push_recap(*, recap_buffer: RecapBuffer, ep_id: str, run_id: str, outco
 
     anchors: dict[str, str] = {}
     if ep_dump_dir is not None:
-        for name, fn in (("init_pre", "round_01_pre.png"), ("final_post", "episode_end.png")):
+        names = [("init_pre", "round_01_pre.png"), ("final_post", "episode_end.png")]
+        if has_top_view(rung):   # rung-1b+: top views are images, not GT numbers
+            names += [("init_pre_top", "round_01_pre_top.png"), ("final_post_top", "episode_end_top.png")]
+        for name, fn in names:
             if (Path(ep_dump_dir) / fn).exists():
                 anchors[name] = str((Path(ep_dump_dir) / fn).resolve())
         kp = key_round_post_png(ep_dump_dir, key_round, len(round_meta))
         if kp is not None:
             anchors["key_round_post"] = str(kp.resolve())
-    init_png = Path(anchors["init_pre"]).read_bytes() if "init_pre" in anchors else rgb_start
-    final_png = Path(anchors["final_post"]).read_bytes() if "final_post" in anchors else rgb_end
-    key_png = Path(anchors["key_round_post"]).read_bytes() if "key_round_post" in anchors else None
+
+    def _img(name: str, fallback: Optional[bytes] = None) -> Optional[bytes]:
+        return Path(anchors[name]).read_bytes() if name in anchors else fallback
+
+    init_png = _img("init_pre", rgb_start)
     if not init_png:
         logger.warning(f"  push recap({ep_id}): no init image, skip")
         return None
-
-    images = [init_png] + ([final_png] if final_png else []) + ([key_png] if key_png else [])
+    # (label, bytes) in attachment order; the prompt names each image
+    shots = [("start, front view", init_png),
+             ("start, top-down view", _img("init_pre_top")),
+             ("end, front view", _img("final_post", rgb_end)),
+             ("end, top-down view", _img("final_post_top")),
+             (f"right after round {key_round}, front view", _img("key_round_post"))]
+    shots = [(lab, b) for lab, b in shots if b]
+    images = [b for _, b in shots]
     user_prompt = build_push_recap_user_prompt(
         instruction=instruction, outcome=outcome, outcome_class=oc_gt, init=init,
         round_meta=round_meta, bounds=bounds, obs_rung=rung, success_cm=success_cm,
-        key_round=key_round, has_final_image=bool(final_png), has_key_image=bool(key_png),
-        max_words=max_words)
+        image_labels=[lab for lab, _ in shots], max_words=max_words)
     lesson = request_push_recap_text(
         teacher_url=teacher_url, system_prompt=build_push_recap_system_prompt(max_words, rung),
         user_prompt=user_prompt, images_png=images, max_words=max_words, vlm_call=vlm_call)
@@ -530,10 +569,11 @@ _PUSH_PREAMBLE_HEADER = (
 
 
 def format_push_preamble_text(records: Sequence[RecapRecord], scores: Sequence[float],
-                              obs_rung: int = 1) -> str:
+                              obs_rung="1") -> str:
     """Rung-gated: a record's ``disclosed`` values are printed only up to the
     CURRENT run's rung (a rung-3 record never leaks coordinates into rung 1)."""
     rung = _check_rung(obs_rung)
+    lvl = oracle_level(rung)
     if not records:
         return ""
     parts: list[str] = [_PUSH_PREAMBLE_HEADER]
@@ -548,22 +588,25 @@ def format_push_preamble_text(records: Sequence[RecapRecord], scores: Sequence[f
             reached = sa.get("r1_tcp_reached_int")
             parts.append(f"  round-1 target = {_fmt3(sa['r1_eef_target_int'])} ORI {_fmt_ori(sa.get('r1_ori_offset_deg'))}"
                          + (f" → TCP reached {_fmt3(reached)}" if reached else ""))
-        if rung >= 3 and disc.get("init_cube_int") and disc.get("goal_int"):
+        if lvl >= 3 and disc.get("init_cube_int") and disc.get("goal_int"):
             parts.append(f"  cube start = {_fmt2(disc['init_cube_int'])}   goal = {_fmt2(disc['goal_int'])}   (disclosed)")
-        if rung >= 2 and disc.get("init_cube_goal_dist_cm") is not None:
+        if lvl >= 2 and disc.get("init_cube_goal_dist_cm") is not None:
             rd = disc.get("round_cube_goal_dist_cm") or []
             parts.append(f"  cube→goal  = {disc['init_cube_goal_dist_cm']:.1f} cm at start"
                          + (f", {rd[-1]:.1f} cm at end" if rd else "") + "   (disclosed)")
-        if rung >= 2:
+        if lvl >= 2:
             parts.append(f"  outcome    = {rec.outcome}  (class: {sa.get('outcome_class', rec.outcome)})")
         else:
             parts.append(f"  outcome    = {predicate_outcome(rec.outcome)}")
         if sa.get("round_count") is not None:
             parts.append(f"  rounds     = {sa['round_count']}")
         parts.append(f"  lesson     : {rec.text_lesson.strip()}")
+    current = ("The LAST TWO images below are the CURRENT scene you must act on: front "
+               "view, then top-down view." if has_top_view(rung) else
+               "The LAST image below is the CURRENT scene you must act on.")
     parts += ["", "─── END OF PAST EPISODES ───", "",
-              "The LAST image below is the CURRENT scene you must act on. Use the past "
-              "lessons above to choose your target for this current scene."]
+              f"{current} Use the past lessons above to choose your target for this "
+              "current scene."]
     return "\n".join(parts)
 
 
@@ -576,7 +619,7 @@ class PushMemoryRetriever:
                  image_weight: float = DEFAULT_IMAGE_WEIGHT,
                  state_scale_cm: float = DEFAULT_STATE_SCALE_CM,
                  success_floor_frac: float = DEFAULT_SUCCESS_FLOOR_FRAC,
-                 obs_rung: int = 1,
+                 obs_rung="1",
                  embed_fn: Callable[[bytes], np.ndarray] = _default_embed) -> None:
         self.buffer = buffer
         self.top_k = top_k
@@ -621,7 +664,14 @@ class PushMemoryRetriever:
         )
 
 
-def assert_push_only_buffer(buffer: RecapBuffer, obs_rung: int) -> None:
+def _rung_or_none(v) -> Optional[str]:
+    try:
+        return norm_rung(v)
+    except ValueError:
+        return None
+
+
+def assert_push_only_buffer(buffer: RecapBuffer, obs_rung) -> None:
     """Retrieval has no task filter in the shared buffer: refuse a root that
     holds non-push (reach/L2) recaps or push recaps from another obs_rung (their
     lessons were written under a different disclosure level)."""
@@ -630,7 +680,7 @@ def assert_push_only_buffer(buffer: RecapBuffer, obs_rung: int) -> None:
     if foreign:
         raise ValueError(f"recap root {buffer.root} holds {len(foreign)} non-push recaps "
                          f"(e.g. {foreign[:3]}); use a push-only root")
-    other = [r.ep_id for r in buffer.all() if (r.metadata or {}).get("obs_rung") != rung]
+    other = [r.ep_id for r in buffer.all() if _rung_or_none((r.metadata or {}).get("obs_rung")) != rung]
     if other:
         raise ValueError(f"recap root {buffer.root} holds {len(other)} recaps from another "
                          f"obs_rung (e.g. {other[:3]}); use one root per rung")

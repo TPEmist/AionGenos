@@ -140,6 +140,8 @@ _S1_PUSH: Final[str] = (
 # _S1_POS_HEAD above gives EE positions + scalar distances and no object
 # coordinates. {oracle_block} is EMPTY at rung-1; rung-2/3 fill it with a
 # disclosed, pre-registered scaffold (isaaclab_env_interface._push_state).
+# {view_block} is EMPTY at rung-1; rungs with the top-down camera (1b/2/3)
+# name the extra image (rung-1 rendering stays byte-identical).
 # No strategy wording: task, affordance contract, action format and the
 # physical semantics of ORI only. NOT in any student variant map.
 _S1_EEF_PUSH: Final[str] = (
@@ -148,7 +150,7 @@ _S1_EEF_PUSH: Final[str] = (
     "  LEFT_EE_POS  = (X={left_x}, Y={left_y}, Z={left_z})   # left fingertip (TCP)\n"
     "  RIGHT_EE_POS = (X={right_x}, Y={right_y}, Z={right_z})\n"
     "  LEFT_GRIPPER = {left_gripper}\n"
-    "{oracle_block}\n"
+    "{oracle_block}{view_block}\n"
     "The yellow cube and the green zone (flat green disc on the table) are seen in\n"
     "the image; their positions are not given as numbers.\n"
     "AFFORDANCE CONTRACT: the cube must end up on the green zone, moved BY PUSHING.\n"

@@ -47,7 +47,7 @@ class PushRInputs:
     env_seed: Optional[int]
     outcome: str
     label: Optional[str]
-    obs_rung: Optional[int]             # disclosed-scaffold rung the data came from
+    obs_rung: Optional[str]             # disclosed-scaffold rung ("1"|"1b"|"2"|"3"; legacy int 1)
     init_ee_xy: tuple[float, float]     # init TCP
     cube_xy: tuple[float, float]
     goal_xy: tuple[float, float]
@@ -100,7 +100,7 @@ def load_push_r_inputs(run_dir: Path, label: Optional[str] = "pilot",
         ri = r_inputs_from_replay(ep)
         if ri is None or (label is not None and ri.label != label):
             continue
-        if obs_rung is not None and ri.obs_rung != obs_rung:
+        if obs_rung is not None and str(ri.obs_rung) != str(obs_rung):   # "1"/1 legacy-equal
             continue
         out.append(ri)
     return out
@@ -136,12 +136,12 @@ def main() -> int:
     ap.add_argument("run_dir", type=Path)
     ap.add_argument("--label", default="pilot", help="'' = all labels")
     ap.add_argument("--n_perm", type=int, default=2000)
-    ap.add_argument("--obs_rung", type=int, default=None, help="keep only this rung")
+    ap.add_argument("--obs_rung", type=str, default=None, help="keep only this rung (1|1b|2|3)")
     ap.add_argument("--dump", action="store_true", help="print raw per-episode components")
     a = ap.parse_args()
     eps = load_push_r_inputs(a.run_dir, a.label or None, a.obs_rung)
     print(f"[push_r_inputs] {len(eps)} episodes with push init fields in {a.run_dir}")
-    rungs = sorted({e.obs_rung for e in eps}, key=str)
+    rungs = sorted({str(e.obs_rung) for e in eps})
     if len(rungs) > 1:
         print(f"[push_r_inputs] mixed obs_rung {rungs} — pass --obs_rung (r is per-rung)")
         return 1
