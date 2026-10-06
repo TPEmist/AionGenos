@@ -92,63 +92,85 @@ completed ledger is the equivalence proof cited in P2 methods.
 
 Implements rows 6 (recap) and 9 (memory) for the memory-ON pilot
 (`wp3a_pilot_plan.md` (c)). Code: `aiongenos/orchestrator/push_memory.py`
-(new), `push_collect.py`, `scripts/run_push_collect.py`; tests
-`tests/test_push_memory.py` (fake env / fake teacher, no sim). The frozen
-shared modules (collect.py, recap_buffer.py, retriever.py, stage4_recap.py,
-vlm/client.py, stage1_reasoning.py, prompts.py, collect_common.py) are
-**byte-untouched**; push imports their pieces. Rows 6/9 stay ☐ until a sim
-run confirms them. Each push-side deviation from the L0/L2 path:
+(new), `push_collect.py`, `scripts/run_push_collect.py`,
+`scripts/analysis/push_r_inputs.py` (new); tests `tests/test_push_memory.py`
+(fake env / fake teacher, no sim). The frozen shared modules (collect.py,
+recap_buffer.py, retriever.py, stage4_recap.py, vlm/client.py,
+stage1_reasoning.py, collect_common.py) are **byte-untouched**; push imports
+their pieces. Rows 6/9 stay ☐ until a sim run confirms them.
 
-6. **Recap prompt is push-worded** (`build_push_recap_*`), replacing
-   stage4_recap's reach prompt. SAME: `call_vlm_sync`, T=0.4, 400 tok, 180 s;
-   ≤100-word hard cap via the shared `_trim_to_word_limit`; DINOv2 embedding
-   of `init_pre` as the retrieval key; `RecapRecord` + `RecapBuffer.add`.
-   DIFFERENT: (a) per-round cube displacement and cube→goal (cm), and the
-   round-1 EEF target vs what the cube did; (b) cube/goal **integer grid
-   coordinates are shown** — the reach invariant "GT coords never given to
-   the recap" is relaxed because push stage-1 already oracle-reveals
-   CUBE_POS/GOAL_POS every round (no new information); (c) the lesson must
-   end in a `LESSON:` sentence; (d) key image = the scene AFTER the key round
-   (`round_{k+1}_pre.png`, anchor `key_round_post`); none when the key round
-   is the last (episode_end already shown). Reach used `round_k_pre`.
+**Revision note:** a first draft of this section (same day, never run)
+keyed retrieval and the recap/preamble on GT cube/goal. The PI ruling of
+2026-10-05 (*the model observes IMAGE + PROPRIOCEPTION only; object positions
+are perception, never oracle-fed; GT only in offline analysis and the success
+predicate*) superseded it before any memory-ON episode ran (the draft is in commit
+8c2a337; the only run on that code, eye-gate 098975dd, had memory OFF —
+summary `memory_on: false` — and used the pre-ruling oracle stage-1
+state). This section is the revised design.
+
+Each push-side deviation from the L0/L2 path:
+
+6. **Recap prompt is push-worded and rung-gated** (`build_push_recap_*`),
+   replacing stage4_recap's reach prompt. SAME: `call_vlm_sync`, T=0.4,
+   400 tok, 180 s; ≤100-word hard cap via the shared `_trim_to_word_limit`;
+   DINOv2 embedding of `init_pre` as the image key; `RecapRecord` +
+   `RecapBuffer.add`. Model-visible content by `obs_rung` (one source,
+   `disclosed_values`): **rung 1** = task, predicate outcome
+   (`success`/`failure` only), round count, per-round TCP target vs TCP
+   reached (grid) + ORI, images; **rung 2** + the outcome string/class, the
+   success rule, scalar cube→goal (start and per round) and per-round closest
+   TCP→cube; **rung 3** + cube/goal grid coordinates and cube displacement.
+   The reach invariant "GT coordinates never given to the recap" HOLDS at
+   rungs 1–2. The lesson rules carry no strategy hints (the reflection
+   names an adjustment *in its own words*); format rules + the `LESSON:`
+   ending stay. Key image = the scene AFTER the key round
+   (`round_{k+1}_pre.png`, anchor `key_round_post`), none when the key round
+   is the last; at rung 1 the key round is the MIDDLE round (choosing it by
+   GT distance would leak GT through the image choice). Reach: `round_k_pre`.
 7. **Memory injection — Option A.** Round 1 ONLY gets a fresh single-turn
    `EpisodeConversation(get_stage1_system_prompt())` + preamble via
    `run_stage1_eef(conversation=…, memory_preamble_*=…)`; rounds 2+ keep
    `conversation=None` (stateless, as in the no-memory smoke). collect.py
-   instead keeps ONE conversation for the whole episode (history carries the
-   preamble forward). When no preamble is retrieved, round 1 is also
-   stateless — payload layout is identical either way (system text folded
-   into the first user turn, image, prompt; same T/max_tokens).
-8. **Outcome class on cube→goal (cm)** (`classify_push_outcome`), not EE
+   keeps ONE conversation for the whole episode. With no preamble round 1 is
+   also stateless — payload layout is identical either way (system text
+   folded into the first user turn, image, prompt; same T/max_tokens).
+8. **Outcome class on GT cube→goal (cm)** (`classify_push_outcome`), not EE
    distance: success → `cube_not_moved` (every round disp < 1 cm, the Pin-11
-   plateau threshold) → `near_miss` (best < 1.5×5 cm AND best < init−1 cm)
-   → `wrong_direction` (final > init+1 cm) → raw outcome. Reach's fixed
-   10 cm near-miss is meaningless here (init cube→goal is 7–10 cm).
-9. **state_anchor schema.** `init_L_EE` = the REAL init EE grid (honest;
-   near-constant because the EE starts at standby) — the reach path left it
-   (0,0,0) for push (empty trajectory). `final_L_dist_cm` (reach: EE→target)
-   is NOT written; push writes `init/final/best_cube_goal_dist_cm`,
-   `push_situation`, `init_cube_int`, `goal_int`, `r1_eef_target_int`,
-   `r1_eef_disp_m`, `r1_cube_disp_cm`. `left/right_reached` = None.
-10. **Retrieval — `PushMemoryRetriever`** (shared `RecapBuffer.retrieve` /
-    `MemoryRetriever` not used for ranking). SAME formula shape: score =
-    α·img_cos + (1−α)·exp(−‖Δ‖_cm/scale), α = 0.4, same ceil(2/3·k)
-    success floor, same image-dim-mismatch fallback, same drop of hits whose
-    `init_pre` image is missing, top_k = 3, within-run retrieval allowed.
-    DIFFERENT: (a) Δ is on `push_situation` = (cube_x, cube_y, goal_x,
-    goal_y) base frame, not `init_L_EE`; (b) **scale = 5 cm** (reach 30 cm):
-    the Pin-4b situation space has median pairwise ‖Δ‖ ≈ 5.4 cm (p10 2.5,
-    p90 9.9; MC over push_s3a_cfg ranges) — at 30 cm the state term spans only
-    0.92→0.72 (flat, the D10 image-collapse failure mode), at 5 cm 0.61→0.14;
-    5 cm also equals the Pin-11 success radius; (c) records without
-    `push_situation` are skipped and the run script REFUSES a root holding
-    any (no task filter in the shared buffer → never share with reach);
-    (d) no success_only / mode-flag / per-arm-label options (unused in the
-    pilot); (e) stable argsort (tie order may differ from the original).
-11. **Preamble text is push-worded** (`format_push_preamble_text`): cube
-    start / goal grid, start cube→goal, round-1 EEF target and cube motion,
-    final/best cube→goal, outcome class, lesson; closes with "choose your
-    push target" (reach: "predicting the current target", L_EE bounds). The
+   plateau threshold) → `near_miss` (best < 1.5×5 cm AND best < init−1 cm) →
+   `wrong_direction` (final > init+1 cm) → raw outcome. It is an **OFFLINE**
+   label (`metadata.offline_gt.outcome_class`); the model sees it only at
+   rung ≥ 2. Reach's fixed 10 cm near-miss is meaningless here (init
+   cube→goal is 7–10 cm).
+9. **Recap record schema.** `state_anchor` = model-visible fields only (it
+   feeds the preamble): `init_L_EE` = init **TCP** grid (the retrieval state
+   key), `final_L_EE`, `ee_reference: "tcp"`, round count, `obs_rung`,
+   `outcome_class` (predicate verdict at rung 1), round-1 target / ORI / TCP
+   reached, `disclosed` (rung-allowed values). `final_L_dist_cm` (reach:
+   EE→target) is not written. GT lives in `metadata["offline_gt"]`
+   (cube/goal, situation, per-round cube→goal/displacement, best/final,
+   class, round-1 contact report) and is never read by retrieval or the
+   preamble. `left/right_reached` = None.
+10. **Retrieval = the SHARED `RecapBuffer.retrieve`** (the L0a combined
+    score α·DINOv2 cos + (1−α)·exp(−‖Δ init_L_EE‖/scale), success floor
+    ceil(2/3·k), image-dim fallback), α = 0.4, **scale = 30 (L0a default)**,
+    top_k = 3, within-run retrieval allowed. Key = observables only: start
+    image + init TCP grid. **Stated plainly:** the TCP starts at the fixed
+    Pin-7a standby every episode, so Δ init_L_EE ≈ 0 and state_sim ≈ 1 for
+    every candidate at ANY scale — the state term is a constant offset and
+    the IMAGE term decides the ranking. That is the L0a design (L0a's EE
+    also starts at a fixed pose). `PushMemoryRetriever` only wraps it: drops
+    non-push hits (defensive), drops hits whose `init_pre` image is missing
+    (as MemoryRetriever), formats the push preamble. The run script REFUSES
+    a recap root holding non-push recaps or recaps of another `obs_rung`
+    (no task filter in the shared buffer; lessons written under another
+    disclosure level would leak it). No success_only / mode-flag / per-arm
+    options (unused in the pilot).
+11. **Preamble text is push-worded and rung-gated**
+    (`format_push_preamble_text`): start TCP, round-1 target + ORI → TCP
+    reached, outcome (predicate verdict at rung 1), rounds, lesson; rung 2
+    adds disclosed cube→goal start/end + outcome class, rung 3 adds disclosed
+    cube/goal grid. Gating uses the CURRENT run's rung. Closes with "choose
+    your target" (reach: "predicting the current target", L_EE bounds). The
     printed `similarity` is the combined score (reach prints it as "visual
     similarity", also combined).
 12. **Per-episode dumps** under `--dump_images_root` (default
@@ -156,41 +178,79 @@ run confirms them. Each push-side deviation from the L0/L2 path:
     layout `{root}/{run_id}/{ep_id}/`: `episode_start.png`,
     `round_NN_pre.png`, `episode_end.png`, `meta.json`. No
     `round_NN_post.png`: post of round k == pre of round k+1 (no sim step in
-    between), so it is not duplicated.
+    between).
 13. **Replay init_* + metadata** (resolves Gotcha 2): `init_cube_pose`
-    {"yellow": xyz}, `init_left_ee_pose`, `env_seed` are populated (captured
-    after reset, before any servo); `init_right_ee_pose` stays None.
-    `metadata` carries label, task, goal_pose_b, init_cube_pose_b,
-    push_situation, workspace_bounds, rounds_state (per-round pre-action
-    ee/cube/goal + EEF target), memory_on/memory_hits, dump_dir. Written via
+    {"yellow": xyz}, `init_left_ee_pose` (= init **TCP**, `metadata.
+    ee_reference = "tcp"`), `env_seed` populated after reset, before any
+    servo; `init_right_ee_pose` stays None. `metadata`: label, task,
+    obs_rung, init TCP grid, rest hand quat, GT (init_cube_pose_b,
+    goal_pose_b, offline_gt_situation, final_cube_pose_b), workspace_bounds,
+    rounds_state, memory_on/memory_hits, dump_dir. Written via
     `push_memory.write_push_episode`, a proxy around the SHARED
     `_write_episode` (signature/body unchanged). (c, s) for `p2_r_tracker`
-    are computable from the replay alone: `scripts/analysis/push_r_inputs.py`
-    (raw components + exploratory candidate grid; the scalar projection is a
-    PI-pinned TODO).
-14. **round_meta additions** (summary JSON): `ee/cube/goal_b_pre`,
-    `ee/cube/goal_int_pre`, `cube_goal_dist_m_pre`, `memory_preamble`;
-    episode entries add label, env_seed, init_cube_b, goal_b, init_ee_b,
-    memory_hits. Existing keys unchanged.
-15. **Env time-limit guard + auto-reset detection** (push-only; collect.py
-    has neither). (a) Hard check at loop start: `env.env.unwrapped.
-    max_episode_length` must exceed PUSH_ROUND_CAP × steps_per_segment × 1.5,
-    else RuntimeError — the inherited env (24 s = 720 steps) auto-reset
-    inside env.step at round 8 in the smoke (visible in run 3ca3b769 as a
-    round-8 cube "jump" of 9–14 cm). (b) If `episode_length_buf[0]` drops
-    across a segment the episode is flagged `env_auto_reset` and ended; the
-    contaminated round is NOT recorded, outcome stays as-is, no recap is
-    written (its end scene is a fresh reset), `final_cube_pose_b` = None.
-16. **Pilot label everywhere:** replay `flags` (existing `label:pilot`) +
+    are computable from the replay alone (`push_r_inputs.py`: c_raw = round-1
+    TCP target − init TCP; s from offline GT; exploratory candidate grid; the
+    scalar projection is a PI-pinned TODO; r is per-rung, mixed rungs
+    refused).
+14. **round_meta additions** (summary JSON, offline): `ee_start_b/int`
+    (TCP), GT `cube_b_pre`/`goal_b_pre`/`cube_goal_dist_m_pre`,
+    `memory_preamble`; episode entries add label, obs_rung, env_seed,
+    init_cube_b, goal_b, init_tcp_b, memory_hits.
+15. **Env time-limit guard + auto-reset detection** (push-only). (a) Hard
+    check at loop start: `env.env.unwrapped.max_episode_length` must exceed
+    PUSH_ROUND_CAP × steps_per_segment × 1.5, else RuntimeError — the
+    inherited env (24 s = 720 steps) auto-reset inside env.step at round 8
+    in the smoke (run 3ca3b769: a round-8 cube "jump" of 9–14 cm). (b) If
+    `episode_length_buf[0]` drops across a segment the episode is flagged
+    `env_auto_reset` and ended; that round is NOT recorded, outcome stays
+    as-is, no recap is written, `final_cube_pose_b` = None.
+16. **Pilot label everywhere:** replay `flags` (`label:pilot`) +
     `metadata.label`; summary top-level + per-episode `label`; recap
     `metadata.label` (+ `task`, `recap_prompt_version`).
 17. **run_push_collect.py logging:** stdout handler on `aiongenos.*` (same
-    fix as run_collect.py) so loop/memory INFO lines are visible. Output-only.
-18. **Push state deltas (2026-10-05):** `get_state` PUSH_WAYPOINT branch now
-    reports EE_TO_CUBE / CUBE_TO_GOAL as differences of grid positions (was a
-    metric delta through the offset position map — x biased by −33). Branch
-    is PUSH_WAYPOINT-only; the L0/L2 state path is byte-identical.
-19. **Push output-line unit label:** `_S1_EEF_PUSH` "integer cm" → "same grid
-    as CURRENT STATE — not cm". Push template only.
-20. **Push episode_length_s = 300** (inherited 24 s auto-reset). L0/L2 keep 24 s
-    (D11 A15 pin 8 sensitivity covers it there).
+    fix as run_collect.py). Output-only.
+18. **Orientation: motion-dependent neutral RETIRED.**
+    `neutral_contact_orientation_b` / `_euler_zyx_to_quat` / `_quat_mul` (and
+    the `prev_x_n` hysteresis, `neutral_x_n` record) are gone from the push
+    path. After each reset `q_rest = env.get_left_hand_quat_b()` (the live
+    Pin-7a standby orientation); each round
+    `q_cmd = push_body.command_quat(q_rest, ORI)` = Rz(Y)·Ry(P)·Rx(R)·R_rest
+    about BASE axes; no ORI → exactly q_rest. Every pose decision is the
+    brain's (the old neutral was a primitive-side opinion).
+19. **Targets are TCP.** `execute_push_segment(target, q_cmd, steps,
+    frame_every, target_is_tcp=True)`; the executor converts TCP → hand with
+    the live-measured offset. round_meta records the TCP target (int +
+    metric), `tcp_target_b`, `hand_target_b`, `tcp_final_b`,
+    `tcp_reach_err_cm` (‖tcp_final − target‖), `servo_min_err_cm` (hand
+    servo), `ori_err_deg_final`, `ori_err_deg_max_last20`, the full `contact`
+    report (GT, offline), τ fields. EE start = TCP.
+20. **`obs_rung` (disclosed scaffold rung).** `--obs_rung {1,2,3}` (default
+    1) sets `iface.push_obs_rung` (which shapes the stage-1 state's
+    `oracle_block`); the loop reads it once from the env (single source) and
+    records it in every replay (`metadata.obs_rung`), summary (top-level +
+    per episode, dump meta.json) and recap (`metadata.obs_rung`,
+    `state_anchor.obs_rung`). A retriever built for another rung is refused.
+    The P2 paper must state the rung of every dataset.
+21. **Observables-only model inputs** (the PI ruling, restated as the push
+    invariant): stage-1 prompt (prompts.py `_S1_EEF_PUSH` + `_push_state`),
+    recap prompt, retrieval key and preamble carry no GT at rung 1. GT is read
+    by push_collect only for the success predicate and offline records.
+    Tests assert the absence of GT markers in rung-1 recap prompts,
+    preambles and stage-1 states.
+22. **L0a comparison, corrected.** Earlier push docs called the two-leg
+    oracle reveal "the L0a Fix-3 convention". L0a's actual teacher condition
+    is `prompts.py _S1_POS_HEAD`: EE positions + a scalar EE→target distance,
+    no object coordinates. Push rung 2 = that condition; rung 1 is
+    stricter; rung 3 (coordinates) has no L0a counterpart.
+23. **GIF overlay** (human-eye gate, PI only, never a model input): the tag
+    (round, GT cube→goal, contact anatomy of the round's first cube motion)
+    is drawn in a 14-px BOTTOM margin strip below the scene (the canvas
+    grows); the old top bar that covered scene pixels is gone.
+24. **Proprio self-calibration.** The hand→TCP offset is MEASURED LIVE from
+    the sim bodies at every segment (`push_body.tcp_offset_local`), never a
+    hardcoded constant; state and target share the TCP reference.
+    **Deferred P3 item:** self-calibration of that offset from contact events
+    (the body learning its own fingertip from where the cube starts moving),
+    instead of reading it from the simulator.
+25. **Recap prompt version** `push_recap_v2_obs_rung` stamped in every
+    recap's metadata (v1 = the superseded GT draft, never run).

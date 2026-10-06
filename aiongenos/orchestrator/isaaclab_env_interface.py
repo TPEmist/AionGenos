@@ -253,47 +253,18 @@ class IsaacLabEnvInterface:
                 "right_gripper": right_gripper_state,
             })
 
-        # WP1-③a PUSH: two-leg oracle reveal (EE→cube, cube→goal) as base-frame
-        # integer vectors at the SAME scale as the output (int_to_metric grid),
-        # following the L0a Fix-3 convention. Cube = scene['object']; goal = the
-        # re-purposed left_ee_pose command term (base-frame .command).
+        # WP1-③a PUSH observation interface (PI ruling 2026-10-05). Photos +
+        # PROPRIOCEPTION only: the cube and the green zone are PERCEIVED from the
+        # image, never oracle-fed. The P1 L0a teacher's actual condition is the
+        # _S1_POS template (prompts.py:59): EE positions + scalar EE→target
+        # distances, no object coordinates. Push rung-1 is stricter still (no
+        # scalar either); the disclosed scaffold ladder adds them back only when
+        # pre-registered (wp3a_pilot_plan.md): rung-2 = + scalar distances
+        # (TCP→cube, cube→goal) = the P1 condition; rung-3 = + coordinates and
+        # vectors. EEF reference point = the TCP (fingertip pad), matching the
+        # TCP targets the executor converts to the hand (push_body).
         if level_config.control_mode == ControlMode.PUSH_WAYPOINT:
-            try:
-                import numpy as _np
-                root_w = self.robot.data.root_pos_w[0].cpu().numpy()
-                cube_w = self.env.unwrapped.scene["object"].data.root_pos_w[0].cpu().numpy()
-                cube_b = cube_w[:3] - root_w[:3]  # base-frame (root identity-rot verified)
-                goal_b = self.env.unwrapped.command_manager.get_term(
-                    "left_ee_pose").command[0, :3].cpu().numpy()
-                ee_b = _np.array(left_pos_b)  # left EE, base frame (already computed)
-
-                def _xy_int(mx, my):
-                    (xi, yi, _), _ = position_metric_to_int(
-                        float(mx), float(my), 0.0,
-                        bounds.x_bounds, bounds.y_bounds, bounds.z_bounds)
-                    return xi, yi
-
-                # DELTAS must be the difference of two grid POSITIONS, not a
-                # metric delta pushed through the position map: the x map has
-                # an offset (bounds −0.3..0.6 → 0 m ↦ −33), so the old
-                # _xy_int(delta) showed a goal 9cm AHEAD as dX=−13 ("behind").
-                # Found 2026-10-05 (eye-gate 579329e1: teacher never pushed +x).
-                ee_xi, ee_yi = _xy_int(ee_b[0], ee_b[1])
-                cube_xi, cube_yi = _xy_int(cube_b[0], cube_b[1])
-                goal_xi, goal_yi = _xy_int(goal_b[0], goal_b[1])
-                ee_cube_xi, ee_cube_yi = cube_xi - ee_xi, cube_yi - ee_yi
-                cube_goal_xi, cube_goal_yi = goal_xi - cube_xi, goal_yi - cube_yi
-                state.update({
-                    "cube_x": cube_xi, "cube_y": cube_yi,
-                    "goal_x": goal_xi, "goal_y": goal_yi,
-                    "ee_to_cube_x": ee_cube_xi, "ee_to_cube_y": ee_cube_yi,
-                    "cube_to_goal_x": cube_goal_xi, "cube_to_goal_y": cube_goal_yi,
-                })
-            except Exception as e:
-                logger.warning(f"push state reveal failed: {e}")
-                state.update({k: "?" for k in (
-                    "cube_x", "cube_y", "goal_x", "goal_y",
-                    "ee_to_cube_x", "ee_to_cube_y", "cube_to_goal_x", "cube_to_goal_y")})
+            state.update(self._push_state(bounds))
 
         return state
 
@@ -480,13 +451,68 @@ class IsaacLabEnvInterface:
     # ─── WP1-③a push execution (OSC, teacher-only) ──────────────────────────
     _ARM_TORQUE_LIMITS = (40.0, 40.0, 27.0, 27.0, 7.0, 7.0, 7.0)  # real hw N·m
 
+    # ── WP1-③a push: proprioception + disclosed scaffold rungs ──────────────
+    push_obs_rung: int = 1   # set by run_push_collect (pre-registered ladder)
+
+    def _push_state(self, bounds) -> dict:
+        from aiongenos.orchestrator import push_body as _pb
+        r = self.robot
+        root = r.data.root_pos_w[0, :3]
+        tcp_idx = r.find_bodies(_pb.TCP_BODY)[0][0]
+        tcp_b = (r.data.body_pos_w[0, tcp_idx, :3] - root).cpu().numpy()
+        (tx, ty, tz), _ = position_metric_to_int(
+            float(tcp_b[0]), float(tcp_b[1]), float(tcp_b[2]),
+            bounds.x_bounds, bounds.y_bounds, bounds.z_bounds)
+        out = {"left_x": tx, "left_y": ty, "left_z": tz,
+               "left_gripper": "closed (locked)", "oracle_block": ""}
+        rung = int(self.push_obs_rung)
+        if rung >= 2:
+            import numpy as _np
+            cube_b = _np.array(self.get_cube_pose_b())
+            goal_b = _np.array(self.get_goal_pose_b())
+            u = self.env.unwrapped
+            cube_q = u.scene["object"].data.root_quat_w[0]
+            from aiongenos.tasks.WP1_contact_testbed.push_s3a_cfg import _CUBE_HALF_H
+            tip_cube = _pb.point_to_box_dist(
+                r.data.body_pos_w[0, tcp_idx, :3],
+                u.scene["object"].data.root_pos_w[0, :3], cube_q, _CUBE_HALF_H)
+            cube_goal = float(_np.linalg.norm(cube_b[:2] - goal_b[:2]))
+            lines = ["SCAFFOLD (oracle-measured, disclosed):",
+                     f"  LEFT_TIP_TO_CUBE = {tip_cube * 100:.1f} cm",
+                     f"  CUBE_TO_GOAL     = {cube_goal * 100:.1f} cm"]
+            if rung >= 3:
+                def _xy(m):
+                    (xi, yi, _), _ = position_metric_to_int(
+                        float(m[0]), float(m[1]), 0.0,
+                        bounds.x_bounds, bounds.y_bounds, bounds.z_bounds)
+                    return xi, yi
+                c, g = _xy(cube_b), _xy(goal_b)
+                # deltas = differences of grid positions (the x map has an offset)
+                lines += [f"  CUBE_POS     = (X={c[0]}, Y={c[1]})",
+                          f"  GOAL_POS     = (X={g[0]}, Y={g[1]})",
+                          f"  TIP_TO_CUBE  = (dX={c[0] - tx}, dY={c[1] - ty})",
+                          f"  CUBE_TO_GOAL = (dX={g[0] - c[0]}, dY={g[1] - c[1]})"]
+            out["oracle_block"] = "\n".join(lines) + "\n"
+        return out
+
+    def get_left_hand_quat_b(self):
+        """Left hand (OSC body) orientation, base frame (root identity rot)."""
+        return self.robot.data.body_quat_w[0, self.left_body_idx, :4].clone()
+
+    def get_left_tcp_pos_b(self):
+        from aiongenos.orchestrator import push_body as _pb
+        r = self.robot
+        tcp_idx = r.find_bodies(_pb.TCP_BODY)[0][0]
+        return (r.data.body_pos_w[0, tcp_idx, :3] - r.data.root_pos_w[0, :3]).cpu().numpy().tolist()
+
     _TRANSPORT_LEAD_M = 0.06   # carrot lead: 3cm stalled at ~13.5cm short (OSC
                                # force from a 3cm error too small to keep moving);
                                # 6cm doubles the position error → sustained push
                                # while still well below the one-step-slam span.
 
     def execute_push_segment(self, approach_b, contact_quat_b, steps: int,
-                             right_hold: bool = True, frame_every: int = 0):
+                             right_hold: bool = True, frame_every: int = 0,
+                             target_is_tcp: bool = False):
         """Drive the LEFT OSC arm to a base-frame approach target + orientation,
         monitoring PRE-CLIP commanded torque per step (Rule 9, innermost loop).
 
@@ -506,8 +532,16 @@ class IsaacLabEnvInterface:
         reaches the approach point the setpoint pins to it (CONTACT phase = pure
         OSC in its ±12cm comfortable envelope). Approach point + lead clamp came
         from push_segment_from_waypoint (the primitive); this drives servo + τ.
+
+        target_is_tcp=True (push interface 2026-10-05): approach_b is a TCP
+        (fingertip) target, converted ONCE to the hand target under the
+        commanded orientation with the live-measured hand-local TCP offset.
+        Every step also logs the orientation error (deg, hand vs command) and
+        the contact report (push_body): TCP / left-link distances to the cube
+        box and the anatomy of the nearest link when the cube starts moving.
         """
         import torch as _torch
+        from aiongenos.orchestrator import push_body as _pb
         u = self.env.unwrapped
         r = self.robot
         left_ids, _ = r.find_joints("openarm_left_joint.*")
@@ -520,6 +554,20 @@ class IsaacLabEnvInterface:
 
         tb = _torch.as_tensor(approach_b, device=u.device, dtype=_torch.float32)
         qb = _torch.as_tensor(contact_quat_b, device=u.device, dtype=_torch.float32)
+        tcp_idx = r.find_bodies(_pb.TCP_BODY)[0][0]
+        tcp_target_b = None
+        if target_is_tcp:
+            tcp_target_b = tb.clone()
+            tb = _pb.hand_target_from_tcp(tb, qb, _pb.tcp_offset_local(r, ee_idx, tcp_idx))
+        # contact report state
+        obj = u.scene["object"]
+        from aiongenos.tasks.WP1_contact_testbed.push_s3a_cfg import _CUBE_HALF_H
+        bodies = _pb.left_contact_bodies(r)
+        cube0_w = obj.data.root_pos_w[0, :3].clone()
+        tip_min = 1e9
+        link_min = {n: 1e9 for _, n in bodies}
+        first_move = None
+        ori_err = []
         action = _torch.zeros((u.num_envs, act_dim), device=u.device)
         action[:, 3:7] = qb   # primitive-computed contact orientation (NOT identity)
         if act_dim >= 13:
@@ -566,6 +614,18 @@ class IsaacLabEnvInterface:
             ee_b_now = r.data.body_pos_w[0, ee_idx, :3] - root
             dmin = min(dmin, float(_torch.norm(ee_b_now - tb) * 100))
 
+            ori_err.append(round(_pb.quat_angle_deg(r.data.body_quat_w[0, ee_idx, :4], qb), 2))
+            cpos, cq = obj.data.root_pos_w[0, :3], obj.data.root_quat_w[0, :4]
+            tip_min = min(tip_min, _pb.point_to_box_dist(r.data.body_pos_w[0, tcp_idx, :3], cpos, cq, _CUBE_HALF_H))
+            dists = {n: _pb.point_to_box_dist(r.data.body_pos_w[0, i, :3], cpos, cq, _CUBE_HALF_H)
+                     for i, n in bodies}
+            for n, dv in dists.items():
+                link_min[n] = min(link_min[n], dv)
+            if first_move is None and float(_torch.norm(cpos - cube0_w)) > _pb.CUBE_MOVE_EPS_M:
+                near = min(dists, key=dists.get)
+                first_move = {"step": _si, "nearest_link": near, "anatomy": _pb.anatomy_of(near),
+                              "nearest_dist_cm": round(dists[near] * 100, 2)}
+
             if frame_every and (_si % frame_every == 0):
                 png = self.get_rgb()
                 if png:
@@ -581,8 +641,21 @@ class IsaacLabEnvInterface:
             "tau_peak_postclip": round(peak_post, 3),
             "tau_warn_steps": warn,      # steps with pre-clip τ/limit > 0.85
             "tau_flag_steps": flag,      # steps with pre-clip τ/limit >= 1.0
+            "tau_pre_per_step": per_step_pre,
             "n_steps": steps,
             "frames": frames,            # PNG bytes (if frame_every>0) for the GIF
+            "ori_err_deg": ori_err,      # per step, hand orientation vs command
+            "ori_err_deg_final": ori_err[-1] if ori_err else None,
+            "tcp_target_b": None if tcp_target_b is None else [round(float(v), 4) for v in tcp_target_b],
+            "hand_target_b": [round(float(v), 4) for v in tb],
+            "tcp_final_b": [round(float(v), 4) for v in (r.data.body_pos_w[0, tcp_idx, :3] - root)],
+            "contact": {
+                "tcp_to_cube_min_cm": round(tip_min * 100, 2),
+                "link_to_cube_min_cm": {n: round(v * 100, 2) for n, v in link_min.items()},
+                "first_cube_move": first_move,       # None = cube never moved > 2mm
+                "cube_disp_vec_cm": [round(float(v) * 100, 2) for v in (obj.data.root_pos_w[0, :3] - cube0_w)],
+                "note": "link points are body origins (not meshes); TCP = fingertip pad",
+            },
         }
 
     def get_cube_pose_b(self):

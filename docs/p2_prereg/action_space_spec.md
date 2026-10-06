@@ -5,6 +5,18 @@
 > DoF" — see wp3a_push_provenance.md). WP1-③a implements it. Any version bump
 > is a gen-0 pre-req controlled change under full format-contract discipline.
 
+> **Revision 2026-10-05 (PI ruling, push observation/action interface):**
+> EEF reference point = TCP; state and target share it; executor converts
+> hand↔TCP with the live-measured offset; ORI = base-axis rotation of the
+> rest orientation. (R_cmd = Rz(Y)·Ry(P)·Rx(R)·R_rest, rest = the live
+> Pin-7a standby hand orientation; `aiongenos/orchestrator/push_body.py`.)
+> This SUPERSEDES the "Neutral contact orientation" section and the
+> neutral∘offset executor bullet below (motion-dependent neutral retired), and
+> the step-3 "two-leg error vectors … oracle-revealed per L0a convention":
+> the model observes image + proprioception only; disclosed scaffolds are the
+> pre-registered obs_rung ladder (dual_collect_equivalence_ledger.md, push
+> memory items 18–24).
+
 ## The principle (why this exists)
 
 **The action language's boundary = the body's degrees of freedom (3 position +

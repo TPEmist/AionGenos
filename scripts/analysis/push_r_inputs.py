@@ -1,15 +1,18 @@
 """WP1-③a push — extract p2_r_tracker inputs (c, s) from push replays ALONE.
 
 Raw material (written by push_collect via push_memory.write_push_episode):
-  replay.init_left_ee_pose            EE at reset, base frame (m)
-  replay.init_cube_pose["yellow"]     cube at reset, base frame (m)
-  replay.metadata["goal_pose_b"]      goal (static per ep), base frame (m)
-  replay.metadata["rounds_state"][0]  round-1 eef_target_m + pre-action ee/cube
+  replay.init_left_ee_pose            init TCP (EEF reference point = TCP;
+                                      metadata["ee_reference"] == "tcp"), base frame (m)
+  replay.init_cube_pose["yellow"]     cube at reset, base frame (m)   [GT, offline]
+  replay.metadata["goal_pose_b"]      goal (static per ep), base frame (m)   [GT, offline]
+  replay.metadata["rounds_state"][0]  round-1 eef_target_m (TCP target) + ee_start_b (TCP)
   replay.vlm_interactions[0]          fallback: parsed_left_pos (int grid) →
                                       metric via metadata["workspace_bounds"]
 
 Raw components exposed per episode (all metric, base frame, XY):
-  c_raw = round-1 commanded EEF displacement = target_xy − init_ee_xy
+  c_raw = round-1 commanded TCP displacement = TCP target_xy − init TCP_xy
+  (GT cube/goal enter only s and the projection axis — offline analysis is the
+  one place GT is allowed; the model never sees them at rung 1)
   u     = unit(goal_xy − cube_xy)      (push direction)
   plus cube_xy, goal_xy, cube→goal (dx, dy, dist, angle), ee→cube (dx, dy)
 
@@ -44,14 +47,15 @@ class PushRInputs:
     env_seed: Optional[int]
     outcome: str
     label: Optional[str]
-    init_ee_xy: tuple[float, float]
+    obs_rung: Optional[int]             # disclosed-scaffold rung the data came from
+    init_ee_xy: tuple[float, float]     # init TCP
     cube_xy: tuple[float, float]
     goal_xy: tuple[float, float]
     r1_target_xy: tuple[float, float]
-    c_raw: tuple[float, float]          # target − init EE (m)
+    c_raw: tuple[float, float]          # TCP target − init TCP (m)
     push_dir: tuple[float, float]       # unit(goal − cube)
     cube_to_goal: tuple[float, float]   # goal − cube (m)
-    ee_to_cube: tuple[float, float]     # cube − init EE (m)
+    ee_to_cube: tuple[float, float]     # cube − init TCP (m)
 
 
 def _r1_target_xy(ep: dict) -> Optional[tuple[float, float]]:
@@ -80,7 +84,7 @@ def r_inputs_from_replay(ep: dict) -> Optional[PushRInputs]:
     n = math.hypot(*cg) or 1.0
     return PushRInputs(
         ep_id=ep["episode_id"], run_id=ep["run_id"], env_seed=ep.get("env_seed"),
-        outcome=ep["outcome"], label=md.get("label"),
+        outcome=ep["outcome"], label=md.get("label"), obs_rung=md.get("obs_rung"),
         init_ee_xy=(ee[0], ee[1]), cube_xy=(cube[0], cube[1]), goal_xy=(goal[0], goal[1]),
         r1_target_xy=tgt, c_raw=(tgt[0] - ee[0], tgt[1] - ee[1]),
         push_dir=(cg[0] / n, cg[1] / n), cube_to_goal=cg,
@@ -88,13 +92,17 @@ def r_inputs_from_replay(ep: dict) -> Optional[PushRInputs]:
     )
 
 
-def load_push_r_inputs(run_dir: Path, label: Optional[str] = "pilot") -> list[PushRInputs]:
+def load_push_r_inputs(run_dir: Path, label: Optional[str] = "pilot",
+                       obs_rung: Optional[int] = None) -> list[PushRInputs]:
     out = []
     for f in sorted(Path(run_dir).glob("*/*.json")):
         ep = json.loads(f.read_text())
         ri = r_inputs_from_replay(ep)
-        if ri is not None and (label is None or ri.label == label):
-            out.append(ri)
+        if ri is None or (label is not None and ri.label != label):
+            continue
+        if obs_rung is not None and ri.obs_rung != obs_rung:
+            continue
+        out.append(ri)
     return out
 
 
@@ -128,10 +136,15 @@ def main() -> int:
     ap.add_argument("run_dir", type=Path)
     ap.add_argument("--label", default="pilot", help="'' = all labels")
     ap.add_argument("--n_perm", type=int, default=2000)
+    ap.add_argument("--obs_rung", type=int, default=None, help="keep only this rung")
     ap.add_argument("--dump", action="store_true", help="print raw per-episode components")
     a = ap.parse_args()
-    eps = load_push_r_inputs(a.run_dir, a.label or None)
+    eps = load_push_r_inputs(a.run_dir, a.label or None, a.obs_rung)
     print(f"[push_r_inputs] {len(eps)} episodes with push init fields in {a.run_dir}")
+    rungs = sorted({e.obs_rung for e in eps}, key=str)
+    if len(rungs) > 1:
+        print(f"[push_r_inputs] mixed obs_rung {rungs} — pass --obs_rung (r is per-rung)")
+        return 1
     if a.dump:
         for e in eps:
             print(json.dumps(asdict(e)))

@@ -108,10 +108,10 @@ _S1_FULL: Final[str] = (
     "STOP: <true|false>"
 )
 
-# WP1-③a PUSH template (teacher-only, ControlMode.PUSH_WAYPOINT). The teacher
-# emits ONE cube waypoint per round (PUSH_TO x,y). Two-leg oracle reveal
-# (EE→cube, cube→goal) follows the L0a Fix-3 convention: base-frame integer
-# vectors at the SAME scale as the output, oracle source declared in-prompt.
+# WP1-③a PUSH_TO template (teacher-only, ControlMode.PUSH_WAYPOINT) — RETIRED
+# from the scaffold ladder (2026-10-05; the ladder is now observation rungs,
+# wp3a_pilot_plan.md). Kept for provenance. Its object-coordinate reveal does
+# NOT follow L0a: the L0a template (_S1_POS_HEAD) gives no object coordinates.
 # NOT added to any student variant map — teacher-only until gen-0.
 _S1_PUSH: Final[str] = (
     "TASK: {instruction}\nCONTROL_MODE: cube_push_waypoint_2dof\n\n"
@@ -133,42 +133,39 @@ _S1_PUSH: Final[str] = (
 )
 
 # WP1-③a GENERAL EEF-action template (teacher-only, ControlMode.PUSH_WAYPOINT).
-# This is the A-spec v2-final rung-1 PRIMARY language (docs/p2_prereg/
-# action_space_spec.md): a general body-DoF language (position + OPTIONAL
-# orientation + grip), written ONCE over the body — NOT a push-specific one.
-# The push TASK is enforced only by the affordance contract below, never by the
-# action vocabulary. Two-leg oracle reveal (EE→cube, cube→goal) follows the L0a
-# Fix-3 convention: base-frame integer vectors at the SAME scale as the output,
-# oracle source declared in-prompt. ORI semantics/examples are quoted word-for-
-# word from the A-spec. NOT added to any student variant map — teacher-only
-# until gen-0.
+# A-spec v2-final general body-DoF language (position + OPTIONAL orientation),
+# written ONCE over the body — NOT a push-specific one. Observation = PHOTOS +
+# PROPRIOCEPTION ONLY (PI ruling 2026-10-05): the cube and the green zone are
+# perceived from the image. For comparison, the P1 L0a teacher template
+# _S1_POS_HEAD above gives EE positions + scalar distances and no object
+# coordinates. {oracle_block} is EMPTY at rung-1; rung-2/3 fill it with a
+# disclosed, pre-registered scaffold (isaaclab_env_interface._push_state).
+# No strategy wording: task, affordance contract, action format and the
+# physical semantics of ORI only. NOT in any student variant map.
 _S1_EEF_PUSH: Final[str] = (
     "TASK: {instruction}\nCONTROL_MODE: left_eef_waypoint_ori_optional\n\n"
-    "CURRENT STATE (oracle-revealed, base-frame integers, same scale as your output):\n"
-    "  LEFT_EE_POS   = (X={left_x}, Y={left_y}, Z={left_z})\n"
-    "  CUBE_POS      = (X={cube_x}, Y={cube_y})\n"
-    "  GOAL_POS      = (X={goal_x}, Y={goal_y})\n"
-    "  EE_TO_CUBE    = (dX={ee_to_cube_x}, dY={ee_to_cube_y})   # left EE → cube\n"
-    "  CUBE_TO_GOAL  = (dX={cube_to_goal_x}, dY={cube_to_goal_y})   # cube → goal\n\n"
-    "The green zone (the flat green disc on the table) is the GOAL region shown\n"
-    "at GOAL_POS; push the yellow cube onto it.\n"
-    "AFFORDANCE CONTRACT: the cube must be moved onto the green zone BY PUSHING.\n"
+    "CURRENT STATE (proprioception, base-frame integers, same grid as your output):\n"
+    "  LEFT_EE_POS  = (X={left_x}, Y={left_y}, Z={left_z})   # left fingertip (TCP)\n"
+    "  RIGHT_EE_POS = (X={right_x}, Y={right_y}, Z={right_z})\n"
+    "  LEFT_GRIPPER = {left_gripper}\n"
+    "{oracle_block}\n"
+    "The yellow cube and the green zone (flat green disc on the table) are seen in\n"
+    "the image; their positions are not given as numbers.\n"
+    "AFFORDANCE CONTRACT: the cube must end up on the green zone, moved BY PUSHING.\n"
     "The gripper is held CLOSED for the entire task and CANNOT open, close, grasp,\n"
-    "or lift — it is a rigid pushing tool, nothing more. Your ONLY action is to\n"
-    "emit a left end-effector target: a position waypoint (REQUIRED) and an\n"
-    "optional orientation offset. Move the end-effector into contact behind the\n"
-    "cube and drive it toward the green zone; re-plan next round from the new state.\n\n"
-    "ORIENTATION (OPTIONAL) — LEFT_TARGET_ORI is an integer-degree OFFSET from the\n"
-    "neutral contact orientation:\n"
-    "  P = pitch (about the motion frame's lateral axis; + = fingertip presses down)\n"
-    "  Y = yaw   (about the vertical)\n"
-    "  R = roll  (about the motion axis)\n"
-    "Omitting ORI → neutral orientation (contact face aligned to push direction,\n"
-    "palm flat on table). Examples: palm push = omit ORI; fingertip push =\n"
-    "LEFT_TARGET_ORI: P=60 Y=0 R=0.\n\n"
+    "or lift. Your ONLY action each round is one left end-effector target: a\n"
+    "fingertip (TCP) position (REQUIRED) and an optional orientation offset. The\n"
+    "next round shows the new image and state.\n\n"
+    "ORIENTATION (OPTIONAL) — LEFT_TARGET_ORI: integer degrees rotating the hand's\n"
+    "REST orientation about FIXED BASE-frame axes, applied as Rz(Y)·Ry(P)·Rx(R):\n"
+    "  P = about the base Y axis\n"
+    "  Y = about the base Z axis (vertical)\n"
+    "  R = about the base X axis\n"
+    "  Signs follow the right-hand rule about the positive axis. Omitted → rest\n"
+    "  orientation.\n\n"
     "THOUGHT: <one paragraph physics reasoning>\n"
-    "LEFT_TARGET_POS: X=<int> Y=<int> Z=<int>        (required; base-frame integers on the SAME grid as CURRENT STATE — not cm)\n"
-    "LEFT_TARGET_ORI: P=<int> Y=<int> R=<int>        (OPTIONAL; integer degrees, OFFSET from the neutral contact orientation; omit for neutral)\n"
+    "LEFT_TARGET_POS: X=<int> Y=<int> Z=<int>        (required; fingertip/TCP, base-frame integers on the SAME grid as CURRENT STATE — not cm)\n"
+    "LEFT_TARGET_ORI: P=<int> Y=<int> R=<int>        (OPTIONAL; integer degrees about base axes, applied to the rest orientation; omit for rest)\n"
     "STOP: <true|false>"
 )
 

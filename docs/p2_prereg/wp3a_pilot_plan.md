@@ -35,14 +35,25 @@ confirmatory; stored separately for exploratory use. Three outputs:
 3. r-estimator variance on this task: `p2_r_tracker` on the pilot's
    round-1 correction vs situation (r, permutation band, bootstrap σ).
 
-**Rung ladder (mechanical, thresholds fixed now):**
-- pilot (50 ep, memory ON) successes **< 5** → **rung-2** (text-hint
-  scaffold, D6b disclosure convention); re-run (c) at rung-2.
-- rung-2 pilot successes **< 5** → **rung-3** (PUSH_TO primitive);
-  re-run (c) at rung-3.
-- rung-3 pilot successes **< 5** → stop; escalate to PI (task change, not
-  a further rung — no rung-4 is defined).
+**Rung ladder (mechanical, thresholds fixed now) — REVISED 2026-10-05 (PI
+ruling; supersedes the text-hint / PUSH_TO ladder above, before any pilot
+episode).** Rungs are OBSERVATION scaffolds, each a disclosed oracle with a
+measurement cost (D6b convention); the action language (TCP target + optional
+base-axis ORI) is the same at every rung:
+- **rung-1 (default)** = image + proprioception only (TCP / right EE /
+  gripper). No object coordinates, no distances. Retrieval key = image
+  embedding + proprioception.
+- **rung-2** = rung-1 + scalar distances TCP→cube, cube→goal (the P1 L0a
+  condition, `prompts.py _S1_POS_HEAD`).
+- **rung-3** = rung-2 + cube/goal grid coordinates and vectors.
+- pilot (50 ep, memory ON) successes **< 5** at rung-k → rung-(k+1); re-run
+  (c) at the new rung. rung-3 successes **< 5** → stop; escalate to PI (task
+  change; no rung-4).
 - successes **≥ 5** at the current rung → proceed to (d) at that rung.
+- Every rung activation is recorded here + in the provenance log; every
+  replay / recap carries `obs_rung`; the P2 paper states which rung the data
+  came from. The rung-1 SR is expected to be lower than an oracle prompt —
+  that is the honest x=0, not a failure.
 No discretion: the count selects the rung.
 
 **(d) [PWR-SIM] steps 2–4** (`p2_preregistration_skeleton.md` §8): fill

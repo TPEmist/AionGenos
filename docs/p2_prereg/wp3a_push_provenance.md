@@ -70,7 +70,7 @@ contact, not by a commanded wrench). Pinned OSC params BEFORE first data:
 ## Completion chain (order fixed)
 scene + physics acceptance → teacher scaffolding port (error signal = two
 legs: EE→cube + cube→goal, the L0a Fix-3 lineage extended to a moved
-object) → 10-ep teacher smoke. Gate: any protocol ≥ 20–25% SR → GO.
+object) [CORRECTED 2026-10-05: not the L0a condition — see the two-leg-reveal correction below] → 10-ep teacher smoke. Gate: any protocol ≥ 20–25% SR → GO.
 Failure classification routed per the LIBERO template (info-gap / control /
 physics, each with a pre-written fix budget). GO → dual-track: gen-0
 collect (feeds [PWR-SIM] step 2 Δr prior) + ③b press.
@@ -99,7 +99,7 @@ a real scaffolded push. Forcing hold into the scene smoke conflated layers.
 
 **Status:** ③a scene+physics GREEN. Next in the completion chain: teacher
 scaffolding port (error signal = EE→cube + cube→goal two legs, L0a Fix-3
-lineage), then hold gate + 10-ep teacher smoke on it. The push env is built
+lineage) [CORRECTED 2026-10-05: see the two-leg-reveal correction], then hold gate + 10-ep teacher smoke on it. The push env is built
 and dynamic-verified; the frame-correct driving is the scaffolding's job.
 
 ## Frame gate (standing rule, 2026-08-12) — pose targets from command system ONLY
@@ -1378,6 +1378,13 @@ cube→goal) revealed as base-frame integers, SAME scale as the output, oracle
 source declared in-prompt. Symmetric with the reach prompt's reveal style →
 one-sentence caveat covers both tasks in the P2 writeup.
 
+> **CORRECTION 2026-10-05:** the "L0a Fix-3 convention" label is wrong. L0a's
+> actual teacher condition is `prompts.py _S1_POS_HEAD`: EE positions + a
+> scalar EE→target distance, NO object coordinates. The two-leg vector reveal
+> is superseded by the PI ruling (image + proprioception only; disclosed
+> scaffold = obs_rung ladder, rung 2 = the L0a scalar condition). See
+> dual_collect_equivalence_ledger.md push-memory item 22.
+
 **Pin-11 (success predicate + round budget, SEALED):**
 - SUCCESS = cube centre within 0.05m of goal.
 - round cap = 12 (distance budget: farthest ~36cm ÷ 5-8cm/round ≈ 6-8 rounds,
@@ -1818,3 +1825,23 @@ AFTER the memory→climb mechanism is shown on this bootstrappable task.
   the horizontal fingers pass over the cube (cube moved ≤0.4cm). Open PI
   question (not changed): is contact height a marginal grant (reveal cube Z)
   or a lesson for memory to earn? GIF `logs/push_gif_098975dd.gif`.
+
+## 2026-10-05 (17:05) — observation interface returned to design (PI ruling)
+
+Photos + proprioception only; object positions are perception. Stage-1, recap
+and retrieval carry no GT at rung-1 (GT only in the success predicate and
+offline analysis). EEF reference = TCP (live-measured hand-local offset);
+orientation = rest pose (Pin-7a) rotated by base-axis ORI —
+`neutral_contact_orientation_b` retired from the push path. Rung ladder =
+observation scaffolds (wp3a_pilot_plan.md). Eye-gate candidate 098975dd and
+the Z question are superseded (that prompt was rung-3-like).
+
+**6D pose-path probe** (`wp3a_ori_probe.py`, `logs/ori_probe*.log`; command
+path = push_collect's): rest 0.3°; P+45 → 42.6° about base y (err 6.0°);
+R+30 → 30.0° about base x (0.2°); Y+15 → 14.8° (0.8°); Y−30 → 30.2° (0.3°);
+**Y+30 → FAIL: 22.6° tracking error, achieved rotation about a mixed axis
+[−0.68,0.13,0.72]** — positive yaw beyond ~+15…30° is not trackable from the
+rest pose (body limit, cause not yet isolated: joint limit vs OSC). τ pre-clip
+saturates only at step 0 (reset transient, identical in the rest probe);
+≤0.46 after step 20. Per-step orientation error is now logged by
+execute_push_segment beside the position error.

@@ -37,9 +37,14 @@ parser.add_argument("--recap_buffer_readonly", action="store_true",
 parser.add_argument("--memory_top_k", type=int, default=3, help="Top-K retrieved recaps.")
 parser.add_argument("--memory_image_weight", type=float, default=0.4,
                     help="α in score = α·img_cos + (1−α)·state_sim.")
-parser.add_argument("--memory_state_scale_cm", type=float, default=5.0,
-                    help="state_sim = exp(−‖Δ(cube_xy,goal_xy)‖_cm / scale). 5 cm ≈ median "
-                         "pairwise Pin-4b situation distance (reach default 30 cm is flat here).")
+parser.add_argument("--memory_state_scale_cm", type=float, default=30.0,
+                    help="state_sim = exp(−‖Δ init TCP grid‖ / scale) — L0a default. The TCP "
+                         "starts at the fixed standby, so this term is ≈ constant; the image "
+                         "term ranks (observables-only key, PI ruling 2026-10-05).")
+parser.add_argument("--obs_rung", type=int, default=1, choices=(1, 2, 3),
+                    help="Disclosed scaffold rung (wp3a_pilot_plan.md): 1 = image + proprio only; "
+                         "2 = + scalar TCP→cube / cube→goal; 3 = + coordinates. Sets "
+                         "env.push_obs_rung; recorded in every replay/summary/recap.")
 parser.add_argument("--dump_images_root", type=str, default="data/collect_dumps",
                     help="Per-ep round PNGs + meta.json under {root}/{run_id}/{ep_id}/ "
                          "(memory needs round_01_pre.png as the recap image anchor). '' disables.")
@@ -97,6 +102,7 @@ def main():
                     m.visible = False
     env = gym.make(GID, cfg=_cfg, render_mode=None)
     iface = IsaacLabEnvInterface(env)
+    iface.push_obs_rung = args_cli.obs_rung   # shapes get_state's disclosed block
 
     # Push level config — a minimal LevelConfig carrying the PUSH control mode
     # + instruction + Pin-4a workspace bounds. Not in the P1 curriculum ladder.
@@ -109,7 +115,7 @@ def main():
     )
 
     replay = ReplayBuffer(cfg.local_replay_path)
-    _p(f"teacher={teacher_url} episodes={args_cli.episodes} label={args_cli.label}")
+    _p(f"teacher={teacher_url} episodes={args_cli.episodes} label={args_cli.label} obs_rung={args_cli.obs_rung}")
 
     # Memory wiring (same gate shape as run_collect.py)
     recap_buffer = None
@@ -120,7 +126,7 @@ def main():
         from aiongenos.orchestrator.push_memory import PushMemoryRetriever, assert_push_only_buffer
         recap_buffer = RecapBuffer(root=args_cli.recap_buffer_root)
         recap_buffer.load()
-        assert_push_only_buffer(recap_buffer)   # refuse a root holding reach/L2 recaps
+        assert_push_only_buffer(recap_buffer, args_cli.obs_rung)   # no reach/L2 or other-rung recaps
         _p(f"recap buffer {args_cli.recap_buffer_root}: {len(recap_buffer)} existing records"
            f"{' (READONLY)' if args_cli.recap_buffer_readonly else ''}")
         if dump_root is None:
@@ -131,6 +137,7 @@ def main():
                 buffer=recap_buffer, top_k=args_cli.memory_top_k,
                 image_weight=args_cli.memory_image_weight,
                 state_scale_cm=args_cli.memory_state_scale_cm,
+                obs_rung=args_cli.obs_rung,
             )
             _p(f"memory ON: top_k={args_cli.memory_top_k} img_w={args_cli.memory_image_weight} "
                f"state_scale={args_cli.memory_state_scale_cm}cm")
