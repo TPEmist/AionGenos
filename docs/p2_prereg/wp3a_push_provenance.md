@@ -1860,3 +1860,11 @@ execute_push_segment beside the position error.
   base x 0.169–0.951, top z 0.444; guard check PASS: into-table target clamped,
   TCP final z 0.472; before-edge target untouched); Y+30 limit recorded as a
   known body limit, not blocking.
+- **Interlock = full static scene** (PI): table top (base x 0.169–0.951, top
+  z 0.444), robot body link box (x −0.155…0.095, y ±0.095, z 0…0.773), ground
+  (z −0.55). Check PASS: into-table → lifted to z 0.454; into-body → projected
+  to x 0.105; before-edge low target untouched. No stand prim in the scene.
+- **A15 start (Rule 2):** the 18:00 waiter never fired — its
+  `pgrep -f run_push_collect.py` matched its OWN bash command line, so it
+  waited forever (seen 18:18: empty log, no process). Waiter killed (PID
+  verified), driver launched manually 18:19; cost re-measure running first.

@@ -79,10 +79,16 @@ GPU nights → A15 batch (D11 Amendment 15); GPU days → this pilot. The
 rung-1 50-ep memory-ON pilot runs 2026-10-06 daytime.
 
 ## Body constraints in force for the pilot (not knowledge; ledger: safety / body)
-- Table-collision interlock: a commanded TCP point (target and every carrot
-  setpoint) over the table footprint with z < top + 1 cm is lifted to top +
-  1 cm; every clamp is logged per round (`table_guard`). Table box measured
-  from the live USD stage. `wp3a_table_guard_check.py` PASS.
+- Static-scene collision interlock (SAFETY only; PI 2026-10-05): a commanded
+  TCP point (target and every carrot setpoint) inside a STATIC collider is
+  moved out — table: lifted to top + 1 cm over the footprint; robot body link
+  (fixed torso/column): projected to the nearest face of its +1 cm box;
+  ground: z ≥ ground + 1 cm. All boxes measured from the live USD stage.
+  Awkward-but-free poses (below table-top height outside the footprint) are
+  NOT blocked — observable, the model's to learn. Every clamp logged per round
+  (`table_guard`). `wp3a_table_guard_check.py` PASS (table / body / free case).
+  Scene note: there is no stand prim — the base is fixed at z_w 0.55 with
+  nothing beneath it (only the ground plane at base z −0.55).
 - Known body limit: yaw Y > ≈+15…30° from rest is not trackable (probe Y+30:
   22.6° error). Recorded, not root-caused, not blocking: proprioception
   reports the unachieved pose to the model. (c)'s

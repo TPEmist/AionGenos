@@ -260,3 +260,7 @@ Each push-side deviation from the L0/L2 path:
     Run 3577d85e's 45cm wrist knock happened without it. L0/L2 untouched.
 27. **Known body limit:** Y+30 yaw from rest untrackable (22.6°); recorded as
     a body fact, visible to the model via proprioception; not a fix.
+28. **Interlock scope (PI 2026-10-05):** static scene only = table top slab +
+    robot body link box (nearest-face projection) + ground, all measured live
+    from USD; supersedes item 26's table-only scope. Not extended to awkward
+    free poses (those are learnable). No stand prim exists in the scene.

@@ -126,39 +126,72 @@ def left_contact_bodies(robot) -> list[tuple[int, str]]:
     return out
 
 
-# ── Table-collision safety guard (PI ruling 2026-10-05; SAFETY, not knowledge) ─
-# Any real arm has a "never command into the table" interlock. A commanded TCP
-# point is inside the forbidden volume iff its (x, y) lies over the table top
-# and z is below the top + margin; the guard lifts z to the top + margin and
-# the event is logged. The table box is MEASURED from the live USD stage
-# (world-aligned bbox of the table prim → base frame), not hardcoded.
+# ── Static-scene collision safety guard (PI ruling 2026-10-05; SAFETY, not
+# knowledge) ─────────────────────────────────────────────────────────────────
+# Any real arm has a "never command into the static scene" interlock. The guard
+# covers STATIC colliders only — awkward-but-free poses (e.g. below table-top
+# height outside the table footprint) are NOT blocked: they waste rounds, are
+# observable, and are the model's to learn. Static colliders, all MEASURED from
+# the live USD stage (world-aligned bboxes → base frame), never hardcoded:
+#   * table: a TCP point over the footprint below top + margin is LIFTED to
+#     top + margin (the bbox spans the legs, so only the top slab is a face);
+#   * robot body (torso/column link, fixed to the base): a point inside the
+#     inflated box is projected to the NEAREST face outside it;
+#   * ground plane: z is raised to ground + margin.
+# The scene has no separate stand prim (the base is fixed at its height); if
+# one is added it must be listed in STATIC_BOXES to be guarded.
 TABLE_GUARD_MARGIN_M = 0.010
+STATIC_BOXES = ("Robot/openarm_body_link",)   # projected to nearest face
+_ENV = "/World/envs/env_0"
 
 
-def measure_table_box_b(env, robot, prim_rel: str = "Table") -> dict:
-    """World-aligned bbox of /World/envs/env_0/<prim_rel> in base frame."""
+def _bbox_b(stage, path: str, root):
     from pxr import Usd, UsdGeom
-    import omni.usd
 
-    stage = omni.usd.get_context().get_stage()
-    prim = stage.GetPrimAtPath(f"/World/envs/env_0/{prim_rel}")
+    prim = stage.GetPrimAtPath(path)
     if not prim.IsValid():
-        raise RuntimeError(f"table prim not found: /World/envs/env_0/{prim_rel}")
+        raise RuntimeError(f"static collider prim not found: {path}")
     rng = UsdGeom.BBoxCache(Usd.TimeCode.Default(), ["default", "render"],
                             useExtentsHint=True).ComputeWorldBound(prim).ComputeAlignedRange()
     lo, hi = rng.GetMin(), rng.GetMax()
+    return ([float(lo[i] - root[i]) for i in range(3)], [float(hi[i] - root[i]) for i in range(3)])
+
+
+def measure_static_scene_b(env, robot) -> dict:
+    import omni.usd
+
+    stage = omni.usd.get_context().get_stage()
     root = robot.data.root_pos_w[0, :3].cpu().numpy()
-    return {"x": (lo[0] - root[0], hi[0] - root[0]), "y": (lo[1] - root[1], hi[1] - root[1]),
-            "top_z": hi[2] - root[2]}
+    tlo, thi = _bbox_b(stage, f"{_ENV}/Table", root)
+    boxes = {rel: _bbox_b(stage, f"{_ENV}/{rel}", root) for rel in STATIC_BOXES}
+    ground_z = float(-root[2])   # /World/ground plane at world z = 0
+    ground = stage.GetPrimAtPath("/World/ground")
+    if not ground.IsValid():
+        raise RuntimeError("ground prim not found: /World/ground")
+    return {"table": {"x": (tlo[0], thi[0]), "y": (tlo[1], thi[1]), "top_z": thi[2]},
+            "boxes": boxes, "ground_z": ground_z}
 
 
-def table_guard(p_b: torch.Tensor, table_b: dict, margin: float = TABLE_GUARD_MARGIN_M):
-    """Return (guarded point, clamped?) for a base-frame TCP point."""
-    x, y, z = float(p_b[0]), float(p_b[1]), float(p_b[2])
-    over = table_b["x"][0] <= x <= table_b["x"][1] and table_b["y"][0] <= y <= table_b["y"][1]
-    floor = table_b["top_z"] + margin
-    if over and z < floor:
-        q = p_b.clone()
-        q[2] = floor
-        return q, True
-    return p_b, False
+def scene_guard(p_b: torch.Tensor, scene_b: dict, margin: float = TABLE_GUARD_MARGIN_M):
+    """Return (guarded point, list of collider names that clamped it)."""
+    q = p_b.clone()
+    hits = []
+    t = scene_b["table"]
+    if t["x"][0] <= float(q[0]) <= t["x"][1] and t["y"][0] <= float(q[1]) <= t["y"][1] \
+            and float(q[2]) < t["top_z"] + margin:
+        q[2] = t["top_z"] + margin
+        hits.append("table")
+    for name, (lo, hi) in scene_b["boxes"].items():
+        lo_m = [v - margin for v in lo]
+        hi_m = [v + margin for v in hi]
+        if all(lo_m[i] <= float(q[i]) <= hi_m[i] for i in range(3)):
+            # nearest face of the inflated box
+            moves = [(float(q[i]) - lo_m[i], i, lo_m[i]) for i in range(3)] + \
+                    [(hi_m[i] - float(q[i]), i, hi_m[i]) for i in range(3)]
+            _, ax, val = min(moves)
+            q[ax] = val
+            hits.append(name)
+    if float(q[2]) < scene_b["ground_z"] + margin:
+        q[2] = scene_b["ground_z"] + margin
+        hits.append("ground")
+    return q, hits
