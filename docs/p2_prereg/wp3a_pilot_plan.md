@@ -43,10 +43,16 @@ base-axis ORI) is the same at every rung:
 - **rung-1 (default)** = image + proprioception only (TCP / right EE /
   gripper). No object coordinates, no distances. Retrieval key = image
   embedding + proprioception.
-- **rung-2** = rung-1 + scalar distances TCP→cube, cube→goal (the P1 L0a
+- **rung-1b** = rung-1 + a depth image and/or a second-viewpoint camera
+  (the original design spec names RGB/Depth). These are SENSORS a real robot
+  has, not oracles. Re-ordered in 2026-10-05 (PI, before any pilot episode):
+  widening disclosure exhausts what the BODY can sense before adding what the
+  body should not know.
+- **rung-2** = rung-1b + scalar distances TCP→cube, cube→goal (the P1 L0a
   condition, `prompts.py _S1_POS_HEAD`).
 - **rung-3** = rung-2 + cube/goal grid coordinates and vectors.
-- pilot (50 ep, memory ON) successes **< 5** at rung-k → rung-(k+1); re-run
+- Ladder order (mechanical): 1 → 1b → 2 → 3.
+- pilot (50 ep, memory ON) successes **< 5** at a rung → the next rung in the order above; re-run
   (c) at the new rung. rung-3 successes **< 5** → stop; escalate to PI (task
   change; no rung-4).
 - successes **≥ 5** at the current rung → proceed to (d) at that rung.
@@ -69,5 +75,15 @@ below threshold after the ladder, or situation variance too thin for r),
 change it before (e) and re-run (c). Freezing is the (e) action, not now.
 
 ## Scheduling
-GPU nights → A15 batch (D11 Amendment 15); GPU days → this pilot. (c)'s
+GPU nights → A15 batch (D11 Amendment 15); GPU days → this pilot. The
+rung-1 50-ep memory-ON pilot runs 2026-10-06 daytime.
+
+## Body constraints in force for the pilot (not knowledge; ledger: safety / body)
+- Table-collision interlock: a commanded TCP point (target and every carrot
+  setpoint) over the table footprint with z < top + 1 cm is lifted to top +
+  1 cm; every clamp is logged per round (`table_guard`). Table box measured
+  from the live USD stage. `wp3a_table_guard_check.py` PASS.
+- Known body limit: yaw Y > ≈+15…30° from rest is not trackable (probe Y+30:
+  22.6° error). Recorded, not root-caused, not blocking: proprioception
+  reports the unachieved pose to the model. (c)'s
 r-variance analysis is CPU.

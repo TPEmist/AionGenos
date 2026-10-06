@@ -124,3 +124,41 @@ def left_contact_bodies(robot) -> list[tuple[int, str]]:
         if "left" in ln and anatomy_of(n) != "other":
             out.append((i, n))
     return out
+
+
+# ── Table-collision safety guard (PI ruling 2026-10-05; SAFETY, not knowledge) ─
+# Any real arm has a "never command into the table" interlock. A commanded TCP
+# point is inside the forbidden volume iff its (x, y) lies over the table top
+# and z is below the top + margin; the guard lifts z to the top + margin and
+# the event is logged. The table box is MEASURED from the live USD stage
+# (world-aligned bbox of the table prim → base frame), not hardcoded.
+TABLE_GUARD_MARGIN_M = 0.010
+
+
+def measure_table_box_b(env, robot, prim_rel: str = "Table") -> dict:
+    """World-aligned bbox of /World/envs/env_0/<prim_rel> in base frame."""
+    from pxr import Usd, UsdGeom
+    import omni.usd
+
+    stage = omni.usd.get_context().get_stage()
+    prim = stage.GetPrimAtPath(f"/World/envs/env_0/{prim_rel}")
+    if not prim.IsValid():
+        raise RuntimeError(f"table prim not found: /World/envs/env_0/{prim_rel}")
+    rng = UsdGeom.BBoxCache(Usd.TimeCode.Default(), ["default", "render"],
+                            useExtentsHint=True).ComputeWorldBound(prim).ComputeAlignedRange()
+    lo, hi = rng.GetMin(), rng.GetMax()
+    root = robot.data.root_pos_w[0, :3].cpu().numpy()
+    return {"x": (lo[0] - root[0], hi[0] - root[0]), "y": (lo[1] - root[1], hi[1] - root[1]),
+            "top_z": hi[2] - root[2]}
+
+
+def table_guard(p_b: torch.Tensor, table_b: dict, margin: float = TABLE_GUARD_MARGIN_M):
+    """Return (guarded point, clamped?) for a base-frame TCP point."""
+    x, y, z = float(p_b[0]), float(p_b[1]), float(p_b[2])
+    over = table_b["x"][0] <= x <= table_b["x"][1] and table_b["y"][0] <= y <= table_b["y"][1]
+    floor = table_b["top_z"] + margin
+    if over and z < floor:
+        q = p_b.clone()
+        q[2] = floor
+        return q, True
+    return p_b, False

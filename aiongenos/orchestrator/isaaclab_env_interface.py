@@ -556,9 +556,21 @@ class IsaacLabEnvInterface:
         qb = _torch.as_tensor(contact_quat_b, device=u.device, dtype=_torch.float32)
         tcp_idx = r.find_bodies(_pb.TCP_BODY)[0][0]
         tcp_target_b = None
+        table_clamp = None
         if target_is_tcp:
+            # Safety interlock: never command the TCP into the table volume.
+            if getattr(self, "_table_box_b", None) is None:
+                self._table_box_b = _pb.measure_table_box_b(self.env, r)
+            raw = tb.clone()
+            tb, clamped = _pb.table_guard(tb, self._table_box_b)
+            if clamped:
+                table_clamp = {"raw_tcp_target_b": [round(float(v), 4) for v in raw],
+                               "guarded_z": round(float(tb[2]), 4)}
+                logger.warning(f"  TABLE GUARD: TCP target z {float(raw[2]):.3f} → {float(tb[2]):.3f} (over table)")
             tcp_target_b = tb.clone()
-            tb = _pb.hand_target_from_tcp(tb, qb, _pb.tcp_offset_local(r, ee_idx, tcp_idx))
+            tcp_off = _pb.tcp_offset_local(r, ee_idx, tcp_idx)
+            tb = _pb.hand_target_from_tcp(tb, qb, tcp_off)
+        setpoint_clamps = 0
         # contact report state
         obj = u.scene["object"]
         from aiongenos.tasks.WP1_contact_testbed.push_s3a_cfg import _CUBE_HALF_H
@@ -590,6 +602,14 @@ class IsaacLabEnvInterface:
                 setpoint = tb
             else:
                 setpoint = ee_b + d / dist * self._TRANSPORT_LEAD_M
+            if target_is_tcp:
+                # guard every carrot setpoint too (the straight path from a
+                # below-table-edge pose into the table footprint would cut it)
+                sp_tcp = setpoint + _pb.quat_rotate(qb, tcp_off)
+                sp_g, c = _pb.table_guard(sp_tcp, self._table_box_b)
+                if c:
+                    setpoint = sp_g - _pb.quat_rotate(qb, tcp_off)
+                    setpoint_clamps += 1
             action[:, 0:3] = setpoint
 
             self.env.step(action)
@@ -649,6 +669,8 @@ class IsaacLabEnvInterface:
             "tcp_target_b": None if tcp_target_b is None else [round(float(v), 4) for v in tcp_target_b],
             "hand_target_b": [round(float(v), 4) for v in tb],
             "tcp_final_b": [round(float(v), 4) for v in (r.data.body_pos_w[0, tcp_idx, :3] - root)],
+            "table_guard": {"target_clamp": table_clamp, "setpoint_clamp_steps": setpoint_clamps,
+                            "table_box_b": getattr(self, "_table_box_b", None)},
             "contact": {
                 "tcp_to_cube_min_cm": round(tip_min * 100, 2),
                 "link_to_cube_min_cm": {n: round(v * 100, 2) for n, v in link_min.items()},

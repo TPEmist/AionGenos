@@ -1855,3 +1855,8 @@ execute_push_segment beside the position error.
   touched the cube (first motion, finger, 2.2 cm); R4 the cube was knocked
   45 cm by the wrist (link6) at step 0. Honest rung-1 x=0: no image↔grid map
   is given. GIF `logs/push_gif_3577d85e.gif` (tag strip below the scene).
+- **Pre-pilot (PI 2026-10-05):** ladder re-ordered 1 → 1b (depth / second
+  view = sensors) → 2 → 3; table-collision interlock added (measured table box
+  base x 0.169–0.951, top z 0.444; guard check PASS: into-table target clamped,
+  TCP final z 0.472; before-edge target untouched); Y+30 limit recorded as a
+  known body limit, not blocking.

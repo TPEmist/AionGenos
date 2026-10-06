@@ -289,6 +289,7 @@ def run_push_collect_loop(
                 "ori_err_deg_final": seg.get("ori_err_deg_final"),
                 "ori_err_deg_max_last20": (max(ori_err[-ORI_ERR_TAIL_STEPS:]) if ori_err else None),
                 "contact": contact,                 # GT contact report (offline)
+                "table_guard": seg.get("table_guard"),   # safety interlock events (ledger: safety)
                 "grip": parsed.grip,
                 "cube_disp_m": round(cube_disp, 4),               # GT offline
                 "cube_goal_dist_m": round(cube_goal_dist, 4),     # GT offline (predicate)

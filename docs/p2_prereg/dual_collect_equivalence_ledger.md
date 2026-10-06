@@ -254,3 +254,9 @@ Each push-side deviation from the L0/L2 path:
     instead of reading it from the simulator.
 25. **Recap prompt version** `push_recap_v2_obs_rung` stamped in every
     recap's metadata (v1 = the superseded GT draft, never run).
+26. **Table-collision interlock (SAFETY, not knowledge; 2026-10-05):** push
+    executor lifts any TCP target / carrot setpoint over the table footprint
+    below top+1cm to top+1cm; events logged per round. Any real arm has it.
+    Run 3577d85e's 45cm wrist knock happened without it. L0/L2 untouched.
+27. **Known body limit:** Y+30 yaw from rest untrackable (22.6°); recorded as
+    a body fact, visible to the model via proprioception; not a fix.
