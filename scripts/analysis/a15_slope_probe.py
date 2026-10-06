@@ -30,7 +30,14 @@ OUT = Path(f"logs/a15_slope_probe_gate{int(GATE_TOL_M*1000)}mm.json")
 def main() -> int:
     rows = {r["ep_idx"]: r for r in json.loads(TARGETS.read_text())["rows"]}
     report = {}
-    for arm, cfg in ARMS.items():
+    arms = dict(ARMS)
+    # A15.1: (a)/(b) arms (pre-registered reading at the 15 mm gate), from the manifest
+    man = Path("logs/a15_manifest.jsonl")
+    if man.exists():
+        for line in man.read_text().splitlines():
+            m = json.loads(line)
+            arms[f"A15_{m['protocol']}"] = {"run": m["run_id"], "log": m["log"]}
+    for arm, cfg in arms.items():
         c, s, excl_gate, excl_parse, resid = [], [], 0, 0, []
         for ep_idx, _ep_id, rep in arm_episodes(cfg):
             t = rows.get(ep_idx)
