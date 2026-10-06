@@ -1845,3 +1845,13 @@ rest pose (body limit, cause not yet isolated: joint limit vs OSC). τ pre-clip
 saturates only at step 0 (reset transient, identical in the rest probe);
 ≤0.46 after step 20. Per-step orientation error is now logged by
 execute_push_segment beside the position error.
+- **Rung-1 3-ep run 3577d85e** (photos + proprioception, memory OFF, seeds
+  4700–4702): 0/3 (plateau R3, R3, R7). Contact report: in 8 of 9 early rounds
+  the cube never moved (TCP→cube min 7–24 cm). Teacher TCP targets sat far
+  short of the table/cube (x 0.15–0.24 vs cube ≈0.41) and LOW (z 0.28–0.42;
+  table contact height 0.468) — reached by the servo (TCP err ≤0.6 cm), i.e.
+  the hand went below table-top level at the near edge. ep 537ef9ab R3:
+  target x0.15 z0.28 unreachable (TCP err 35.6 cm, ori err 60°), a finger
+  touched the cube (first motion, finger, 2.2 cm); R4 the cube was knocked
+  45 cm by the wrist (link6) at step 0. Honest rung-1 x=0: no image↔grid map
+  is given. GIF `logs/push_gif_3577d85e.gif` (tag strip below the scene).
