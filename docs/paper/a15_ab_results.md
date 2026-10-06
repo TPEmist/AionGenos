@@ -81,3 +81,37 @@ For context only, and labelled post-hoc per A15.1: C_retrieval r = +0.306
 - (b) stays pending. With 1 of 3 arms in, the rise is consistent with the
   "+34 pp generalises beyond `A_ctrl_rat`" route, but that route cannot be
   selected until B_main and D_gist report.
+
+---
+
+# L2 auto-reset check (pin-8 rule applied to L2), 2026-10-06
+
+**Command:** `python3 scripts/analysis/l2_autoreset_sensitivity.py`. Results are
+in `docs/paper/data/l2_autoreset_sensitivity.json`.
+
+**The limit exists in L2.** `L2DualPushEnvCfg` inherits from the IsaacLab
+openarm ReachEnvCfg, which sets `episode_length_s = 24` (720 env steps). No
+AionGenos class overrides it. L2 eval allows up to 40 rounds × 30 steps = 1200
+steps.
+- **Boundary:** index 718 in every episode. It is derived from the step counter,
+  and every crossing is confirmed by the frozen-arm jump (0 ambiguous).
+- **Trajectory length** (q1 / median / q3 / max):
+  - A_ctrl_rat: 300 / 420 / 570 / 1200
+  - C_retrieval: 300 / 390 / 510 / 1200
+
+| Arm (run) | As-run SR | Episodes crossing | Successes after boundary | Sensitivity SR |
+|---|---|---|---|---|
+| A_ctrl_rat (`8384a740`) | 14/100 | 10 | 0 | 14/100 |
+| C_retrieval (`2154e57e`) | 20/100 | 9 | 0 | 20/100 |
+
+**Contrast:**
+
+| | Δ | Newcombe 95% CI | z | p | McNemar 9/3 | Verdict |
+|---|---|---|---|---|---|---|
+| C_retrieval − A_ctrl_rat, as-run | +6.0 pp | [−4.5, +16.4] | +1.13 | 0.259 | p = 0.146 | n.s. at α = 0.010 |
+| C_retrieval − A_ctrl_rat, sensitivity | +6.0 pp | [−4.5, +16.4] | +1.13 | 0.259 | p = 0.146 | n.s. at α = 0.010 |
+
+The two rows are identical because no L2 success happened after the reset. The
+**verdict is unchanged**: below the +20 pp MDE, n.s., DIAGNOSE branch. For the
+paper: the L2 methods should state the 24 s time-out and that 9–10 episodes per
+arm crossed it, with no success after the crossing.
