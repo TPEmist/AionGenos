@@ -175,6 +175,30 @@ Pre-registration frozen at:
 
 ## 12. Amendment log
 
+### Amendment 16 — 2026-10-05 (documentation-only erratum) — R1 ΔX units are grid units, not cm
+
+**Status**: LOCKED by this commit. Additive erratum; the locked body text is
+NOT edited. No analysis, threshold, prediction, branch rule or number changes.
+
+**Correction.** Every R1 ΔX value is in **scalar-guard grid units**, not cm:
+`r1_dx = parsed_left_pos[0] − trajectory[0].left_ee_pos[0]`
+(`scripts/analysis/d11_exploratory.py:55-64`), both operands integer grid
+coordinates in [−100, 100] (`aiongenos/vlm/scalar_guard.py` `metric_to_int`);
+`aiongenos/config.py:43` `x_bounds = (−0.3, 0.6)` m → 1 grid unit = 0.45 cm
+along x (no task overrides `workspace_bounds`).
+
+**Lines carrying the wrong "cm" label** (read as grid units): §1 l.22 (P2
+"~−16 cm … −23.5 cm"); §5 l.79–83 (D6 −23.5, memory-teacher −15.8, P2
+frozen prediction "−16 cm / −24 cm"). All comparisons are within-unit
+(distances between arms/references), so no prediction, branch selection or
+conclusion changes. The L2 R1 (DIAGNOSTIC_4b) is already labelled grid units.
+
+**Anchor**: Amendment 16 commit SHA = this commit (reported to the paper
+session). Filed by isaac from the paper-session handoff
+`docs/handoff/2026-10-05_isaac-A16-R1-units-erratum.md` (PI ruling 2026-10-05).
+
+---
+
 ### Amendment 15 — 2026-10-05 (before any A15 number exists) — Inference-only reinforcement arms + R1' slope probe
 
 **Status**: LOCKED by this commit. Lifted from the paper session's draft
