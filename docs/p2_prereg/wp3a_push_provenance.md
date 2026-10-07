@@ -1913,3 +1913,32 @@ execute_push_segment beside the position error.
   acted as a 3-round cap for all 50 episodes.
 - **[PWR-SIM]:** σ(r) ≈ 0.13–0.15 @ n = 50 noted; NOT filled until the PI pins
   one (c, s) pair from the 16-candidate exploration, after rung-1b contact data.
+
+## 2026-10-07 — pilot step (c), rung-1b (top-down view), memory ON, 50 ep (run 30f15f0c, seeds 5000–5049)
+
+- **Successes 0/50** (49 timeout at the 12-round cap, 1 plateau — Pin-12 arming
+  worked: plateau counter only armed after contact). **Pre-registered rule:
+  0 < 5 → rung-2** (mechanical, PI pre-authorized).
+- **Contact report**: cube moved in 2/595 rounds, 2/50 episodes; both first
+  contacts = WRIST (link7 / link6), incidental, not a fingertip push: in ep 15
+  R5 and ep 44 R12 the TCP target was far below the table top at the near edge
+  (z 0.28 / 0.245 vs top 0.444, x 0.15) and the arm swept into the cube. TCP→cube
+  closest per episode median 5.5 cm, min 3.9 cm, 0 within 1 cm. Scene guard
+  clamped 89 targets.
+- **Target pattern (diagnostic):** the teacher's TCP targets cluster at
+  x = 0.15 m = grid X 0 and z = 0.35 m = grid Z 0 (and lower) — i.e. it emits
+  grid-centre/zero values; the top view did not give it an image→grid mapping.
+- **Recaps / Q7**: 50/50 written (median 94 words, 0 empty). Confabulation on
+  the 48 recaps whose episode had NO cube motion: assertive 20/48 = 42%
+  (keyword 46/48) — vs rung-1 22/50 = 44%. The top view did not reduce it.
+- **r-estimator**: bootstrap σ(r) 0.115–0.150 @ n = 50; 4 of 16 exploratory
+  (c, s) candidates above their band (≈0.8 expected by chance at 5% × 16 —
+  forking paths; no claim, nothing pinned).
+- PI view: per-round GIFs (front | top + contact strip) of the only two contact
+  episodes: `logs/rung1b_contact_15_fdc85b67-ca9.gif`,
+  `logs/rung1b_contact_44_dc5061e5-e7c.gif` (pilot ran without fine-frame GIF;
+  per-round dumps only — future pilots run with GIF on).
+- **A15 ops:** B_main finished 01:46 (13c5c402, 53/100, readonly gate OK);
+  D_gist did NOT start — the reload ssh to 10.80.9.148 failed
+  ("kex_exchange_identification: Connection reset"), port 22 open but sshd
+  resets every handshake (still at 12:30). llama-servers up over HTTP.
