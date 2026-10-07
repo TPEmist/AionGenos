@@ -55,6 +55,13 @@ base-axis ORI) is the same at every rung:
 - pilot (50 ep, memory ON) successes **< 5** at a rung → the next rung in the order above; re-run
   (c) at the new rung. rung-3 successes **< 5** → stop; escalate to PI (task
   change; no rung-4).
+- **Amended by the PI on 2026-10-07: rung-3 is NOT mechanical.** If rung-2 has
+  < 5 successes, STOP and report to the PI for re-deliberation.
+  - rung-3 (coordinate disclosure) is a last resort under the A-spec founding
+    intent.
+  - Activating it needs explicit PI consent, recorded in the Ledger
+    (`dual_collect_equivalence_ledger.md`) before the run.
+  - The 1 → 1b → 2 steps stay mechanical.
 - successes **≥ 5** at the current rung → proceed to (d) at that rung.
 - Every rung activation is recorded here + in the provenance log; every
   replay / recap carries `obs_rung`; the P2 paper states which rung the data

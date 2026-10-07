@@ -106,6 +106,48 @@ memory-ON pilot shows the geometry is still insufficient (successes below
 threshold, or situation variance too thin), geometry changes before (e)
 and the pilot re-runs.
 
+## 2d. Recap honesty guard — PROPOSED (PI direction 2026-10-07; awaiting PI approval)
+
+**Why.** The WP1-③a pilots showed recap confabulation as the 4th
+minimum-viable-competence instance.
+- In episodes where the cube never moved, the recap asserted cube motion in
+  22/50 recaps at rung-1 (44%) and 20/48 at rung-1b (42%).
+- A retrieval pool that stores these teaches later generations motion that
+  never happened.
+- The pilot buffers are kept as they are, as data. This guard applies from
+  gen-0.
+
+**Rule.** The guard runs at recap write time, before the record enters the pool.
+1. Read the episode's contact report (`round_meta[].contact`). The cube is
+   "never moved" if no round has `first_cube_move`.
+2. If the cube never moved and the recap asserts cube motion, write the
+   record with `fabricated = true`.
+   - The detector is the `assertive` rule of
+     `scripts/analysis/wp3a_pilot_report.py::confab_flags`.
+   - It flags a sentence that has a motion term and is neither modal nor
+     negated.
+3. Records with `fabricated = true` are stored, but they are excluded from
+   the retrieval pool. Every exclusion is logged with the matched sentence.
+
+**Scope and disclosure.**
+- The contact report is simulator ground truth. It enters only as a
+  harness-level exclusion filter. It is never a model input, the policy
+  never sees it, and the prompts are unchanged.
+- It is recorded as a harness grant in `dual_collect_equivalence_ledger.md`.
+- The P2 paper reports, per generation, the number and rate of excluded
+  records.
+
+**Open for the PI before freeze.**
+- (i) **Detector.** `assertive` (current heuristic) or `keyword` (the PI's
+  literal term list; it also catches counterfactuals).
+- (ii) **Detector validation.** Proposed: a human label on a 50-recap sample
+  of the pilot buffers, reporting precision and recall. The terms and regex
+  are then frozen.
+- (iii) **Moved-cube episodes.** Should the guard also cover recaps that
+  claim the goal was reached when the episode did not succeed?
+  - Proposed: yes, using the same mechanism with `outcome` as the ground
+    truth.
+
 ## 3. A-priori hypothesis list (post-hoc P1 threads → pre-registered P2 predictions)
 
 Each P1 exploratory thread is promoted here to an a-priori prediction with

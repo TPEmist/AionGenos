@@ -37,7 +37,9 @@ from push_r_inputs import load_push_r_inputs, r_for_candidates  # noqa: E402
 import push_r_inputs as pri  # noqa: E402
 
 RUNG_THRESHOLD = 5  # wp3a_pilot_plan.md: successes < 5 → next rung (pre-registered)
-NEXT_RUNG = {1: "1b", "1b": 2, 2: 3, 3: "STOP → escalate to PI"}
+# rung-2 → rung-3 needs PI consent + Ledger entry (PI 2026-10-07; wp3a_pilot_plan.md)
+NEXT_RUNG = {1: "1b", "1b": 2, 2: "STOP → PI re-deliberation (rung-3 = last resort, needs PI consent + Ledger)",
+             3: "STOP → escalate to PI"}
 
 
 def contact_summary(eps: list[dict]) -> dict:

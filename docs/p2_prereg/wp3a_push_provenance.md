@@ -1942,3 +1942,60 @@ execute_push_segment beside the position error.
   D_gist did NOT start — the reload ssh to 10.80.9.148 failed
   ("kex_exchange_identification: Connection reset"), port 22 open but sshd
   resets every handshake (still at 12:30). llama-servers up over HTTP.
+
+## 2026-10-07 (afternoon): GPU host reboot, rung-2 run voided, D_gist started, PI amendments
+
+### GPU host reboot
+- The PI rebooted host 10.80.9.148 at about 13:18.
+- My earlier ssh failures were partly my own error: I connected as `control@`,
+  but the host account is `exx@` (`REMOTE_HOST` in `run_a15_night.sh`).
+- After the reboot no llama-server was running. I restarted both with the
+  repo scripts and changed no config:
+  - teacher: `server/llama_server_teacher.sh`, port 18888, layer split over
+    3 GPUs;
+  - student: `server_side/reload_student_dual.sh`, port 18889, GPU0.
+- GPU placement is identical to `logs/cost_remeasure_run_*.log` from 10-05.
+
+### Adapter integrity before D_gist
+- A_ctrl_rat SFT/KTO sha256 are identical to the handoff 7229335 values
+  (`4807767d…`, `7f7f7363…`). The disk is intact after the reboot.
+- D_gist has no earlier recorded hash. Recorded now:
+
+| Adapter | sha256 | Size | mtime |
+|---|---|---|---|
+| `data/lora_gguf/d11_D_gist_sft/adapter.gguf` | `dba178f3f974b8c90d63667bdc2c9d74a5e9eff512335ca3f14e977ba059ff85` | 489,774,208 B | 2026-07-11 01:59:23 (D11 export, unchanged) |
+| `data/lora_gguf/d11_D_gist_kto/adapter.gguf` | `d5ebc32f1645a01e7ffc01e9cc1454161d5b947928955cc7f85b75b21801dfd6` | 489,774,208 B | 2026-07-11 01:59:23 (D11 export, unchanged) |
+
+- `/lora-adapters` lists exactly these two files, at scale 1.0.
+
+### A15 D_gist started manually
+- Started at 13:37 by PI order:
+  `run_a15_night.sh --ignore-window`. Pre-flight passed (lock, buffer tar
+  and tree hash). The cost re-measure and arms a/action_only/B_main were
+  skipped as already complete.
+- Run `fdb2a9b0`, log `logs/a15_b_D_gist_ret_20261007_133730.log`.
+- I stopped the 18:00 waiter (PID 4097775, cmdline verified) so that it
+  cannot start a second driver while this one is running.
+
+### rung-2 run 73210d6a VOIDED
+- Teacher connection lost at 13:22 because of the host reboot.
+- Episodes 0–12 ran (13 timeouts, 0 successes). ep13 was cut at R12.
+  ep14–49 are `vlm_parse_fail` with 0 rounds.
+- This is not a valid 50-episode pilot.
+- The buffer `workspace/recaps_push_pilot_rung2` (13 recaps) is kept as
+  data and not reused.
+- Re-run started at about 13:41: same seeds 5000–5049, a fresh buffer
+  `workspace/recaps_push_pilot_rung2_r2`, GIF on.
+  - PID is in `logs/pilot_rung2r2.pid`.
+  - It runs concurrently with D_gist on the local GPU (12.3/20 GB).
+  - D_gist and the pilot use different servers, so they do not compete for
+    the model.
+
+### PI amendments (2026-10-07)
+- **rung-2 → rung-3 is no longer mechanical.** If rung-2 has < 5 successes,
+  stop and report to the PI. rung-3 needs PI consent and a Ledger entry.
+  Recorded in `wp3a_pilot_plan.md` and `wp3a_pilot_report.py` `NEXT_RUNG`.
+- **New rung-2 diagnostic:** the (x, z) distribution of teacher targets
+  across rungs 1, 1b and 2. Tool: `scripts/analysis/wp3a_target_hist.py`.
+- **Recap honesty guard** proposed as P2 prereg §2d, awaiting PI approval.
+  The pilot buffers are not cleaned.
