@@ -113,6 +113,12 @@ parser.add_argument(
          "Only POSITION_ONLY (L0) is supported in Phase 4.",
 )
 parser.add_argument(
+    "--a17_context", type=str, default=None, choices=(None, "text_only", "image_only"),
+    help="D11 Amendment 17: ablate the retrieved context — text_only drops the "
+         "anchor images, image_only drops the lesson lines (aiongenos/memory/"
+         "a17_ablation.py). Retrieval selection is unchanged. Unset → no wrapper.",
+)
+parser.add_argument(
     "--eval_scored_arm",
     type=str,
     default=None,
@@ -211,6 +217,12 @@ def main():
             )
     elif args_cli.use_memory:
         logger.warning("--use_memory ignored (no --recap_buffer_root provided)")
+    if args_cli.a17_context:
+        if memory_retriever is None:
+            raise SystemExit("--a17_context needs --recap_buffer_root and --use_memory")
+        from aiongenos.memory.a17_ablation import AblatedMemoryRetriever
+        memory_retriever = AblatedMemoryRetriever(memory_retriever, args_cli.a17_context)
+        logger.info(f"A17 context ablation: {args_cli.a17_context}")
 
     try:
         # Run end-to-end collect loop
