@@ -1999,3 +1999,78 @@ execute_push_segment beside the position error.
   across rungs 1, 1b and 2. Tool: `scripts/analysis/wp3a_target_hist.py`.
 - **Recap honesty guard** proposed as P2 prereg §2d, awaiting PI approval.
   The pilot buffers are not cleaned.
+
+## 2026-10-08 — pilot step (c), rung-2 (scalar distances), memory ON, 50 ep (run 3e8c52d4, seeds 5000–5049), valid re-run
+
+**Validity.** The run had 0 VLM connection failures, 50/50 episodes and 594
+rounds. It replaces the voided 73210d6a.
+
+**1. Successes: 0/50** (48 timeout, 2 plateau).
+- **PI rule of 10-07 applies: STOP. No rung-3.** Reported to the PI for
+  re-deliberation.
+
+**2. Contact report**
+- The cube moved in 2/50 episodes (2/594 rounds).
+  - ep0 R5: wrist, incidental, 4.0 cm.
+  - **ep18 R7: FINGER (TCP link)**, the first fingertip push in WP1-③a.
+    - It is the 1st fingertip push in 50 + 50 + 50 pilot episodes.
+    - The cube moved 3.2 cm, mostly sideways, and cube→goal changed
+      9.8 → 9.0 cm.
+    - The teacher's raw target was below the table top (z 0.385). The scene
+      guard lifted it to 0.454.
+- TCP→cube closest per episode: median 5.2 cm, min 0.67 cm. **3 episodes
+  within 1 cm** (ep2 0.80, ep18 0.67, ep43 0.95). rung-1b had 0.
+- Scene guard target clamps: 76.
+
+**Fine-frame GIFs for the PI** (first human-eye gate). These are the first
+3 episodes meeting the PI criterion (fingertip < 1 cm, or a fingertip push).
+Front camera, every 9 servo steps, round + GT strip.
+- Files:
+  - `logs/rung2_fine_ep02_84fc24e9-867.gif`
+  - `logs/rung2_fine_ep18_144fd969-e61.gif`
+  - `logs/rung2_fine_ep43_952305a3-cf5.gif`
+- Each GIF has a per-round contact report beside it (`*_contact.json`).
+- How they were cut: from the run GIF, at exactly 10 frames per round. The
+  90-step segment is captured at steps 0, 9, …, 81, and 5940 frames = 594
+  rounds × 10. The split was checked on the ep18 R6/R7/R8 strip.
+
+**3. Target distribution** (`wp3a_target_hist.py`; `logs/wp3a_target_hist.{json,png}`)
+
+| Rung | X at 0 | Z at 0 | X0 & Z0 | Distinct X / Z | Median \|target−cube\| X / Y |
+|---|---|---|---|---|---|
+| 1 | 31% | 9% | 9% | 14 / 16 | 33 / 12 |
+| 1b | 68% | 21% | 16% | 18 / 30 | 55 / 30 |
+| 2 | 26% | 5% | 4% | 37 / 38 | 23.5 / 17.5 |
+
+- rung-2 **leaves grid zero**: the Z-zero mass drops 21 → 5%, the number of
+  distinct values doubles, and targets are about 2× closer to the cube than
+  at rung-1b.
+- The round-1 target does **not** track the cube position:
+  - Spearman X −0.13, Y −0.14.
+  - Expected: a scalar distance carries no direction before the first
+    action.
+- Within an episode the scalar is **not** used to close in:
+  - TCP→cube (xy) after R1 has median 10.6 cm; at the last round it is
+    23.8 cm.
+  - Only 5/50 episodes end closer than after R1.
+- Reading: the distance scalar moves the teacher off the grid-centre prior,
+  but it does not act as a closed-loop anchor.
+
+**4. Recaps and confabulation**
+- 50/50 written, median 96 words.
+- The heuristic flags 5/48 as assertive (keyword 39/48).
+- **I hand-read all 5. All are false positives:** "Subsequent targets moved
+  further away" refers to the TCP, and "LESSON: … push directly toward the
+  goal" is an imperative that matched "toward".
+- **True confabulation 0/48**, against 44% at rung-1 and 42% at rung-1b.
+  - The recaps quote the distance scalars ("the cube remained stationary,
+    7.6 cm from the goal").
+  - Consistent with MVC: the recap is honest once the outcome is perceivable.
+- The opposite error also exists. ep0's recap says the cube "remained
+  stationary", but the wrist moved it 4.0 cm. This is under-reporting.
+- Input for §2d (honesty guard):
+  - the assertive detector needs an imperative/LESSON exclusion;
+  - the guard should also catch "cube did not move" when it did.
+
+**5. r-estimator:** bootstrap σ(r) 0.126–0.153 @ n = 50. 4/16 candidates are
+above band, at chance level; c/s are still not pinned.
