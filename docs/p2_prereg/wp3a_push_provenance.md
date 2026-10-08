@@ -2074,3 +2074,15 @@ Front camera, every 9 servo steps, round + GT strip.
 
 **5. r-estimator:** bootstrap σ(r) 0.126–0.153 @ n = 50. 4/16 candidates are
 above band, at chance level; c/s are still not pinned.
+
+### 2026-10-08: human-eye gate on the rung-2 fine GIFs (PI)
+**PI verdict: PASS.** The PI viewed ep02, ep18 and ep43 and found the poses
+natural, the fingertip about to make contact, and the pushing direction
+correct in all three.
+
+GT cross-check, for the record:
+- Only ep18 actually moved the cube (R7).
+- Its displacement (+0.6, −3.2) cm is 66° off the cube→goal direction
+  (+9.6, −2.1). It is partly toward the goal (cos 0.40); most of the motion
+  is sideways.
+- ep02 and ep43 made no contact (closest 0.80 / 0.95 cm).
