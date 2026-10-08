@@ -1,0 +1,120 @@
+{
+ "A_action_only": {
+  "r": -0.29757804398478066,
+  "band": [
+   -0.17737651824931594,
+   0.20088185973642858
+  ],
+  "above_band": false,
+  "n": 100,
+  "excluded_recovery_gate": 0,
+  "excluded_no_r1": 0,
+  "gate_residual_median_m": 0.004008352756500244,
+  "gate_residual_max_m": 0.009656459093093872
+ },
+ "A_ctrl_rat": {
+  "r": -0.2447017352344807,
+  "band": [
+   -0.1916038636196572,
+   0.19665722500699334
+  ],
+  "above_band": false,
+  "n": 100,
+  "excluded_recovery_gate": 0,
+  "excluded_no_r1": 0,
+  "gate_residual_median_m": 0.004194244742393494,
+  "gate_residual_max_m": 0.010624736547470093
+ },
+ "B_main": {
+  "r": -0.15631653936852655,
+  "band": [
+   -0.18606362402317853,
+   0.19736462929331422
+  ],
+  "above_band": false,
+  "n": 100,
+  "excluded_recovery_gate": 0,
+  "excluded_no_r1": 0,
+  "gate_residual_median_m": 0.004296496510505676,
+  "gate_residual_max_m": 0.009528666734695435
+ },
+ "D_gist": {
+  "r": -0.20728191386313025,
+  "band": [
+   -0.18407974748003597,
+   0.1990463634299142
+  ],
+  "above_band": false,
+  "n": 100,
+  "excluded_recovery_gate": 0,
+  "excluded_no_r1": 0,
+  "gate_residual_median_m": 0.003965839743614197,
+  "gate_residual_max_m": 0.010371342301368713
+ },
+ "C_retrieval": {
+  "r": 0.3058177336123941,
+  "band": [
+   -0.19152094267933964,
+   0.19418829834275328
+  ],
+  "above_band": true,
+  "n": 100,
+  "excluded_recovery_gate": 0,
+  "excluded_no_r1": 0,
+  "gate_residual_median_m": 0.006886139512062073,
+  "gate_residual_max_m": 0.012099996209144592
+ },
+ "A15_a_base_ret": {
+  "r": 0.2909390756152243,
+  "band": [
+   -0.2090969738526091,
+   0.18656479111477875
+  ],
+  "above_band": true,
+  "n": 100,
+  "excluded_recovery_gate": 0,
+  "excluded_no_r1": 0,
+  "gate_residual_median_m": 0.006896287202835083,
+  "gate_residual_max_m": 0.013282790780067444
+ },
+ "A15_b_action_only_ret": {
+  "r": 0.48727098260459506,
+  "band": [
+   -0.20319877574183065,
+   0.1860965950687787
+  ],
+  "above_band": true,
+  "n": 100,
+  "excluded_recovery_gate": 0,
+  "excluded_no_r1": 0,
+  "gate_residual_median_m": 0.007190033793449402,
+  "gate_residual_max_m": 0.01329486072063446
+ },
+ "A15_b_B_main_ret": {
+  "r": 0.35921817189814853,
+  "band": [
+   -0.20153050658586993,
+   0.18520131573749918
+  ],
+  "above_band": true,
+  "n": 100,
+  "excluded_recovery_gate": 0,
+  "excluded_no_r1": 0,
+  "gate_residual_median_m": 0.0070456862449646,
+  "gate_residual_max_m": 0.012180373072624207
+ },
+ "A15_b_D_gist_ret": {
+  "r": 0.4415634337903,
+  "band": [
+   -0.19916212442091705,
+   0.1940808144519766
+  ],
+  "above_band": true,
+  "n": 100,
+  "excluded_recovery_gate": 0,
+  "excluded_no_r1": 0,
+  "gate_residual_median_m": 0.006905794143676758,
+  "gate_residual_max_m": 0.013358399271965027
+ },
+ "D10_teacher_pool": "not computable: D10 collects were unseeded, target not on disk (A15 op pin 5)"
+}

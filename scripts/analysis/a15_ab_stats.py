@@ -1,4 +1,4 @@
-"""D11 Amendment 15 (a)/(b) — paired statistics vs the locked predictions.
+"""D11 Amendment 15 (a)/(b), all four arms — paired statistics vs the locked predictions.
 
 Reuses the Amendment-14 analysis code UNCHANGED (scripts/analysis/d11_mcnemar.py:
 log-order pairing, outcome rule, init fingerprint, mcnemar, two_prop_z) and the
@@ -29,8 +29,11 @@ ALPHA = 0.05
 A15_RUNS = {   # from logs/a15_manifest.jsonl
     "a_base_ret": {"run": "995f496c", "log": "logs/a15_a_base_ret_20261005_183416.log"},
     "b_action_only_ret": {"run": "9be74fc2", "log": "logs/a15_b_action_only_ret_20261005_232131.log"},
+    "b_B_main_ret": {"run": "13c5c402", "log": "logs/a15_b_B_main_ret_20261006_180050.log"},
+    "b_D_gist_ret": {"run": "fdb2a9b0", "log": "logs/a15_b_D_gist_ret_20261007_133730.log"},
 }
-OWN_BASELINE = {"b_action_only_ret": "A_action_only"}   # (b): rise vs the arm's own no-retrieval D11 run
+OWN_BASELINE = {"b_action_only_ret": "A_action_only", "b_B_main_ret": "B_main",
+                "b_D_gist_ret": "D_gist"}   # (b): rise vs the arm's own no-retrieval D11 run
 BOUNDARY_IDX = 718   # pin 8 / a15_p1_autoreset_sensitivity.py (counter-derived, all runs)
 
 
