@@ -2086,3 +2086,62 @@ GT cross-check, for the record:
   (+9.6, −2.1). It is partly toward the goal (cos 0.40); most of the motion
   is sideways.
 - ep02 and ep43 made no contact (closest 0.80 / 0.95 cm).
+
+### 2026-10-08: PI eye-gate answers and a reachability check of the current executor
+**PI verdicts:**
+1. **ep18 R7 = B (physics/geometry).** The fingertip aimed behind the cube, then
+   slid, or the cube was squeezed sideways.
+2. **The hand mostly jumps left and right.** The PI asked whether this is out of
+   reach, and whether to move cube + goal 7–8 cm toward the body.
+
+**Probe.** `scripts/diagnostics/wp3a_reach_tcp.py` uses the same call as
+push_collect: TCP target, `command_quat(q_rest, ORI)`, 90-step segments, a fresh
+standby reset per cell, and the cube parked off the table. The Pin-4b check
+(10-05) predates the TCP/rest-orientation interface and used an 8 cm bar on hand
+targets.
+
+**Results**
+- **x/y reach: OK.** The whole push workspace at cube-centre height (z 0.468),
+  x 0.32–0.52 and y 0.01–0.21, gives TCP error 0.5–1.6 cm after **one** round.
+  - This covers the approach band, the cube region and the goal clip.
+  - The only failure is x 0.52 / y ≥ 0.19 (17–28 cm, joint1/joint5 at limit),
+    which is outside the goal clip.
+  - Moving cube + goal toward the body is **not needed** for reach; x 0.32 is
+    no better.
+  - Data: `logs/wp3a_reach_tcp.json`.
+- **Height floor: the real limit.** At ORI = 0 the TCP cannot go below
+  **z ≈ 0.471** (table top 0.444; cube spans 0.444–0.492, centre 0.468).
+  - Targets at 0.455 and 0.468 both end at 0.471.
+  - This holds for pitch −30…+15.
+  - At pitch **+30** the TCP reaches 0.456 (error 0.1 cm, orientation error 4°).
+  - The scene guard is not the cause: its floor is 0.454 and it never
+    clamped.
+  - Joint3 sits at its soft limit in every cell, including the successful
+    P +30 cell, so joint3 is not the cause either.
+  - Reading: some hand/finger geometry below the TCP origin rests on the
+    table under the rest orientation. Which link is not yet identified;
+    `lowest_left_link` sees body origins only.
+  - Data: `logs/wp3a_reach_tcp_zprobe.json`, `logs/wp3a_reach_tcp_oriprobe.json`.
+- **Pilot cross-check (rung-2, 3e8c52d4)**
+  - Inside the workspace (z ≥ 0.44), all 85 rounds with reach error > 2 cm
+    had low targets (z 0.45–0.46). The TCP stopped a median 2.2 cm above the
+    target.
+  - Only 2 of the 85 were blocked by the cube.
+  - Teacher ORI was 0 in 219/220 of these rounds.
+  - So the fingertip can only meet the **upper half** of the cube. Pushing
+    above the centre fits the PI's B (slide / sideways squeeze) and the ep0
+    and rung-1b wrist contacts.
+- **Lateral jumping is not reach.** Round-to-round target |Δy| has median
+  2.0 cm, and the sign of Δy flips in 51% of consecutive moves, as in a
+  random walk.
+  - A scalar distance gives no direction, so the teacher searches by
+    trial and error.
+  - It is an information limit, not a kinematic one.
+
+**Open for the PI**
+- (i) Contact height as a lesson to earn: pitch is already in the teacher's ORI
+  channel, but it is unused.
+- (ii) A harness grant: change the rest orientation (the Pin-7a standby is
+  PI-tuned; this is a body change under the freeze clause).
+- (iii) A task change: a taller cube.
+- Together with the rung-2 STOP decision.
