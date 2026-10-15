@@ -1,0 +1,1205 @@
+file,line,token,mutated,result,gate_msg,context
+bar/main.tex,59,1,2,CAUGHT,"BAR T1 delta: says '2', source says '1'",detectably carry the memory benefit ($+1$
+bar/main.tex,64,34,35,CAUGHT,"BAR identical-weights delta: says '35', source says '34'",weights recovered it ($+34$ pp on identical weights
+bar/main.tex,64,5.15,5.16,CAUGHT,"CLAIM identical-weights z: bar/main.tex says '5.16', certificate (derived_stats.txt) says '5.15'","it ($+34$ pp on identical weights, $z{=}5.15$,"
+bar/main.tex,65,23,24,CAUGHT,"BAR T4 delta: says '24', source says '23'",exploratory; $+23$ pp on the pre-registere
+bar/main.tex,65,3.36,3.37,CAUGHT,"BAR T4 z: says '3.37', source says '3.36'","pre-registered protocol contrast, $z{=}3.36$,"
+bar/main.tex,66,36,37,CAUGHT,"BAR abstract sensitivity pair != certified (identical-weights, T4)",confirmatory; $+36$ / $+29$ pp under a pre-
+bar/main.tex,66,29,20,CAUGHT,"BAR abstract sensitivity pair != certified (identical-weights, T4)",confirmatory; $+36$ / $+29$ pp under a pre-register
+bar/main.tex,67,49.3,49.4,CAUGHT,"CLAIM memory-teacher pool: bar/main.tex says '49.4', certificate (derived_stats.txt) says '49.3'",ng the pooled memory-teacher reference (49.3\%).
+bar/main.tex,72,6,7,CAUGHT,"BAR L2 delta: says '7', source says '6'","but is not significant ($+6$ pp, sub-MDE). Follow-up"
+bar/main.tex,74,48,49,CAUGHT,A15 literal '(48\%)andeveryotheradapter(53--55\%)' not in bar/main.tex,(48\%) and every other adapt
+bar/main.tex,74,53,54,CAUGHT,A15 literal '(48\%)andeveryotheradapter(53--55\%)' not in bar/main.tex,(48\%) and every other adapter (53--55\%) alike: the recipe
+bar/main.tex,74,55,56,CAUGHT,A15 literal '(48\%)andeveryotheradapter(53--55\%)' not in bar/main.tex,(48\%) and every other adapter (53--55\%) alike: the recipe is
+bar/main.tex,104,2,3,MISSED,,in a $2{\times}2$ over the teach
+bar/main.tex,104,2,3,MISSED,,in a $2{\times}2$ over the teacher's nati
+bar/main.tex,128,25,26,CAUGHT,"BAR Table 1 A_action_only: expected '25 (21)', found ('26', '21')",_only} & canonical action only & none & 25 (21) \\
+bar/main.tex,128,21,22,CAUGHT,"BAR Table 1 A_action_only: expected '25 (21)', found ('25', '22')",y} & canonical action only & none & 25 (21) \\
+bar/main.tex,129,15,16,CAUGHT,"BAR Table 1 A_ctrl_rat: expected '15 (12)', found ('16', '12')",& + teacher's native thought & none & 15 (12) \\
+bar/main.tex,129,12,13,CAUGHT,"BAR Table 1 A_ctrl_rat: expected '15 (12)', found ('15', '13')",+ teacher's native thought & none & 15 (12) \\
+bar/main.tex,130,19,10,CAUGHT,"BAR Table 1 D_gist: expected '19 (17)', found ('10', '17')",& + retrieved-lesson gist & none & 19 (17) \\
+bar/main.tex,130,17,18,CAUGHT,"BAR Table 1 D_gist: expected '19 (17)', found ('19', '18')",& + retrieved-lesson gist & none & 19 (17) \\
+bar/main.tex,131,26,27,CAUGHT,"BAR Table 1 B_main: expected '26 (19)', found ('27', '19')",& + native thought \& gist & none & 26 (19) \\
+bar/main.tex,131,19,10,CAUGHT,"BAR Table 1 B_main: expected '26 (19)', found ('26', '10')",& + native thought \& gist & none & 26 (19) \\
+bar/main.tex,132,49,40,CAUGHT,"BAR Table 1 C_retrieval: expected '49 (48)', found ('40', '48')",rat} weights) & frozen teacher buffer & 49 (48) \\
+bar/main.tex,132,48,49,CAUGHT,"BAR Table 1 C_retrieval: expected '49 (48)', found ('49', '49')",weights) & frozen teacher buffer & 49 (48) \\
+bar/main.tex,137,2,3,MISSED,,distillation \emph{target} contains (a $2{\times}2$ over teacher's
+bar/main.tex,137,2,3,MISSED,,ion \emph{target} contains (a $2{\times}2$ over teacher's native
+bar/main.tex,141,100,101,MISSED,,at inference. SR = as-run successes of 100 (primary); in parenthese
+bar/main.tex,142,15,16,MISSED,,"registered sensitivity count (Amendment 15, pin 8), which keeps onl"
+bar/main.tex,142,8,9,MISSED,,"ed sensitivity count (Amendment 15, pin 8), which keeps only"
+bar/main.tex,143,24,25,MISSED,,"successes reached before an inherited 24\,s environment auto-rese"
+bar/main.tex,176,1,2,MISSED,,"control by $+1$ pp (n.s., confirmatory;"
+bar/main.tex,176,2,3,CAUGHT,"BAR sensitivity delta '-3' is not a certified sensitivity contrast ['+29', '+36', '-2']","$ pp (n.s., confirmatory; sensitivity $-2$ pp); the registered tes"
+bar/main.tex,181,34,35,CAUGHT,"BAR identical-weights delta: says '35', source says '34'",aching inference-time retrieval added $+34$ pp
+bar/main.tex,182,5.15,5.16,CAUGHT,"CLAIM identical-weights z: bar/main.tex says '5.16', certificate (derived_stats.txt) says '5.15'","(identical-weights contrast, $z{=}5.15$, exploratory; sensitivi"
+bar/main.tex,182,36,37,CAUGHT,"BAR sensitivity delta '+37' is not a certified sensitivity contrast ['+29', '+36', '-2']","$z{=}5.15$, exploratory; sensitivity $+36$ pp);"
+bar/main.tex,183,23,24,CAUGHT,"BAR T4 delta: says '24', source says '23'","egistered protocol contrast agrees at $+23$ pp ($z{=}3.36$,"
+bar/main.tex,183,3.36,3.37,CAUGHT,"BAR T4 z: says '3.37', source says '3.36'","tocol contrast agrees at $+23$ pp ($z{=}3.36$,"
+bar/main.tex,184,29,20,CAUGHT,"BAR sensitivity delta '+20' is not a certified sensitivity contrast ['+29', '+36', '-2']",confirmatory; sensitivity $+29$ pp). Retrieval reached
+bar/main.tex,185,49.3,49.4,CAUGHT,"CLAIM memory-teacher pool: bar/main.tex says '49.4', certificate (derived_stats.txt) says '49.3'","teacher reference (Figure~\ref{fig:sr}; 49.3\%, 109/221 over three"
+bar/main.tex,185,109,100,MISSED,,"reference (Figure~\ref{fig:sr}; 49.3\%, 109/221 over three"
+bar/main.tex,185,221,222,MISSED,,"rence (Figure~\ref{fig:sr}; 49.3\%, 109/221 over three"
+bar/main.tex,187,47.5,47.6,CAUGHT,"BAR teacher sensitivity: says '47.6', source says '47.5'",47.5\%).
+bar/main.tex,191,15,16,MISSED,,whose bare success rate (15/100; sensitivity 12) is
+bar/main.tex,191,100,101,MISSED,,whose bare success rate (15/100; sensitivity 12) is the
+bar/main.tex,191,12,13,MISSED,,bare success rate (15/100; sensitivity 12) is the lowest of the fo
+bar/main.tex,192,34,35,MISSED,,$+34$ pp identical-weights co
+bar/main.tex,194,26,27,MISSED,,"(\texttt{B\_main}, 26/100; sensitivity 19) giv"
+bar/main.tex,194,100,101,MISSED,,"(\texttt{B\_main}, 26/100; sensitivity 19) gives t"
+bar/main.tex,194,19,10,MISSED,,"(\texttt{B\_main}, 26/100; sensitivity 19) gives the more conserva"
+bar/main.tex,194,23,24,MISSED,,ivity 19) gives the more conservative $+23$ pp. We report
+bar/main.tex,201,100,101,MISSED,,\caption{As-run success (of 100) for all five arms; no c
+bar/main.tex,204,15,16,MISSED,,targets) span 15--26; memory supplied in
+bar/main.tex,204,26,27,MISSED,,targets) span 15--26; memory supplied in \emp
+bar/main.tex,206,49.3,49.4,CAUGHT,"CLAIM memory-teacher pool: bar/main.tex says '49.4', certificate (derived_stats.txt) says '49.3'","reference (dashed, 49.3\%, three unseeded collec"
+bar/main.tex,213,1,2,MISSED,,"edictions; Figure~\ref{fig:r1}).} Round-1 lateral displacement, in"
+bar/main.tex,214,1,2,MISSED,,"scalar-guard grid units (1 unit $=$ 0.45\,cm along"
+bar/main.tex,214,0.45,0.46,MISSED,,"scalar-guard grid units (1 unit $=$ 0.45\,cm along x; units errat"
+bar/main.tex,215,16,17,MISSED,,"Amendment 16), is consistent with dis"
+bar/main.tex,217,15.8,15.9,CAUGHT,"BAR R1 distilled mean range: says '-15.9to-18.1', source says '-15.8to-18.1'","egardless of situation (per-arm means $-15.8$ to $-18.1$, near the"
+bar/main.tex,217,18.1,18.2,CAUGHT,"BAR R1 distilled mean range: says '-15.8to-18.2', source says '-15.8to-18.1'","f situation (per-arm means $-15.8$ to $-18.1$, near the"
+bar/main.tex,218,15.8,15.9,MISSED,,memory-teacher fingerprint $-15.8$) --- but not the \emph{
+bar/main.tex,220,7.1,7.2,CAUGHT,"BAR R1 C_retrieval mean: says '-7.2', source says '-7.1'","($-7.1$) with a wider, per-epis"
+bar/main.tex,220,14.4,14.5,CAUGHT,BAR R1 distilled sigma range: no occurrence (slot 14\.4vs(\d+\.\d--\d+\.\d)),"a wider, per-episode spread ($\sigma$ $14.4$ vs"
+bar/main.tex,221,7.9,7.0,CAUGHT,"BAR R1 distilled sigma range: says '7.0--10.1', source says '7.9--10.1'",$7.9$--$10.1$). This selects
+bar/main.tex,221,10.1,10.2,CAUGHT,"BAR R1 distilled sigma range: says '7.9--10.2', source says '7.9--10.1'",$7.9$--$10.1$). This selects the pre-
+bar/main.tex,228,1,2,MISSED,,\caption{Round-1 $\Delta$X (grid units; 1
+bar/main.tex,228,1,2,MISSED,,"\caption{Round-1 $\Delta$X (grid units; 1 unit $=$ 0.45\,cm along"
+bar/main.tex,228,0.45,0.46,MISSED,,"und-1 $\Delta$X (grid units; 1 unit $=$ 0.45\,cm along x),"
+bar/main.tex,232,23.5,23.6,MISSED,,the D6 memoryless teacher ($-23.5$) and the memory teacher
+bar/main.tex,233,15.8,15.9,MISSED,,quartile ($-15.8$). The four distilled ar
+bar/main.tex,241,15,16,MISSED,,in review were registered as Amendment~15 after
+bar/main.tex,243,100,101,MISSED,,same 100 seeded configurations wi
+bar/main.tex,246,0.05,0.06,MISSED,,imary by the locked fallback ($\alpha{=}0.05$).
+bar/main.tex,250,48,49,CAUGHT,"A15 literal '48(48)of100,against49(48)for' not in bar/main.tex","and \emph{no} adapter scored 48 (48) of 100, against 49"
+bar/main.tex,250,48,49,CAUGHT,"A15 literal '48(48)of100,against49(48)for' not in bar/main.tex","and \emph{no} adapter scored 48 (48) of 100, against 49 (48)"
+bar/main.tex,250,100,101,CAUGHT,"A15 literal '48(48)of100,against49(48)for' not in bar/main.tex","and \emph{no} adapter scored 48 (48) of 100, against 49 (48) for"
+bar/main.tex,250,49,40,CAUGHT,"A15 literal '48(48)of100,against49(48)for' not in bar/main.tex","adapter scored 48 (48) of 100, against 49 (48) for"
+bar/main.tex,250,48,49,CAUGHT,"A15 literal '48(48)of100,against49(48)for' not in bar/main.tex","pter scored 48 (48) of 100, against 49 (48) for"
+bar/main.tex,251,1,2,CAUGHT,"A15 literal '-1pp,95\%CI[-14.6,+12.6],z=-0.14,p=0.89' not in bar/main.tex","\texttt{C\_retrieval}: $-1$ pp, 95\% CI $[-14.6, +1"
+bar/main.tex,251,95,96,CAUGHT,"A15 literal '-1pp,95\%CI[-14.6,+12.6],z=-0.14,p=0.89' not in bar/main.tex","\texttt{C\_retrieval}: $-1$ pp, 95\% CI $[-14.6, +12.6]$, $"
+bar/main.tex,251,14.6,14.7,CAUGHT,"A15 literal '-1pp,95\%CI[-14.6,+12.6],z=-0.14,p=0.89' not in bar/main.tex","xttt{C\_retrieval}: $-1$ pp, 95\% CI $[-14.6, +12.6]$, $z{=}{-}0.14$,"
+bar/main.tex,251,12.6,12.7,CAUGHT,"A15 literal '-1pp,95\%CI[-14.6,+12.6],z=-0.14,p=0.89' not in bar/main.tex","_retrieval}: $-1$ pp, 95\% CI $[-14.6, +12.6]$, $z{=}{-}0.14$,"
+bar/main.tex,251,0.14,0.15,CAUGHT,"A15 literal '-1pp,95\%CI[-14.6,+12.6],z=-0.14,p=0.89' not in bar/main.tex","$ pp, 95\% CI $[-14.6, +12.6]$, $z{=}{-}0.14$,"
+bar/main.tex,252,0.89,0.80,CAUGHT,"A15 literal '-1pp,95\%CI[-14.6,+12.6],z=-0.14,p=0.89' not in bar/main.tex",$p{=}0.89$. This misses the regist
+bar/main.tex,255,14.6,14.7,CAUGHT,A15 literal 'upto14.6pp' not in bar/main.tex,"14.6 pp), so by the locked fa"
+bar/main.tex,259,53,54,CAUGHT,"A15 literal '53(53)for\textttA\_action\_only,53(50)for\textttB\_mainand55(55)for\textttD\_gist,upfrom25,26and19' not in ",the other three adapters gave 53 (53) for \texttt{A\_acti
+bar/main.tex,259,53,54,CAUGHT,"A15 literal '53(53)for\textttA\_action\_only,53(50)for\textttB\_mainand55(55)for\textttD\_gist,upfrom25,26and19' not in ",the other three adapters gave 53 (53) for \texttt{A\_action\_
+bar/main.tex,259,53,54,CAUGHT,"A15 literal '53(53)for\textttA\_action\_only,53(50)for\textttB\_mainand55(55)for\textttD\_gist,upfrom25,26and19' not in ","e 53 (53) for \texttt{A\_action\_only}, 53 (50)"
+bar/main.tex,259,50,51,CAUGHT,"A15 literal '53(53)for\textttA\_action\_only,53(50)for\textttB\_mainand55(55)for\textttD\_gist,upfrom25,26and19' not in ","(53) for \texttt{A\_action\_only}, 53 (50)"
+bar/main.tex,260,55,56,CAUGHT,"A15 literal '53(53)for\textttA\_action\_only,53(50)for\textttB\_mainand55(55)for\textttD\_gist,upfrom25,26and19' not in ",for \texttt{B\_main} and 55 (55) for \texttt{D\_gist
+bar/main.tex,260,55,56,CAUGHT,"A15 literal '53(53)for\textttA\_action\_only,53(50)for\textttB\_mainand55(55)for\textttD\_gist,upfrom25,26and19' not in ","for \texttt{B\_main} and 55 (55) for \texttt{D\_gist}, u"
+bar/main.tex,260,25,26,CAUGHT,"A15 literal '53(53)for\textttA\_action\_only,53(50)for\textttB\_mainand55(55)for\textttD\_gist,upfrom25,26and19' not in ","d 55 (55) for \texttt{D\_gist}, up from 25, 26 and"
+bar/main.tex,260,26,27,CAUGHT,"A15 literal '53(53)for\textttA\_action\_only,53(50)for\textttB\_mainand55(55)for\textttD\_gist,upfrom25,26and19' not in ","(55) for \texttt{D\_gist}, up from 25, 26 and"
+bar/main.tex,261,19,10,CAUGHT,"A15 literal '53(53)for\textttA\_action\_only,53(50)for\textttB\_mainand55(55)for\textttD\_gist,upfrom25,26and19' not in ","19 without it ($+28$, $+27$"
+bar/main.tex,261,28,29,CAUGHT,"A15 literal '+28,+27and+36pp;z=4.06,3.91,5.27' not in bar/main.tex","19 without it ($+28$, $+27$ and $+36$ pp; $z"
+bar/main.tex,261,27,28,CAUGHT,"A15 literal '+28,+27and+36pp;z=4.06,3.91,5.27' not in bar/main.tex","19 without it ($+28$, $+27$ and $+36$ pp; $z{=}4.06"
+bar/main.tex,261,36,37,CAUGHT,"A15 literal '+28,+27and+36pp;z=4.06,3.91,5.27' not in bar/main.tex","19 without it ($+28$, $+27$ and $+36$ pp; $z{=}4.06$, $3.91$,"
+bar/main.tex,261,4.06,4.07,CAUGHT,"A15 literal '+28,+27and+36pp;z=4.06,3.91,5.27' not in bar/main.tex","out it ($+28$, $+27$ and $+36$ pp; $z{=}4.06$, $3.91$, $5.27$; all"
+bar/main.tex,261,3.91,3.92,CAUGHT,"A15 literal '+28,+27and+36pp;z=4.06,3.91,5.27' not in bar/main.tex","$+28$, $+27$ and $+36$ pp; $z{=}4.06$, $3.91$, $5.27$; all"
+bar/main.tex,261,5.27,5.28,CAUGHT,"A15 literal '+28,+27and+36pp;z=4.06,3.91,5.27' not in bar/main.tex","+27$ and $+36$ pp; $z{=}4.06$, $3.91$, $5.27$; all"
+bar/main.tex,262,10,11,MISSED,,$p<10^{-4}$). All three land i
+bar/main.tex,262,4,5,MISSED,,$p<10^{-4}$). All three land in th
+bar/main.tex,262,45,46,MISSED,,"ee land in the registered teacher band (45--55\%),"
+bar/main.tex,262,55,56,MISSED,,"and in the registered teacher band (45--55\%),"
+bar/main.tex,263,6,7,CAUGHT,A15 literal '|\Delta|\le6pp' not in bar/main.tex,"rom \texttt{C\_retrieval} ($|\Delta|\le 6$ pp,"
+bar/main.tex,264,0.39,0.30,CAUGHT,A15 literal 'p\ge0.39' not in bar/main.tex,$p\ge 0.39$). The $+34$ pp is there
+bar/main.tex,264,34,35,MISSED,,$p\ge 0.39$). The $+34$ pp is therefore not spe
+bar/main.tex,267,20,21,MISSED,,".} Measured back-to-back on one server, 20 steps"
+bar/main.tex,269,207,208,CAUGHT,COST workshop sentence '207/186/220completiontokens' not in bar/main.tex,generate 207 / 186 / 220 completion t
+bar/main.tex,269,186,187,CAUGHT,COST workshop sentence '207/186/220completiontokens' not in bar/main.tex,generate 207 / 186 / 220 completion tokens
+bar/main.tex,269,220,221,CAUGHT,COST workshop sentence '207/186/220completiontokens' not in bar/main.tex,generate 207 / 186 / 220 completion tokens and ta
+bar/main.tex,269,14.1,14.2,CAUGHT,COST workshop sentence '14.1/11.2/13.7s' not in bar/main.tex,/ 186 / 220 completion tokens and take 14.1 / 11.2 / 13.7 s
+bar/main.tex,269,11.2,11.3,CAUGHT,COST workshop sentence '14.1/11.2/13.7s' not in bar/main.tex,/ 220 completion tokens and take 14.1 / 11.2 / 13.7 s
+bar/main.tex,269,13.7,13.8,CAUGHT,COST workshop sentence '14.1/11.2/13.7s' not in bar/main.tex,ompletion tokens and take 14.1 / 11.2 / 13.7 s
+bar/main.tex,281,16,17,MISSED,,"rank-16), task, and data scale."
+bar/main.tex,285,6,7,CAUGHT,"BAR L2 delta: says '7', source says '6'","not reach significance ($+6$ pp, confirmatory contra"
+bar/main.tex,286,95,96,MISSED,,"success metric promoted post hoc, 95\% CI $[-4.5, +16.4]$, su"
+bar/main.tex,286,4.5,4.6,CAUGHT,"BAR L2 CI: says '-4.6,+16.4', source says '-4.5,+16.4'","ss metric promoted post hoc, 95\% CI $[-4.5, +16.4]$, sub-MDE;"
+bar/main.tex,286,16.4,16.5,CAUGHT,"BAR L2 CI: says '-4.5,+16.5', source says '-4.5,+16.4'","ric promoted post hoc, 95\% CI $[-4.5, +16.4]$, sub-MDE;"
+bar/main.tex,288,1,2,MISSED,,stics show a direction-consistent round-1 shift (the
+bar/main.tex,302,15,16,MISSED,,"four distilled arms (15--26\%, i.e.\ 11 pp) exce"
+bar/main.tex,302,26,27,MISSED,,"four distilled arms (15--26\%, i.e.\ 11 pp) exceeds"
+bar/main.tex,302,11,12,MISSED,,"four distilled arms (15--26\%, i.e.\ 11 pp) exceeds the $+10$ pp"
+bar/main.tex,302,10,11,MISSED,,"s (15--26\%, i.e.\ 11 pp) exceeds the $+10$ pp minimum"
+bar/main.tex,304,2,3,MISSED,,$2{\times}2$ predicts --- b
+bar/main.tex,304,2,3,MISSED,,$2{\times}2$ predicts --- both singl
+bar/main.tex,310,34,35,MISSED,,"ond training run between them, so the $+34$ pp cannot be a"
+bar/main.tex,314,24,25,MISSED,,"ent defects are disclosed. An inherited 24\,s environment"
+bar/main.tex,318,547,548,MISSED,,appears in the instruction field of all 547 buffer
+bar/main.tex,319,517,518,MISSED,,s but in none of the retrieved lessons (517/547 name the colour);
+bar/main.tex,319,547,548,MISSED,,t in none of the retrieved lessons (517/547 name the colour);
+arxiv/sections/abstract.tex,15,1,2,MISSED,,action-only control by only $+1$ pp (n.s.); the register
+arxiv/sections/abstract.tex,18,34,35,MISSED,,"h{fixed} set of student weights added $+34$ pp ($z=5.15$),"
+arxiv/sections/abstract.tex,18,5.15,5.16,CAUGHT,"CLAIM identical-weights z: arxiv/sections/abstract.tex says '5.16', certificate (derived_stats.txt) says '5.15'","t of student weights added $+34$ pp ($z=5.15$),"
+arxiv/sections/abstract.tex,19,49.3,49.4,MISSED,,led memory-augmented teacher reference (49.3\%); the
+arxiv/sections/abstract.tex,20,23,24,MISSED,,"-registered protocol contrast agrees ($+23$ pp, $z=3.36$); under a"
+arxiv/sections/abstract.tex,20,3.36,3.37,MISSED,,"protocol contrast agrees ($+23$ pp, $z=3.36$); under a"
+arxiv/sections/abstract.tex,21,36,37,MISSED,,o-reset sensitivity count the two are $+36$ and $+29$ pp.
+arxiv/sections/abstract.tex,21,29,20,MISSED,,nsitivity count the two are $+36$ and $+29$ pp.
+arxiv/sections/abstract.tex,28,48,49,CAUGHT,A15 literal 'to48\%' not in arxiv/sections/abstract.tex,lifts the base model with no adapter to 48\% and each of the other
+arxiv/sections/abstract.tex,29,19,10,CAUGHT,A15 literal 'from19--26\%to53--55\%' not in arxiv/sections/abstract.tex,"adapters from 19--26\% to 53--55\%, so th"
+arxiv/sections/abstract.tex,29,26,27,CAUGHT,A15 literal 'from19--26\%to53--55\%' not in arxiv/sections/abstract.tex,"adapters from 19--26\% to 53--55\%, so the re"
+arxiv/sections/abstract.tex,29,53,54,CAUGHT,A15 literal 'from19--26\%to53--55\%' not in arxiv/sections/abstract.tex,"adapters from 19--26\% to 53--55\%, so the retrieval"
+arxiv/sections/abstract.tex,29,55,56,CAUGHT,A15 literal 'from19--26\%to53--55\%' not in arxiv/sections/abstract.tex,"adapters from 19--26\% to 53--55\%, so the retrieval effe"
+arxiv/sections/abstract.tex,33,6,7,MISSED,,"significance ($+6$ pp, 95\% CI $[-4.5, +16"
+arxiv/sections/abstract.tex,33,95,96,MISSED,,"significance ($+6$ pp, 95\% CI $[-4.5, +16.4]$); e"
+arxiv/sections/abstract.tex,33,4.5,4.6,MISSED,,"significance ($+6$ pp, 95\% CI $[-4.5, +16.4]$); exploratory d"
+arxiv/sections/abstract.tex,33,16.4,16.5,MISSED,,"significance ($+6$ pp, 95\% CI $[-4.5, +16.4]$); exploratory diagnost"
+arxiv/sections/intro.tex,2,1,2,MISSED,,\section*{1. Introduction}
+arxiv/sections/intro.tex,69,1,2,MISSED,,action-only control by $+1$ pp (n.s.; auto-reset se
+arxiv/sections/intro.tex,69,2,3,MISSED,,"$+1$ pp (n.s.; auto-reset sensitivity $-2$ pp), and we withdrew th"
+arxiv/sections/intro.tex,72,16,17,MISSED,,"e, and this adapter capacity (LoRA rank-16). A"
+arxiv/sections/intro.tex,74,1,2,MISSED,,round 1; whether more data of th
+arxiv/sections/intro.tex,76,34,35,MISSED,,inference-time retrieval added $+34$ pp (identical-weights c
+arxiv/sections/intro.tex,77,5.15,5.16,CAUGHT,"CLAIM identical-weights z: arxiv/sections/intro.tex says '5.16', certificate (derived_stats.txt) says '5.15'","C\_retrieval vs A\_ctrl\_rat, $z=5.15$, exploratory); the pre-"
+arxiv/sections/intro.tex,79,23,24,MISSED,,"adapter) agrees at $+23$ pp ($z=3.36$, confirmat"
+arxiv/sections/intro.tex,79,3.36,3.37,MISSED,,"adapter) agrees at $+23$ pp ($z=3.36$, confirmatory); sensiti"
+arxiv/sections/intro.tex,79,36,37,MISSED,,"($z=3.36$, confirmatory); sensitivity $+36$ /"
+arxiv/sections/intro.tex,80,29,20,MISSED,,$+29$ pp. Retrieval reaches t
+arxiv/sections/intro.tex,80,49.3,49.4,MISSED,,es the pooled memory-teacher reference (49.3\%).
+arxiv/sections/intro.tex,82,14,15,MISSED,,"gistered per-arm predictions, Amendment 14 \S14.5): the data are"
+arxiv/sections/discussion.tex,4,6,7,MISSED,,\section*{6. Discussion}
+arxiv/sections/discussion.tex,6,6.1,6.2,MISSED,,\subsection*{6.1 What the results say to
+arxiv/sections/discussion.tex,10,1,2,MISSED,,+1 pp over an action-only c
+arxiv/sections/discussion.tex,10,2,3,MISSED,,"-only control (T1, null; sensitivity $-$2 pp); attaching an"
+arxiv/sections/discussion.tex,12,34,35,MISSED,,bought +34 pp (identical-weights co
+arxiv/sections/discussion.tex,12,5.15,5.16,CAUGHT,"CLAIM identical-weights z: arxiv/sections/discussion.tex says '5.16', certificate (derived_stats.txt) says '5.15'","t +34 pp (identical-weights contrast, z=5.15; the registered"
+arxiv/sections/discussion.tex,13,23,24,MISSED,,"protocol contrast agrees, +23 pp, z=3.36; sensitivity"
+arxiv/sections/discussion.tex,13,3.36,3.37,MISSED,,"protocol contrast agrees, +23 pp, z=3.36; sensitivity +36 / +29 p"
+arxiv/sections/discussion.tex,13,36,37,MISSED,,"st agrees, +23 pp, z=3.36; sensitivity +36 / +29 pp) and"
+arxiv/sections/discussion.tex,13,29,20,MISSED,,"ees, +23 pp, z=3.36; sensitivity +36 / +29 pp) and"
+arxiv/sections/discussion.tex,14,49,40,MISSED,,ed the pooled memory-teacher reference (49\% vs 49.3\%). Competence
+arxiv/sections/discussion.tex,14,49.3,49.4,CAUGHT,"CLAIM memory-teacher pool: arxiv/sections/discussion.tex says '49.4', certificate (derived_stats.txt) says '49.3'",ooled memory-teacher reference (49\% vs 49.3\%). Competence tracks th
+arxiv/sections/discussion.tex,22,7.1,7.2,MISSED,,"signature: mean pulled toward zero ($-$7.1), $\sigma$=14.4,"
+arxiv/sections/discussion.tex,22,14.4,14.5,MISSED,,"n pulled toward zero ($-$7.1), $\sigma$=14.4,"
+arxiv/sections/discussion.tex,25,16.7,16.8,MISSED,,d arms all collapsed onto one $\approx-$16.7 (grid-unit) prior regard
+arxiv/sections/discussion.tex,39,6,7,MISSED,,"the harder L2 position-goal reach in a 6-DoF control space, \S5.9"
+arxiv/sections/discussion.tex,44,31,32,MISSED,,share the 31B base and both generate
+arxiv/sections/discussion.tex,51,6.2,6.3,MISSED,,"\subsection*{6.2 Two poles, a bridge, and"
+arxiv/sections/discussion.tex,57,1,2,MISSED,,\textbf{Pole 1 --- external memory (we
+arxiv/sections/discussion.tex,60,34,35,MISSED,,"ent weights, attaching retrieval added +34 pp (sensitivity +36)"
+arxiv/sections/discussion.tex,60,36,37,MISSED,,ng retrieval added +34 pp (sensitivity +36)
+arxiv/sections/discussion.tex,61,5.15,5.16,MISSED,,"(identical-weights contrast, z=5.15; the registered protocol"
+arxiv/sections/discussion.tex,62,23,24,MISSED,,agrees at +23 pp). Embodied retrieval-
+arxiv/sections/discussion.tex,73,2,3,MISSED,,\textbf{Pole 2 --- parametric memory (w
+arxiv/sections/discussion.tex,87,1,2,MISSED,,"ludes a conditional trace only at round 1, while later rounds"
+arxiv/sections/discussion.tex,130,2,3,MISSED,,d to plateau at the marginal. The paper-2 target
+arxiv/sections/discussion.tex,135,1,2,MISSED,,"yet it bought +1 pp, suggesting it is epi"
+arxiv/sections/discussion.tex,139,23,24,MISSED,,the mechanical account of the 23 pp gap and say which com
+arxiv/sections/discussion.tex,140,2,3,MISSED,,"l correction. We flag this as the paper-2 target, not a"
+arxiv/sections/discussion.tex,143,6.3,6.4,MISSED,,\subsection*{6.3 Why this does not extend
+arxiv/sections/discussion.tex,151,0,1,MISSED,,--- round-0 targets matched true obj
+arxiv/sections/discussion.tex,152,0,1,MISSED,,correct throughout --- yet success was 0 in
+arxiv/sections/discussion.tex,155,128,129,MISSED,,resolution 128$\rightarrow$256 px; deta
+arxiv/sections/discussion.tex,155,256,257,MISSED,,resolution 128$\rightarrow$256 px; details and per-stag
+arxiv/sections/discussion.tex,164,0.5,0.6,MISSED,,"by rotating a hinged knob past $\approx$0.5 rad, a"
+arxiv/sections/discussion.tex,176,2,3,MISSED,,ichment an expert-iteration loop (paper 2) would need to
+arxiv/sections/discussion.tex,179,6.4,6.5,MISSED,,\subsection*{6.4 The open problem: consol
+arxiv/sections/discussion.tex,209,6.5,6.6,MISSED,,\subsection*{6.5 The cross-task result (E
+arxiv/sections/discussion.tex,209,2,3,MISSED,,"*{6.5 The cross-task result (Experiment 2, L2)}"
+arxiv/sections/discussion.tex,218,4.8,4.9,MISSED,,"gnitude-deficient marginal prior (R1 $-$4.8), retrieval on identical"
+arxiv/sections/discussion.tex,219,17.2,17.3,MISSED,,he teacher's conditional correction ($-$17.2 $\approx$ $-$17.1;
+arxiv/sections/discussion.tex,219,17.1,17.2,MISSED,,tional correction ($-$17.2 $\approx$ $-$17.1;
+arxiv/sections/discussion.tex,221,6,7,MISSED,,"effect stays sub-MDE (+6 pp, n.s.). The substrate"
+arxiv/sections/discussion.tex,225,72,73,MISSED,,L2's $\approx$72\%-short marginal (\S5.9.
+arxiv/sections/discussion.tex,229,1,2,MISSED,,L2 at 1\% joint SR sits near the
+arxiv/sections/discussion.tex,235,2,3,MISSED,,stated as a paper-2 foreshadowing hypothesis
+arxiv/sections/discussion.tex,236,1,2,MISSED,,"acher/buffer/student faces, not a paper-1 result.)"
+arxiv/sections/results_d11.tex,4,4,5,MISSED,,\section*{4. Results (Experiment 1)}
+arxiv/sections/results_d11.tex,4,1,2,MISSED,,\section*{4. Results (Experiment 1)}
+arxiv/sections/results_d11.tex,6,4.1,4.2,MISSED,,\subsection*{4.1 A pre-registered null: m
+arxiv/sections/results_d11.tex,10,2026,2027,MISSED,,2026-07-06; refined by Amendm
+arxiv/sections/results_d11.tex,10,07,08,MISSED,,2026-07-06; refined by Amendment
+arxiv/sections/results_d11.tex,10,06,07,MISSED,,2026-07-06; refined by Amendments 9
+arxiv/sections/results_d11.tex,10,9,0,MISSED,,2026-07-06; refined by Amendments 9--10 which sharpened the
+arxiv/sections/results_d11.tex,10,10,11,MISSED,,2026-07-06; refined by Amendments 9--10 which sharpened the arm
+arxiv/sections/results_d11.tex,13,14,15,MISSED,,re any p-value was computed} (Amendment 14). The
+arxiv/sections/results_d11.tex,21,10,11,MISSED,,rejection region was $\Delta$ SR $\ge$ +10 pp \textbf{and} statisti
+arxiv/sections/results_d11.tex,22,0.020,0.021,MISSED,,"significant (two-sided, $\alpha$=0.020), with an explicit falsi"
+arxiv/sections/results_d11.tex,24,26,27,MISSED,,textbf{[CONFIRMATORY]} \texttt{B\_main} 26/100 vs \texttt{A\_action
+arxiv/sections/results_d11.tex,24,100,101,MISSED,,tbf{[CONFIRMATORY]} \texttt{B\_main} 26/100 vs \texttt{A\_action\_on
+arxiv/sections/results_d11.tex,24,25,26,MISSED,,ain} 26/100 vs \texttt{A\_action\_only} 25/100 --- no
+arxiv/sections/results_d11.tex,24,100,101,MISSED,,} 26/100 vs \texttt{A\_action\_only} 25/100 --- no
+arxiv/sections/results_d11.tex,25,1,2,MISSED,,"detectable effect: +1 pp (z=0.16, p=0.87, two-"
+arxiv/sections/results_d11.tex,25,0.16,0.17,MISSED,,"detectable effect: +1 pp (z=0.16, p=0.87, two-sided; Newc"
+arxiv/sections/results_d11.tex,25,0.87,0.88,MISSED,,"detectable effect: +1 pp (z=0.16, p=0.87, two-sided; Newcombe 95\"
+arxiv/sections/results_d11.tex,25,95,96,MISSED,,"pp (z=0.16, p=0.87, two-sided; Newcombe 95\% CI"
+arxiv/sections/results_d11.tex,26,11.0,11.1,CAUGHT,"CLAIM T1 CI: arxiv/sections/results_d11.tex says '-11.1,+13.0', certificate (derived_stats.txt) says '-11.0,+13.0'","[$-$11.0, +13.0]; McNemar sensiti"
+arxiv/sections/results_d11.tex,26,13.0,13.1,CAUGHT,"CLAIM T1 CI: arxiv/sections/results_d11.tex says '-11.0,+13.1', certificate (derived_stats.txt) says '-11.0,+13.0'","[$-$11.0, +13.0]; McNemar sensitivity p="
+arxiv/sections/results_d11.tex,26,1.0,1.1,MISSED,,"[$-$11.0, +13.0]; McNemar sensitivity p=1.0, agreeing). Auto-reset"
+arxiv/sections/results_d11.tex,27,19,10,MISSED,,"sensitivity (\S3.5): 19 vs 21, $-$2 pp (z=$-$0.3"
+arxiv/sections/results_d11.tex,27,21,22,MISSED,,"sensitivity (\S3.5): 19 vs 21, $-$2 pp (z=$-$0.35, p=0"
+arxiv/sections/results_d11.tex,27,2,3,MISSED,,"sensitivity (\S3.5): 19 vs 21, $-$2 pp (z=$-$0.35, p=0.72),"
+arxiv/sections/results_d11.tex,27,0.35,0.36,MISSED,,"tivity (\S3.5): 19 vs 21, $-$2 pp (z=$-$0.35, p=0.72), same verdict."
+arxiv/sections/results_d11.tex,27,0.72,0.73,MISSED,,"\S3.5): 19 vs 21, $-$2 pp (z=$-$0.35, p=0.72), same verdict."
+arxiv/sections/results_d11.tex,30,10,11,MISSED,,effect (+10 pp) lies \emph{inside} t
+arxiv/sections/results_d11.tex,31,100,101,MISSED,,effect calculation is unforgiving: at n=100 per arm
+arxiv/sections/results_d11.tex,32,0.25,0.26,MISSED,,"with SR$\approx$0.25, significance at the reg"
+arxiv/sections/results_d11.tex,32,0.020,0.021,MISSED,,ce at the registered two-sided $\alpha$=0.020 requires
+arxiv/sections/results_d11.tex,33,14.2,14.3,CAUGHT,"CLAIM T1 critical difference: arxiv/sections/results_d11.tex says '14.3', certificate (derived_stats.txt) says '14.2'","$\Delta$ $\ge$ 14.2 pp, so an \emph{observed"
+arxiv/sections/results_d11.tex,33,10,11,MISSED,,"$ $\ge$ 14.2 pp, so an \emph{observed} +10 pp difference could not"
+arxiv/sections/results_d11.tex,35,10,11,MISSED,,registered +10 pp effect --- a flaw in
+arxiv/sections/results_d11.tex,42,1,2,MISSED,,"probe (\S4.3) and, at round 1, by the residual diagnos"
+arxiv/sections/results_d11.tex,43,1,2,MISSED,,round-1 null is not subject to t
+arxiv/sections/results_d11.tex,44,0.20,0.21,MISSED,,$|r|<0.20$ caveat; later rounds ar
+arxiv/sections/results_d11.tex,48,16,17,MISSED,,and adapter capacity (LoRA rank-16); \S4.4b and \S4.5 sharp
+arxiv/sections/results_d11.tex,53,4.2,4.3,MISSED,,\subsection*{4.2 The reversal: retrieval
+arxiv/sections/results_d11.tex,66,100,101,MISSED,,distance; each panel's success rate ($n/100$) is
+arxiv/sections/results_d11.tex,68,100,101,MISSED,,"sample of 100, not the evidence itself"
+arxiv/sections/results_d11.tex,72,20,21,MISSED,,"initial EE-to-target distance ($\approx$20\,cm; 19.2--20.3\,cm for"
+arxiv/sections/results_d11.tex,72,19.2,19.3,CAUGHT,"CLAIM Fig. qual start distances: arxiv/sections/results_d11.tex says '19.3--20.3', certificate (derived_stats.txt) says ","EE-to-target distance ($\approx$20\,cm; 19.2--20.3\,cm for the three"
+arxiv/sections/results_d11.tex,72,20.3,20.4,CAUGHT,"CLAIM Fig. qual start distances: arxiv/sections/results_d11.tex says '19.2--20.4', certificate (derived_stats.txt) says ","target distance ($\approx$20\,cm; 19.2--20.3\,cm for the three shown)"
+arxiv/sections/results_d11.tex,74,0.05,0.06,MISSED,,"bf{success} = scored (left) arm within $0.05$\,m of target;"
+arxiv/sections/results_d11.tex,75,40,41,MISSED,,\textbf{timeout} = either 40 rounds elapse without re
+arxiv/sections/results_d11.tex,76,5,6,MISSED,,(5 consecutive rounds of no
+arxiv/sections/results_d11.tex,79,49.3,49.4,CAUGHT,"CLAIM memory-teacher pool: arxiv/sections/results_d11.tex says '49.4', certificate (derived_stats.txt) says '49.3'",reaches the memory-teacher's own 49.3\% (dashed). An animated
+arxiv/sections/results_d11.tex,92,15,16,MISSED,,"dent weights, attaching retrieval moved 15/100 $\rightarrow$ 49/100"
+arxiv/sections/results_d11.tex,92,100,101,MISSED,,"t weights, attaching retrieval moved 15/100 $\rightarrow$ 49/100"
+arxiv/sections/results_d11.tex,92,49,40,MISSED,,ng retrieval moved 15/100 $\rightarrow$ 49/100
+arxiv/sections/results_d11.tex,92,100,101,MISSED,,retrieval moved 15/100 $\rightarrow$ 49/100
+arxiv/sections/results_d11.tex,93,12,13,MISSED,,"(auto-reset sensitivity 12 $\rightarrow$ 48, +36 pp"
+arxiv/sections/results_d11.tex,93,48,49,MISSED,,"auto-reset sensitivity 12 $\rightarrow$ 48, +36 pp, z=5.56) ---"
+arxiv/sections/results_d11.tex,93,36,37,MISSED,,"reset sensitivity 12 $\rightarrow$ 48, +36 pp, z=5.56) ---"
+arxiv/sections/results_d11.tex,93,5.56,5.57,MISSED,,"sitivity 12 $\rightarrow$ 48, +36 pp, z=5.56) ---"
+arxiv/sections/results_d11.tex,94,34,35,MISSED,,"\textbf{+34 pp (z=5.15, p$\approx$2."
+arxiv/sections/results_d11.tex,94,5.15,5.16,CAUGHT,"CLAIM identical-weights z: arxiv/sections/results_d11.tex says '5.16', certificate (derived_stats.txt) says '5.15'","\textbf{+34 pp (z=5.15, p$\approx$2.6$\times$10"
+arxiv/sections/results_d11.tex,94,2.6,2.7,MISSED,,"\textbf{+34 pp (z=5.15, p$\approx$2.6$\times$10$^{-7}$; Newcom"
+arxiv/sections/results_d11.tex,94,10,11,MISSED,,"bf{+34 pp (z=5.15, p$\approx$2.6$\times$10$^{-7}$; Newcombe 95\% CI"
+arxiv/sections/results_d11.tex,94,7,8,MISSED,,"pp (z=5.15, p$\approx$2.6$\times$10$^{-7}$; Newcombe 95\% CI [+21"
+arxiv/sections/results_d11.tex,94,95,96,MISSED,,"$\approx$2.6$\times$10$^{-7}$; Newcombe 95\% CI [+21, +45])}. This"
+arxiv/sections/results_d11.tex,94,21,22,CAUGHT,"CLAIM identical-weights CI: arxiv/sections/results_d11.tex says '+22,+45', certificate (derived_stats.txt) says '+21,+45",".6$\times$10$^{-7}$; Newcombe 95\% CI [+21, +45])}. This was"
+arxiv/sections/results_d11.tex,94,45,46,CAUGHT,"CLAIM identical-weights CI: arxiv/sections/results_d11.tex says '+21,+46', certificate (derived_stats.txt) says '+21,+45","imes$10$^{-7}$; Newcombe 95\% CI [+21, +45])}. This was"
+arxiv/sections/results_d11.tex,96,3,4,MISSED,,at p$\approx$3$\times$10$^{-7}$ it surv
+arxiv/sections/results_d11.tex,96,10,11,MISSED,,at p$\approx$3$\times$10$^{-7}$ it survives any m
+arxiv/sections/results_d11.tex,96,7,8,MISSED,,at p$\approx$3$\times$10$^{-7}$ it survives any multip
+arxiv/sections/results_d11.tex,103,49,40,MISSED,,retrieval). \textbf{[CONFIRMATORY]} 49/100 vs 26/100 --- +23 pp
+arxiv/sections/results_d11.tex,103,100,101,MISSED,,retrieval). \textbf{[CONFIRMATORY]} 49/100 vs 26/100 --- +23 pp (z=
+arxiv/sections/results_d11.tex,103,26,27,MISSED,,"val). \textbf{[CONFIRMATORY]} 49/100 vs 26/100 --- +23 pp (z=3.36,"
+arxiv/sections/results_d11.tex,103,100,101,MISSED,,"). \textbf{[CONFIRMATORY]} 49/100 vs 26/100 --- +23 pp (z=3.36,"
+arxiv/sections/results_d11.tex,103,23,24,MISSED,,"f{[CONFIRMATORY]} 49/100 vs 26/100 --- +23 pp (z=3.36,"
+arxiv/sections/results_d11.tex,103,3.36,3.37,MISSED,,"MATORY]} 49/100 vs 26/100 --- +23 pp (z=3.36,"
+arxiv/sections/results_d11.tex,104,7.8,7.9,MISSED,,p=7.8$\times$10$^{-4}$; McNema
+arxiv/sections/results_d11.tex,104,10,11,MISSED,,p=7.8$\times$10$^{-4}$; McNemar p=1.0$\t
+arxiv/sections/results_d11.tex,104,4,5,MISSED,,p=7.8$\times$10$^{-4}$; McNemar p=1.0$\times$
+arxiv/sections/results_d11.tex,104,1.0,1.1,MISSED,,"p=7.8$\times$10$^{-4}$; McNemar p=1.0$\times$10$^{-3}$, agreei"
+arxiv/sections/results_d11.tex,104,10,11,MISSED,,"$\times$10$^{-4}$; McNemar p=1.0$\times$10$^{-3}$, agreeing), signi"
+arxiv/sections/results_d11.tex,104,3,4,MISSED,,"s$10$^{-4}$; McNemar p=1.0$\times$10$^{-3}$, agreeing), significan"
+arxiv/sections/results_d11.tex,105,0.010,0.011,MISSED,,pre-registered $\alpha$=0.010 (auto-reset sensitivity
+arxiv/sections/results_d11.tex,105,48,49,MISSED,,"$\alpha$=0.010 (auto-reset sensitivity 48 vs 19, +29 pp, z=4.35)."
+arxiv/sections/results_d11.tex,105,19,10,MISSED,,"ha$=0.010 (auto-reset sensitivity 48 vs 19, +29 pp, z=4.35). This c"
+arxiv/sections/results_d11.tex,105,29,20,MISSED,,".010 (auto-reset sensitivity 48 vs 19, +29 pp, z=4.35). This contra"
+arxiv/sections/results_d11.tex,105,4.35,4.36,MISSED,,"o-reset sensitivity 48 vs 19, +29 pp, z=4.35). This contrast varies b"
+arxiv/sections/results_d11.tex,110,34,35,MISSED,,"added +34 pp (exploratory, z=5.15)"
+arxiv/sections/results_d11.tex,110,5.15,5.16,CAUGHT,"CLAIM identical-weights z: arxiv/sections/results_d11.tex says '5.16', certificate (derived_stats.txt) says '5.15'","added +34 pp (exploratory, z=5.15); the registered"
+arxiv/sections/results_d11.tex,111,23,24,MISSED,,"ion-vs-retrieval protocol contrast was +23 pp (confirmatory,"
+arxiv/sections/results_d11.tex,112,3.36,3.37,MISSED,,z=3.36).} Both point the same w
+arxiv/sections/results_d11.tex,121,2026,2027,MISSED,,2026-07-06) reads verbatim ``
+arxiv/sections/results_d11.tex,121,07,08,MISSED,,2026-07-06) reads verbatim ``all
+arxiv/sections/results_d11.tex,121,06,07,MISSED,,2026-07-06) reads verbatim ``all tw
+arxiv/sections/results_d11.tex,121,0.05,0.06,MISSED,,"rbatim ``all two-proportion z, $\alpha$=0.05, \textbf{two-sided}''."
+arxiv/sections/results_d11.tex,122,0.010,0.011,MISSED,,significance threshold for T4 ($\alpha$=0.010) was set in Amendment 1
+arxiv/sections/results_d11.tex,122,1,2,MISSED,,4 ($\alpha$=0.010) was set in Amendment 1
+arxiv/sections/results_d11.tex,123,11,12,MISSED,,"(restated in Amendment 11), also before collection"
+arxiv/sections/results_d11.tex,125,23,24,MISSED,,reachable in either direction --- the +23 pp
+arxiv/sections/results_d11.tex,134,1,2,MISSED,,"n every contrast} (McNemar and z, Table~1), not on a claim"
+arxiv/sections/results_d11.tex,136,0.046,0.047,MISSED,,"branch could matter (T1a: McNemar p=0.046 vs z p=0.054), both rema"
+arxiv/sections/results_d11.tex,136,0.054,0.055,MISSED,,"uld matter (T1a: McNemar p=0.046 vs z p=0.054), both remain"
+arxiv/sections/results_d11.tex,137,0.020,0.021,MISSED,,"n.s. at the pre-registered $\alpha$=0.020, so the choice changes n"
+arxiv/sections/results_d11.tex,141,0.7,0.8,MISSED,,no-retrieval) clears 0.7 $\times$ the \emph{memor
+arxiv/sections/results_d11.tex,141,51.7,51.8,MISSED,,$ the \emph{memory-augmented} teacher's 51.7\% pool
+arxiv/sections/results_d11.tex,142,36.2,36.3,MISSED,,= 36.2\%. It does not: 26\% $<$
+arxiv/sections/results_d11.tex,142,26,27,MISSED,,= 36.2\%. It does not: 26\% $<$ 36.2\% (one-sided
+arxiv/sections/results_d11.tex,142,36.2,36.3,MISSED,,= 36.2\%. It does not: 26\% $<$ 36.2\% (one-sided z=$-$2.12;
+arxiv/sections/results_d11.tex,142,2.12,2.13,MISSED,,"es not: 26\% $<$ 36.2\% (one-sided z=$-$2.12; sensitivity 19\%, z=$-$"
+arxiv/sections/results_d11.tex,142,19,10,MISSED,,"6.2\% (one-sided z=$-$2.12; sensitivity 19\%, z=$-$3.58). Reported"
+arxiv/sections/results_d11.tex,142,3.58,3.59,MISSED,,"sided z=$-$2.12; sensitivity 19\%, z=$-$3.58). Reported"
+arxiv/sections/results_d11.tex,154,25,26,MISSED,,y & B\_main / A\_action\_only $\approx$ 25--26\% (sens.\ 19--21) &
+arxiv/sections/results_d11.tex,154,26,27,MISSED,,B\_main / A\_action\_only $\approx$ 25--26\% (sens.\ 19--21) & memo
+arxiv/sections/results_d11.tex,154,19,10,MISSED,,action\_only $\approx$ 25--26\% (sens.\ 19--21) & memoryless teache
+arxiv/sections/results_d11.tex,154,21,22,MISSED,,on\_only $\approx$ 25--26\% (sens.\ 19--21) & memoryless teacher 22
+arxiv/sections/results_d11.tex,154,22,23,CAUGHT,"CLAIM D6b memoryless teacher: arxiv/sections/results_d11.tex says '23', certificate (derived_stats.txt) says '22'",\% (sens.\ 19--21) & memoryless teacher 22\%$\dagger$ (sens.\ 19) \
+arxiv/sections/results_d11.tex,154,19,10,MISSED,,emoryless teacher 22\%$\dagger$ (sens.\ 19) \\
+arxiv/sections/results_d11.tex,155,49,40,MISSED,,with-memory & C\_retrieval 49\% (sens.\ 48) & memory-t
+arxiv/sections/results_d11.tex,155,48,49,MISSED,,with-memory & C\_retrieval 49\% (sens.\ 48) & memory-teacher 49.3\%
+arxiv/sections/results_d11.tex,155,49.3,49.4,CAUGHT,"CLAIM memory-teacher pool: arxiv/sections/results_d11.tex says '49.4', certificate (derived_stats.txt) says '49.3'",ieval 49\% (sens.\ 48) & memory-teacher 49.3\%$\ddagger$ (sens.\ 47.5
+arxiv/sections/results_d11.tex,155,47.5,47.6,MISSED,,memory-teacher 49.3\%$\ddagger$ (sens.\ 47.5) \\
+arxiv/sections/results_d11.tex,166,49,40,MISSED,,"own rung (49\% vs 49.3\%), whereas ro"
+arxiv/sections/results_d11.tex,166,49.3,49.4,CAUGHT,"CLAIM memory-teacher pool: arxiv/sections/results_d11.tex says '49.4', certificate (derived_stats.txt) says '49.3'","own rung (49\% vs 49.3\%), whereas routing that"
+arxiv/sections/results_d11.tex,168,15,16,MISSED,,r recipe does not survive the Amendment 15 controls (\S4.2b):
+arxiv/sections/results_d11.tex,170,48,49,MISSED,,(48 vs 49 of 100).
+arxiv/sections/results_d11.tex,170,49,40,MISSED,,(48 vs 49 of 100).
+arxiv/sections/results_d11.tex,170,100,101,MISSED,,(48 vs 49 of 100).
+arxiv/sections/results_d11.tex,173,1,2,MISSED,,same Fix 1/3 scaffolding as the mem
+arxiv/sections/results_d11.tex,173,3,4,MISSED,,same Fix 1/3 scaffolding as the memor
+arxiv/sections/results_d11.tex,173,22,23,MISSED,,"the memory teacher, measured directly: 22/100"
+arxiv/sections/results_d11.tex,173,100,101,MISSED,,"e memory teacher, measured directly: 22/100"
+arxiv/sections/results_d11.tex,177,51.7,51.8,MISSED,,loor uses the pre-registration's pinned 51.7\%
+arxiv/sections/results_d11.tex,179,49.3,49.4,CAUGHT,"CLAIM memory-teacher pool: arxiv/sections/results_d11.tex says '49.4', certificate (derived_stats.txt) says '49.3'",reference uses the post-fix pool's 49.3\% (n=221). Neither is
+arxiv/sections/results_d11.tex,179,221,222,CAUGHT,"CLAIM memory-teacher n: arxiv/sections/results_d11.tex says '222', certificate (derived_stats.txt) says '221'",ence uses the post-fix pool's 49.3\% (n=221). Neither is
+arxiv/sections/results_d11.tex,184,4.2,4.3,MISSED,,\subsection*{4.2b Adapter controls: the b
+arxiv/sections/results_d11.tex,184,15,16,MISSED,,"r, and on the other adapters (Amendment 15)}"
+arxiv/sections/results_d11.tex,186,15,16,MISSED,,"Amendment 15 (lock \texttt{989a753},"
+arxiv/sections/results_d11.tex,186,2026,2027,MISSED,,"Amendment 15 (lock \texttt{989a753}, 2026-10-05) was registered af"
+arxiv/sections/results_d11.tex,186,10,11,MISSED,,"endment 15 (lock \texttt{989a753}, 2026-10-05) was registered after"
+arxiv/sections/results_d11.tex,186,05,06,MISSED,,"ment 15 (lock \texttt{989a753}, 2026-10-05) was registered after th"
+arxiv/sections/results_d11.tex,190,100,101,MISSED,,"{C\_retrieval} did not use, on the same 100 seeded configurations."
+arxiv/sections/results_d11.tex,191,0,1,MISSED,,"Seeds match in every contrast (0/100 mismatches), but the"
+arxiv/sections/results_d11.tex,191,100,101,MISSED,,"Seeds match in every contrast (0/100 mismatches), but the fir"
+arxiv/sections/results_d11.tex,193,14,15,MISSED,,portion $z$ is primary by the Amendment 14 \S14.2 fallback; the
+arxiv/sections/results_d11.tex,194,0.05,0.06,MISSED,,"$\alpha$, and we use the \S4 default of 0.05, two-sided."
+arxiv/sections/results_d11.tex,199,15,16,MISSED,,\caption{Amendment 15 adapter controls ($n$=10
+arxiv/sections/results_d11.tex,199,100,101,MISSED,,tion{Amendment 15 adapter controls ($n$=100 per arm; auto-reset sens
+arxiv/sections/results_d11.tex,199,1,2,MISSED,,ded. R1$'$ slope: Spearman $r$ of round-1 $\Delta$X against the re
+arxiv/sections/results_d11.tex,199,15,16,MISSED,,"ainst the required correction under the 15\,mm recovery gate (A15.1"
+arxiv/sections/results_d11.tex,206,48,49,CAUGHT,"A15 literal 'base,noadapter(a)&48(48)&---&---&-1pp,0.887&+0.29(yes)' not in arxiv/sections/results_d11.tex","base, no adapter (a) & 48 (48) & --- & --- & $-$1"
+arxiv/sections/results_d11.tex,206,48,49,CAUGHT,"A15 literal 'base,noadapter(a)&48(48)&---&---&-1pp,0.887&+0.29(yes)' not in arxiv/sections/results_d11.tex","base, no adapter (a) & 48 (48) & --- & --- & $-$1 pp,"
+arxiv/sections/results_d11.tex,206,1,2,CAUGHT,"A15 literal 'base,noadapter(a)&48(48)&---&---&-1pp,0.887&+0.29(yes)' not in arxiv/sections/results_d11.tex","adapter (a) & 48 (48) & --- & --- & $-$1 pp, 0.887 & +0.29 (yes)"
+arxiv/sections/results_d11.tex,206,0.887,0.888,CAUGHT,"A15 literal 'base,noadapter(a)&48(48)&---&---&-1pp,0.887&+0.29(yes)' not in arxiv/sections/results_d11.tex","er (a) & 48 (48) & --- & --- & $-$1 pp, 0.887 & +0.29 (yes) \\"
+arxiv/sections/results_d11.tex,206,0.29,0.20,CAUGHT,"A15 literal 'base,noadapter(a)&48(48)&---&---&-1pp,0.887&+0.29(yes)' not in arxiv/sections/results_d11.tex","48 (48) & --- & --- & $-$1 pp, 0.887 & +0.29 (yes) \\"
+arxiv/sections/results_d11.tex,207,53,54,CAUGHT,"A15 literal 'A\_action\_only(b)&53(53)&25(21)&+28pp,4.06&+4pp,0.572&+0.49(yes)' not in arxiv/sections/results_d11.tex","A\_action\_only (b) & 53 (53) & 25 (21) & +28 pp,"
+arxiv/sections/results_d11.tex,207,53,54,CAUGHT,"A15 literal 'A\_action\_only(b)&53(53)&25(21)&+28pp,4.06&+4pp,0.572&+0.49(yes)' not in arxiv/sections/results_d11.tex","A\_action\_only (b) & 53 (53) & 25 (21) & +28 pp, 4.0"
+arxiv/sections/results_d11.tex,207,25,26,CAUGHT,"A15 literal 'A\_action\_only(b)&53(53)&25(21)&+28pp,4.06&+4pp,0.572&+0.49(yes)' not in arxiv/sections/results_d11.tex","A\_action\_only (b) & 53 (53) & 25 (21) & +28 pp, 4.06 & +4"
+arxiv/sections/results_d11.tex,207,21,22,CAUGHT,"A15 literal 'A\_action\_only(b)&53(53)&25(21)&+28pp,4.06&+4pp,0.572&+0.49(yes)' not in arxiv/sections/results_d11.tex","A\_action\_only (b) & 53 (53) & 25 (21) & +28 pp, 4.06 & +4 pp,"
+arxiv/sections/results_d11.tex,207,28,29,CAUGHT,"A15 literal 'A\_action\_only(b)&53(53)&25(21)&+28pp,4.06&+4pp,0.572&+0.49(yes)' not in arxiv/sections/results_d11.tex","action\_only (b) & 53 (53) & 25 (21) & +28 pp, 4.06 & +4 pp, 0.572"
+arxiv/sections/results_d11.tex,207,4.06,4.07,CAUGHT,"A15 literal 'A\_action\_only(b)&53(53)&25(21)&+28pp,4.06&+4pp,0.572&+0.49(yes)' not in arxiv/sections/results_d11.tex","_only (b) & 53 (53) & 25 (21) & +28 pp, 4.06 & +4 pp, 0.572 & +0.49 ("
+arxiv/sections/results_d11.tex,207,4,5,CAUGHT,"A15 literal 'A\_action\_only(b)&53(53)&25(21)&+28pp,4.06&+4pp,0.572&+0.49(yes)' not in arxiv/sections/results_d11.tex",") & 53 (53) & 25 (21) & +28 pp, 4.06 & +4 pp, 0.572 & +0.49 (yes)"
+arxiv/sections/results_d11.tex,207,0.572,0.573,CAUGHT,"A15 literal 'A\_action\_only(b)&53(53)&25(21)&+28pp,4.06&+4pp,0.572&+0.49(yes)' not in arxiv/sections/results_d11.tex","(53) & 25 (21) & +28 pp, 4.06 & +4 pp, 0.572 & +0.49 (yes) \\"
+arxiv/sections/results_d11.tex,207,0.49,0.40,CAUGHT,"A15 literal 'A\_action\_only(b)&53(53)&25(21)&+28pp,4.06&+4pp,0.572&+0.49(yes)' not in arxiv/sections/results_d11.tex","5 (21) & +28 pp, 4.06 & +4 pp, 0.572 & +0.49 (yes) \\"
+arxiv/sections/results_d11.tex,208,53,54,CAUGHT,"A15 literal 'B\_main(b)&53(50)&26(19)&+27pp,3.91&+4pp,0.572&+0.36(yes)' not in arxiv/sections/results_d11.tex","B\_main (b) & 53 (50) & 26 (19) & +27 pp,"
+arxiv/sections/results_d11.tex,208,50,51,CAUGHT,"A15 literal 'B\_main(b)&53(50)&26(19)&+27pp,3.91&+4pp,0.572&+0.36(yes)' not in arxiv/sections/results_d11.tex","B\_main (b) & 53 (50) & 26 (19) & +27 pp, 3.9"
+arxiv/sections/results_d11.tex,208,26,27,CAUGHT,"A15 literal 'B\_main(b)&53(50)&26(19)&+27pp,3.91&+4pp,0.572&+0.36(yes)' not in arxiv/sections/results_d11.tex","B\_main (b) & 53 (50) & 26 (19) & +27 pp, 3.91 & +4"
+arxiv/sections/results_d11.tex,208,19,10,CAUGHT,"A15 literal 'B\_main(b)&53(50)&26(19)&+27pp,3.91&+4pp,0.572&+0.36(yes)' not in arxiv/sections/results_d11.tex","B\_main (b) & 53 (50) & 26 (19) & +27 pp, 3.91 & +4 pp,"
+arxiv/sections/results_d11.tex,208,27,28,CAUGHT,"A15 literal 'B\_main(b)&53(50)&26(19)&+27pp,3.91&+4pp,0.572&+0.36(yes)' not in arxiv/sections/results_d11.tex","B\_main (b) & 53 (50) & 26 (19) & +27 pp, 3.91 & +4 pp, 0.572"
+arxiv/sections/results_d11.tex,208,3.91,3.92,CAUGHT,"A15 literal 'B\_main(b)&53(50)&26(19)&+27pp,3.91&+4pp,0.572&+0.36(yes)' not in arxiv/sections/results_d11.tex","_main (b) & 53 (50) & 26 (19) & +27 pp, 3.91 & +4 pp, 0.572 & +0.36 ("
+arxiv/sections/results_d11.tex,208,4,5,CAUGHT,"A15 literal 'B\_main(b)&53(50)&26(19)&+27pp,3.91&+4pp,0.572&+0.36(yes)' not in arxiv/sections/results_d11.tex",") & 53 (50) & 26 (19) & +27 pp, 3.91 & +4 pp, 0.572 & +0.36 (yes)"
+arxiv/sections/results_d11.tex,208,0.572,0.573,CAUGHT,"A15 literal 'B\_main(b)&53(50)&26(19)&+27pp,3.91&+4pp,0.572&+0.36(yes)' not in arxiv/sections/results_d11.tex","(50) & 26 (19) & +27 pp, 3.91 & +4 pp, 0.572 & +0.36 (yes) \\"
+arxiv/sections/results_d11.tex,208,0.36,0.37,CAUGHT,"A15 literal 'B\_main(b)&53(50)&26(19)&+27pp,3.91&+4pp,0.572&+0.36(yes)' not in arxiv/sections/results_d11.tex","6 (19) & +27 pp, 3.91 & +4 pp, 0.572 & +0.36 (yes) \\"
+arxiv/sections/results_d11.tex,209,55,56,CAUGHT,"A15 literal 'D\_gist(b)&55(55)&19(17)&+36pp,5.27&+6pp,0.396&+0.44(yes)' not in arxiv/sections/results_d11.tex","D\_gist (b) & 55 (55) & 19 (17) & +36 pp,"
+arxiv/sections/results_d11.tex,209,55,56,CAUGHT,"A15 literal 'D\_gist(b)&55(55)&19(17)&+36pp,5.27&+6pp,0.396&+0.44(yes)' not in arxiv/sections/results_d11.tex","D\_gist (b) & 55 (55) & 19 (17) & +36 pp, 5.2"
+arxiv/sections/results_d11.tex,209,19,10,CAUGHT,"A15 literal 'D\_gist(b)&55(55)&19(17)&+36pp,5.27&+6pp,0.396&+0.44(yes)' not in arxiv/sections/results_d11.tex","D\_gist (b) & 55 (55) & 19 (17) & +36 pp, 5.27 & +6"
+arxiv/sections/results_d11.tex,209,17,18,CAUGHT,"A15 literal 'D\_gist(b)&55(55)&19(17)&+36pp,5.27&+6pp,0.396&+0.44(yes)' not in arxiv/sections/results_d11.tex","D\_gist (b) & 55 (55) & 19 (17) & +36 pp, 5.27 & +6 pp,"
+arxiv/sections/results_d11.tex,209,36,37,CAUGHT,"A15 literal 'D\_gist(b)&55(55)&19(17)&+36pp,5.27&+6pp,0.396&+0.44(yes)' not in arxiv/sections/results_d11.tex","D\_gist (b) & 55 (55) & 19 (17) & +36 pp, 5.27 & +6 pp, 0.396"
+arxiv/sections/results_d11.tex,209,5.27,5.28,CAUGHT,"A15 literal 'D\_gist(b)&55(55)&19(17)&+36pp,5.27&+6pp,0.396&+0.44(yes)' not in arxiv/sections/results_d11.tex","_gist (b) & 55 (55) & 19 (17) & +36 pp, 5.27 & +6 pp, 0.396 & +0.44 ("
+arxiv/sections/results_d11.tex,209,6,7,CAUGHT,"A15 literal 'D\_gist(b)&55(55)&19(17)&+36pp,5.27&+6pp,0.396&+0.44(yes)' not in arxiv/sections/results_d11.tex",") & 55 (55) & 19 (17) & +36 pp, 5.27 & +6 pp, 0.396 & +0.44 (yes)"
+arxiv/sections/results_d11.tex,209,0.396,0.397,CAUGHT,"A15 literal 'D\_gist(b)&55(55)&19(17)&+36pp,5.27&+6pp,0.396&+0.44(yes)' not in arxiv/sections/results_d11.tex","(55) & 19 (17) & +36 pp, 5.27 & +6 pp, 0.396 & +0.44 (yes) \\"
+arxiv/sections/results_d11.tex,209,0.44,0.45,CAUGHT,"A15 literal 'D\_gist(b)&55(55)&19(17)&+36pp,5.27&+6pp,0.396&+0.44(yes)' not in arxiv/sections/results_d11.tex","9 (17) & +36 pp, 5.27 & +6 pp, 0.396 & +0.44 (yes) \\"
+arxiv/sections/results_d11.tex,218,48,49,CAUGHT,A15 literal 'Itscored48against49' not in arxiv/sections/results_d11.tex,"It scored 48 against 49: $-1$ pp, 95\"
+arxiv/sections/results_d11.tex,218,49,40,CAUGHT,A15 literal 'Itscored48against49' not in arxiv/sections/results_d11.tex,"It scored 48 against 49: $-1$ pp, 95\% CI $[-14."
+arxiv/sections/results_d11.tex,218,1,2,CAUGHT,"A15 literal '-1pp,95\%CI[-14.6,+12.6],z=-0.14,p=0.887' not in arxiv/sections/results_d11.tex","It scored 48 against 49: $-1$ pp, 95\% CI $[-14.6, +1"
+arxiv/sections/results_d11.tex,218,95,96,CAUGHT,"A15 literal '-1pp,95\%CI[-14.6,+12.6],z=-0.14,p=0.887' not in arxiv/sections/results_d11.tex","It scored 48 against 49: $-1$ pp, 95\% CI $[-14.6, +12.6]$, $"
+arxiv/sections/results_d11.tex,218,14.6,14.7,CAUGHT,"A15 literal '-1pp,95\%CI[-14.6,+12.6],z=-0.14,p=0.887' not in arxiv/sections/results_d11.tex","ored 48 against 49: $-1$ pp, 95\% CI $[-14.6, +12.6]$, $z{=}{-}0.14$,"
+arxiv/sections/results_d11.tex,218,12.6,12.7,CAUGHT,"A15 literal '-1pp,95\%CI[-14.6,+12.6],z=-0.14,p=0.887' not in arxiv/sections/results_d11.tex","against 49: $-1$ pp, 95\% CI $[-14.6, +12.6]$, $z{=}{-}0.14$,"
+arxiv/sections/results_d11.tex,218,0.14,0.15,CAUGHT,"A15 literal '-1pp,95\%CI[-14.6,+12.6],z=-0.14,p=0.887' not in arxiv/sections/results_d11.tex","$ pp, 95\% CI $[-14.6, +12.6]$, $z{=}{-}0.14$,"
+arxiv/sections/results_d11.tex,219,0.887,0.888,CAUGHT,"A15 literal '-1pp,95\%CI[-14.6,+12.6],z=-0.14,p=0.887' not in arxiv/sections/results_d11.tex","$p{=}0.887$, inside the paired MDE"
+arxiv/sections/results_d11.tex,219,19.8,19.9,MISSED,,"$p{=}0.887$, inside the paired MDE (19.8 pp). The interval does n"
+arxiv/sections/results_d11.tex,220,14.6,14.7,CAUGHT,A15 literal 'upto14.6pp' not in arxiv/sections/results_d11.tex,"an adapter contribution of up to 14.6 pp, so this is an undete"
+arxiv/sections/results_d11.tex,221,100,101,MISSED,,"contribution at $n{=}100$, not a demonstrated zer"
+arxiv/sections/results_d11.tex,225,3,4,MISSED,,"\textbf{(b) HIT, 3/3 --- the effect does no"
+arxiv/sections/results_d11.tex,225,3,4,MISSED,,"\textbf{(b) HIT, 3/3 --- the effect does not"
+arxiv/sections/results_d11.tex,227,45,46,MISSED,,teacher band (45--55\%). They did: from 2
+arxiv/sections/results_d11.tex,227,55,56,MISSED,,"teacher band (45--55\%). They did: from 25, 2"
+arxiv/sections/results_d11.tex,227,25,26,CAUGHT,"A15 literal 'from25,26and19to53,53and55' not in arxiv/sections/results_d11.tex","teacher band (45--55\%). They did: from 25, 26 and 19 to 53, 53 and"
+arxiv/sections/results_d11.tex,227,26,27,CAUGHT,"A15 literal 'from25,26and19to53,53and55' not in arxiv/sections/results_d11.tex","her band (45--55\%). They did: from 25, 26 and 19 to 53, 53 and 55"
+arxiv/sections/results_d11.tex,227,19,10,CAUGHT,"A15 literal 'from25,26and19to53,53and55' not in arxiv/sections/results_d11.tex","d (45--55\%). They did: from 25, 26 and 19 to 53, 53 and 55"
+arxiv/sections/results_d11.tex,227,53,54,CAUGHT,"A15 literal 'from25,26and19to53,53and55' not in arxiv/sections/results_d11.tex","-55\%). They did: from 25, 26 and 19 to 53, 53 and 55"
+arxiv/sections/results_d11.tex,227,53,54,CAUGHT,"A15 literal 'from25,26and19to53,53and55' not in arxiv/sections/results_d11.tex","%). They did: from 25, 26 and 19 to 53, 53 and 55"
+arxiv/sections/results_d11.tex,227,55,56,CAUGHT,"A15 literal 'from25,26and19to53,53and55' not in arxiv/sections/results_d11.tex","y did: from 25, 26 and 19 to 53, 53 and 55"
+arxiv/sections/results_d11.tex,228,10,11,MISSED,,"(all $p<10^{-4}$), and none differs"
+arxiv/sections/results_d11.tex,228,4,5,MISSED,,"(all $p<10^{-4}$), and none differs fro"
+arxiv/sections/results_d11.tex,229,6,7,CAUGHT,"A15 literal '|\Delta|\le6pp,p\ge0.39' not in arxiv/sections/results_d11.tex","($|\Delta|\le 6$ pp, $p\ge 0.39$). The a"
+arxiv/sections/results_d11.tex,229,0.39,0.30,CAUGHT,"A15 literal '|\Delta|\le6pp,p\ge0.39' not in arxiv/sections/results_d11.tex","($|\Delta|\le 6$ pp, $p\ge 0.39$). The auto-reset sensit"
+arxiv/sections/results_d11.tex,230,48,49,CAUGHT,A15 literal 'successis48--55' not in arxiv/sections/results_d11.tex,"no verdict. With the buffer, success is 48--55 whatever weights are"
+arxiv/sections/results_d11.tex,230,55,56,CAUGHT,A15 literal 'successis48--55' not in arxiv/sections/results_d11.tex,"erdict. With the buffer, success is 48--55 whatever weights are loa"
+arxiv/sections/results_d11.tex,231,15,16,MISSED,,"without it, 15--26. The $+34$ pp of \S4"
+arxiv/sections/results_d11.tex,231,26,27,MISSED,,"without it, 15--26. The $+34$ pp of \S4.2 i"
+arxiv/sections/results_d11.tex,231,34,35,MISSED,,"without it, 15--26. The $+34$ pp of \S4.2 is therefor"
+arxiv/sections/results_d11.tex,234,1,2,MISSED,,(A15.1).} Every with-buffer arm's round-1 move tracks
+arxiv/sections/results_d11.tex,235,0.29,0.20,CAUGHT,"A15 literal 'band,+0.29to+0.49' not in arxiv/sections/results_d11.tex","tion ($r$ above its permutation band, $+0.29$ to $+0.49$,"
+arxiv/sections/results_d11.tex,235,0.49,0.40,CAUGHT,"A15 literal 'band,+0.29to+0.49' not in arxiv/sections/results_d11.tex","bove its permutation band, $+0.29$ to $+0.49$,"
+arxiv/sections/results_d11.tex,237,0.31,0.32,CAUGHT,A15 literal 'r=+0.31' not in arxiv/sections/results_d11.tex,"\texttt{C\_retrieval} arm gives $r{=}{+}0.31$, and none of the four a"
+arxiv/sections/results_d11.tex,238,0.30,0.31,CAUGHT,A15 literal 'r=-0.30to-0.16' not in arxiv/sections/results_d11.tex,t the buffer is above its band ($r{=}{-}0.30$ to $-0.16$). This is th
+arxiv/sections/results_d11.tex,238,0.16,0.17,CAUGHT,A15 literal 'r=-0.30to-0.16' not in arxiv/sections/results_d11.tex,r is above its band ($r{=}{-}0.30$ to $-0.16$). This is the
+arxiv/sections/results_d11.tex,244,4.3,4.4,MISSED,,\subsection*{4.3 Mechanism --- distillati
+arxiv/sections/results_d11.tex,246,1,2,MISSED,,e R1 $\Delta$X behavioural probe (round-1 target X minus initial E
+arxiv/sections/results_d11.tex,247,23.5,23.6,MISSED,,"e fingerprints D6 memoryless teacher $-$23.5, memory-teacher"
+arxiv/sections/results_d11.tex,248,15.8,15.9,MISSED,,last quartile $-$15.8; all R1 values are in sc
+arxiv/sections/results_d11.tex,250,1,2,MISSED,,"integer-grid coordinates, 1 unit $=$ 0.45\,cm along"
+arxiv/sections/results_d11.tex,250,0.45,0.46,CAUGHT,"CLAIM R1 grid unit: arxiv/sections/results_d11.tex says '0.46', certificate (derived_stats.txt) says '0.45'","integer-grid coordinates, 1 unit $=$ 0.45\,cm along x; units errat"
+arxiv/sections/results_d11.tex,251,16,17,MISSED,,"Amendment 16, \texttt{730b9fc}, docum"
+arxiv/sections/results_d11.tex,252,9,0,MISSED,,a per-arm prediction matrix} (Amendment 9 \S9.3)
+arxiv/sections/results_d11.tex,259,14,15,MISSED,,exploratory in Amendment 14 \S14.5]} All four distil
+arxiv/sections/results_d11.tex,265,1,2,MISSED,,"ploratory, and the lock governs.) Round-1 $\Delta$X uses indices 0"
+arxiv/sections/results_d11.tex,265,0,1,MISSED,,"overns.) Round-1 $\Delta$X uses indices 0--29,"
+arxiv/sections/results_d11.tex,265,29,20,MISSED,,"rns.) Round-1 $\Delta$X uses indices 0--29,"
+arxiv/sections/results_d11.tex,275,16.62,16.63,MISSED,,A\_action\_only & $-$16.62 & 8.61 & mem-teacher ($-
+arxiv/sections/results_d11.tex,275,8.61,8.62,MISSED,,A\_action\_only & $-$16.62 & 8.61 & mem-teacher ($-$15.8)
+arxiv/sections/results_d11.tex,275,15.8,15.9,MISSED,,nly & $-$16.62 & 8.61 & mem-teacher ($-$15.8) \\
+arxiv/sections/results_d11.tex,276,15.75,15.76,MISSED,,A\_ctrl\_rat & $-$15.75 & 10.11 & mem-teacher \\
+arxiv/sections/results_d11.tex,276,10.11,10.12,MISSED,,A\_ctrl\_rat & $-$15.75 & 10.11 & mem-teacher \\
+arxiv/sections/results_d11.tex,277,16.67,16.68,MISSED,,B\_main & $-$16.67 & 8.53 & mem-teacher \\
+arxiv/sections/results_d11.tex,277,8.53,8.54,MISSED,,B\_main & $-$16.67 & 8.53 & mem-teacher \\
+arxiv/sections/results_d11.tex,278,18.15,18.16,MISSED,,D\_gist & $-$18.15 & 7.89 & mem-teacher \\
+arxiv/sections/results_d11.tex,278,7.89,7.80,MISSED,,D\_gist & $-$18.15 & 7.89 & mem-teacher \\
+arxiv/sections/results_d11.tex,279,7.10,7.11,MISSED,,\textbf{C\_retrieval} & \textbf{$-$7.10} & \textbf{14.39} & (bia
+arxiv/sections/results_d11.tex,279,14.39,14.30,MISSED,,retrieval} & \textbf{$-$7.10} & \textbf{14.39} & (bias nearly erased)
+arxiv/sections/results_d11.tex,285,8,9,MISSED,,(Amendment 8) to the same memory-teac
+arxiv/sections/results_d11.tex,288,1,2,MISSED,,equally --- which is exactly why T1 is +1 pp.
+arxiv/sections/results_d11.tex,292,7.10,7.11,MISSED,,\texttt{C\_retrieval}'s $\mu$=$-$7.10 with $\sigma$=14.4 (the
+arxiv/sections/results_d11.tex,292,14.4,14.5,MISSED,,etrieval}'s $\mu$=$-$7.10 with $\sigma$=14.4 (the largest) is the sig
+arxiv/sections/results_d11.tex,295,16.7,16.8,MISSED,,ed arms apply the \emph{same} static $-$16.7 shift to
+arxiv/sections/results_d11.tex,314,1,2,MISSED,,"tbf{The R1 mechanism, one panel.} Round-1 $\Delta$X toward"
+arxiv/sections/results_d11.tex,315,1,2,MISSED,,"the target (scalar-guard grid units; 1 unit $=$ 0.45\,cm along"
+arxiv/sections/results_d11.tex,315,0.45,0.46,CAUGHT,"CLAIM R1 grid unit: arxiv/sections/results_d11.tex says '0.46', certificate (derived_stats.txt) says '0.45'","et (scalar-guard grid units; 1 unit $=$ 0.45\,cm along x), per arm, a"
+arxiv/sections/results_d11.tex,316,23.5,23.6,MISSED,,the D6 memoryless teacher ($-$23.5) and the memory-teacher
+arxiv/sections/results_d11.tex,317,15.8,15.9,MISSED,,($-$15.8). The four distilled arm
+arxiv/sections/results_d11.tex,317,15.8,15.9,MISSED,,four distilled arms sit tight on the $-$15.8 line at
+arxiv/sections/results_d11.tex,318,16.7,16.8,MISSED,,$\approx$$-$16.7$\pm$9 --- one static pri
+arxiv/sections/results_d11.tex,318,9,0,MISSED,,$\approx$$-$16.7$\pm$9 --- one static prior eve
+arxiv/sections/results_d11.tex,319,7.1,7.2,MISSED,,hile \texttt{C\_retrieval} shifts to $-$7.1$\pm$14.4: mean
+arxiv/sections/results_d11.tex,319,14.4,14.5,MISSED,,xttt{C\_retrieval} shifts to $-$7.1$\pm$14.4: mean
+arxiv/sections/results_d11.tex,324,8,9,MISSED,,"om the replays. The $\sigma$ contrast, $8$--$10$ vs"
+arxiv/sections/results_d11.tex,324,10,11,MISSED,,"e replays. The $\sigma$ contrast, $8$--$10$ vs"
+arxiv/sections/results_d11.tex,325,14.4,14.5,MISSED,,"$14.4$, is the reported effect"
+arxiv/sections/results_d11.tex,335,4.4,4.5,MISSED,,\subsection*{4.4 Which episodes need memo
+arxiv/sections/results_d11.tex,337,29,20,MISSED,,"ploiting the shared-seed paired design, 29/100"
+arxiv/sections/results_d11.tex,337,100,101,MISSED,,"iting the shared-seed paired design, 29/100"
+arxiv/sections/results_d11.tex,346,0.96,0.97,MISSED,,outliers (init-pose deviation ratio 0.96; initial red-cube distan
+arxiv/sections/results_d11.tex,347,19.9,19.0,MISSED,,"identical, 19.9 cm vs 19.9 cm). [null]"
+arxiv/sections/results_d11.tex,347,19.9,19.0,MISSED,,"identical, 19.9 cm vs 19.9 cm). [null]"
+arxiv/sections/results_d11.tex,349,10,11,MISSED,,diverge-then-converge signature in only 10\% of rescue episodes (ot
+arxiv/sections/results_d11.tex,350,22,23,MISSED,,"arms show it \emph{more}, 22\%, on the same episodes)"
+arxiv/sections/results_d11.tex,358,1,2,MISSED,,round-1 correction and no per-ro
+arxiv/sections/results_d11.tex,362,44,45,MISSED,,cture quantifies this: retrieval solves 44 episodes that
+arxiv/sections/results_d11.tex,363,34,35,MISSED,,\texttt{A\_ctrl\_rat} fails and 34 that \texttt{B\_main} fa
+arxiv/sections/results_d11.tex,363,29,20,MISSED,,"nd 34 that \texttt{B\_main} fails, with 29"
+arxiv/sections/results_d11.tex,369,4.4,4.5,MISSED,,\subsection*{4.4b Is the null just too li
+arxiv/sections/results_d11.tex,372,992,993,MISSED,,performed for lack of training data --- 992 desirable rounds spread
+arxiv/sections/results_d11.tex,382,1,2,MISSED,,round-1 correction minus its own
+arxiv/sections/results_d11.tex,393,1,2,MISSED,,distilled arm & r (round 1) & r (round 2) & r (roun
+arxiv/sections/results_d11.tex,393,2,3,MISSED,,distilled arm & r (round 1) & r (round 2) & r (round 3) \\
+arxiv/sections/results_d11.tex,393,3,4,MISSED,,& r (round 1) & r (round 2) & r (round 3) \\
+arxiv/sections/results_d11.tex,395,0.12,0.13,CAUGHT,TABLE residual_rounds row A_action_only: expected 'A\_action\_only&-0.12(0.23)&+0.05(0.70)&+0.18(0.088)',A\_action\_only & $-$0.12 (0.23) & +0.05 (0.70) &
+arxiv/sections/results_d11.tex,395,0.23,0.24,CAUGHT,TABLE residual_rounds row A_action_only: expected 'A\_action\_only&-0.12(0.23)&+0.05(0.70)&+0.18(0.088)',A\_action\_only & $-$0.12 (0.23) & +0.05 (0.70) & +0.18
+arxiv/sections/results_d11.tex,395,0.05,0.06,CAUGHT,TABLE residual_rounds row A_action_only: expected 'A\_action\_only&-0.12(0.23)&+0.05(0.70)&+0.18(0.088)',A\_action\_only & $-$0.12 (0.23) & +0.05 (0.70) & +0.18 (0.088) \
+arxiv/sections/results_d11.tex,395,0.70,0.71,CAUGHT,TABLE residual_rounds row A_action_only: expected 'A\_action\_only&-0.12(0.23)&+0.05(0.70)&+0.18(0.088)',_action\_only & $-$0.12 (0.23) & +0.05 (0.70) & +0.18 (0.088) \\
+arxiv/sections/results_d11.tex,395,0.18,0.19,CAUGHT,TABLE residual_rounds row A_action_only: expected 'A\_action\_only&-0.12(0.23)&+0.05(0.70)&+0.18(0.088)',only & $-$0.12 (0.23) & +0.05 (0.70) & +0.18 (0.088) \\
+arxiv/sections/results_d11.tex,395,0.088,0.089,CAUGHT,TABLE residual_rounds row A_action_only: expected 'A\_action\_only&-0.12(0.23)&+0.05(0.70)&+0.18(0.088)',$-$0.12 (0.23) & +0.05 (0.70) & +0.18 (0.088) \\
+arxiv/sections/results_d11.tex,396,0.12,0.13,CAUGHT,TABLE residual_rounds row B_main: expected 'B\_main&-0.12(0.22)&+0.05(0.65)&+0.40(0.001)',B\_main & $-$0.12 (0.22) & +0.05 (0.65) &
+arxiv/sections/results_d11.tex,396,0.22,0.23,CAUGHT,TABLE residual_rounds row B_main: expected 'B\_main&-0.12(0.22)&+0.05(0.65)&+0.40(0.001)',B\_main & $-$0.12 (0.22) & +0.05 (0.65) & +0.40
+arxiv/sections/results_d11.tex,396,0.05,0.06,CAUGHT,TABLE residual_rounds row B_main: expected 'B\_main&-0.12(0.22)&+0.05(0.65)&+0.40(0.001)',B\_main & $-$0.12 (0.22) & +0.05 (0.65) & +0.40 (0.001) \
+arxiv/sections/results_d11.tex,396,0.65,0.66,CAUGHT,TABLE residual_rounds row B_main: expected 'B\_main&-0.12(0.22)&+0.05(0.65)&+0.40(0.001)',B\_main & $-$0.12 (0.22) & +0.05 (0.65) & +0.40 (0.001) \\
+arxiv/sections/results_d11.tex,396,0.40,0.41,CAUGHT,TABLE residual_rounds row B_main: expected 'B\_main&-0.12(0.22)&+0.05(0.65)&+0.40(0.001)',main & $-$0.12 (0.22) & +0.05 (0.65) & +0.40 (0.001) \\
+arxiv/sections/results_d11.tex,396,0.001,0.002,CAUGHT,TABLE residual_rounds row B_main: expected 'B\_main&-0.12(0.22)&+0.05(0.65)&+0.40(0.001)',$-$0.12 (0.22) & +0.05 (0.65) & +0.40 (0.001) \\
+arxiv/sections/results_d11.tex,397,0.03,0.04,CAUGHT,TABLE residual_rounds row A_ctrl_rat: expected 'A\_ctrl\_rat&+0.03(0.78)&+0.11(0.30)&+0.27(0.013)',A\_ctrl\_rat & +0.03 (0.78) & +0.11 (0.30) &
+arxiv/sections/results_d11.tex,397,0.78,0.79,CAUGHT,TABLE residual_rounds row A_ctrl_rat: expected 'A\_ctrl\_rat&+0.03(0.78)&+0.11(0.30)&+0.27(0.013)',A\_ctrl\_rat & +0.03 (0.78) & +0.11 (0.30) & +0.27
+arxiv/sections/results_d11.tex,397,0.11,0.12,CAUGHT,TABLE residual_rounds row A_ctrl_rat: expected 'A\_ctrl\_rat&+0.03(0.78)&+0.11(0.30)&+0.27(0.013)',A\_ctrl\_rat & +0.03 (0.78) & +0.11 (0.30) & +0.27 (0.013) \
+arxiv/sections/results_d11.tex,397,0.30,0.31,CAUGHT,TABLE residual_rounds row A_ctrl_rat: expected 'A\_ctrl\_rat&+0.03(0.78)&+0.11(0.30)&+0.27(0.013)',A\_ctrl\_rat & +0.03 (0.78) & +0.11 (0.30) & +0.27 (0.013) \\
+arxiv/sections/results_d11.tex,397,0.27,0.28,CAUGHT,TABLE residual_rounds row A_ctrl_rat: expected 'A\_ctrl\_rat&+0.03(0.78)&+0.11(0.30)&+0.27(0.013)',l\_rat & +0.03 (0.78) & +0.11 (0.30) & +0.27 (0.013) \\
+arxiv/sections/results_d11.tex,397,0.013,0.014,CAUGHT,TABLE residual_rounds row A_ctrl_rat: expected 'A\_ctrl\_rat&+0.03(0.78)&+0.11(0.30)&+0.27(0.013)',& +0.03 (0.78) & +0.11 (0.30) & +0.27 (0.013) \\
+arxiv/sections/results_d11.tex,398,0.12,0.13,CAUGHT,TABLE residual_rounds row D_gist: expected 'D\_gist&-0.12(0.23)&+0.10(0.34)&+0.12(0.27)',D\_gist & $-$0.12 (0.23) & +0.10 (0.34) &
+arxiv/sections/results_d11.tex,398,0.23,0.24,CAUGHT,TABLE residual_rounds row D_gist: expected 'D\_gist&-0.12(0.23)&+0.10(0.34)&+0.12(0.27)',D\_gist & $-$0.12 (0.23) & +0.10 (0.34) & +0.12
+arxiv/sections/results_d11.tex,398,0.10,0.11,CAUGHT,TABLE residual_rounds row D_gist: expected 'D\_gist&-0.12(0.23)&+0.10(0.34)&+0.12(0.27)',D\_gist & $-$0.12 (0.23) & +0.10 (0.34) & +0.12 (0.27) \\
+arxiv/sections/results_d11.tex,398,0.34,0.35,CAUGHT,TABLE residual_rounds row D_gist: expected 'D\_gist&-0.12(0.23)&+0.10(0.34)&+0.12(0.27)',D\_gist & $-$0.12 (0.23) & +0.10 (0.34) & +0.12 (0.27) \\
+arxiv/sections/results_d11.tex,398,0.12,0.13,CAUGHT,TABLE residual_rounds row D_gist: expected 'D\_gist&-0.12(0.23)&+0.10(0.34)&+0.12(0.27)',gist & $-$0.12 (0.23) & +0.10 (0.34) & +0.12 (0.27) \\
+arxiv/sections/results_d11.tex,398,0.27,0.28,CAUGHT,TABLE residual_rounds row D_gist: expected 'D\_gist&-0.12(0.23)&+0.10(0.34)&+0.12(0.27)',$-$0.12 (0.23) & +0.10 (0.34) & +0.12 (0.27) \\
+arxiv/sections/results_d11.tex,400,100,101,MISSED,,n (paired episodes) & 100 & 89--90 & 84--85 \\
+arxiv/sections/results_d11.tex,400,89,80,MISSED,,n (paired episodes) & 100 & 89--90 & 84--85 \\
+arxiv/sections/results_d11.tex,400,90,91,MISSED,,n (paired episodes) & 100 & 89--90 & 84--85 \\
+arxiv/sections/results_d11.tex,400,84,85,MISSED,,n (paired episodes) & 100 & 89--90 & 84--85 \\
+arxiv/sections/results_d11.tex,400,85,86,MISSED,,(paired episodes) & 100 & 89--90 & 84--85 \\
+arxiv/sections/results_d11.tex,404,2000,2001,MISSED,,"}'s, by round (two-sided permutation p, 2000 draws)."
+arxiv/sections/results_d11.tex,405,2026,2027,MISSED,,\emph{2026-10 post-hoc recomputatio
+arxiv/sections/results_d11.tex,405,10,11,MISSED,,\emph{2026-10 post-hoc recomputation}
+arxiv/sections/results_d11.tex,406,1,2,MISSED,,round-1 definition (round 1 repr
+arxiv/sections/results_d11.tex,406,1,2,MISSED,,round-1 definition (round 1 reproduces the original
+arxiv/sections/results_d11.tex,407,2,3,MISSED,,exactly); the rounds-2--3 values printed in an
+arxiv/sections/results_d11.tex,407,3,4,MISSED,,exactly); the rounds-2--3 values printed in an ear
+arxiv/sections/results_d11.tex,412,1,2,MISSED,,\textbf{Round 1.} Every round-1 correlat
+arxiv/sections/results_d11.tex,412,1,2,MISSED,,\textbf{Round 1.} Every round-1 correlation falls inside
+arxiv/sections/results_d11.tex,413,1.96,1.97,MISSED,,($\pm 1.96/\sqrt{n} \approx \pm$0.2
+arxiv/sections/results_d11.tex,413,0.20,0.21,MISSED,,($\pm 1.96/\sqrt{n} \approx \pm$0.20 at n=100); none is signi
+arxiv/sections/results_d11.tex,413,100,101,MISSED,,"\pm 1.96/\sqrt{n} \approx \pm$0.20 at n=100); none is significant, a"
+arxiv/sections/results_d11.tex,417,100,101,MISSED,,attenuated toward zero. (ii) With n=100 the correlation's 95\% C
+arxiv/sections/results_d11.tex,417,95,96,MISSED,,zero. (ii) With n=100 the correlation's 95\% CI is
+arxiv/sections/results_d11.tex,418,0.20,0.21,MISSED,,"roughly $\pm$0.20, so this rules out a \em"
+arxiv/sections/results_d11.tex,418,1,2,MISSED,,this rules out a \emph{moderate} round-1 conditional
+arxiv/sections/results_d11.tex,419,0.12,0.13,MISSED,,shingly weak trace. The near-uniform $-$0.12 is
+arxiv/sections/results_d11.tex,423,2,3,MISSED,,"\textbf{Rounds 2--3 [EXPLORATORY, 2026-10"
+arxiv/sections/results_d11.tex,423,3,4,MISSED,,"\textbf{Rounds 2--3 [EXPLORATORY, 2026-10 po"
+arxiv/sections/results_d11.tex,423,2026,2027,MISSED,,"\textbf{Rounds 2--3 [EXPLORATORY, 2026-10 post-hoc].} At round"
+arxiv/sections/results_d11.tex,423,10,11,MISSED,,"\textbf{Rounds 2--3 [EXPLORATORY, 2026-10 post-hoc].} At round 2 a"
+arxiv/sections/results_d11.tex,423,2,3,MISSED,,"PLORATORY, 2026-10 post-hoc].} At round 2 all"
+arxiv/sections/results_d11.tex,424,3,4,MISSED,,are small and non-significant. At round 3 every distilled arm
+arxiv/sections/results_d11.tex,425,0.12,0.13,MISSED,,with \texttt{C\_retrieval}'s residual (+0.12 to +0.40;
+arxiv/sections/results_d11.tex,425,0.40,0.41,MISSED,,ttt{C\_retrieval}'s residual (+0.12 to +0.40;
+arxiv/sections/results_d11.tex,426,0.40,0.41,MISSED,,"tion-significant for \texttt{B\_main}, +0.40, p=0.001, and"
+arxiv/sections/results_d11.tex,426,0.001,0.002,MISSED,,"nificant for \texttt{B\_main}, +0.40, p=0.001, and"
+arxiv/sections/results_d11.tex,427,0.27,0.28,MISSED,,"\texttt{A\_ctrl\_rat}, +0.27, p=0.013). This is consi"
+arxiv/sections/results_d11.tex,427,0.013,0.014,MISSED,,"\texttt{A\_ctrl\_rat}, +0.27, p=0.013). This is consistent wit"
+arxiv/sections/results_d11.tex,431,3,4,CAUGHT,CLAIM round-3 shared-geometry baseline: no occurrence in arxiv/sections/results_d11.tex,rrelate with \emph{each other} at round 3 by +0.12 to
+arxiv/sections/results_d11.tex,431,0.12,0.13,CAUGHT,"CLAIM round-3 shared-geometry baseline: arxiv/sections/results_d11.tex says '+0.13to+0.32', certificate (r1_rounds_recom",e with \emph{each other} at round 3 by +0.12 to
+arxiv/sections/results_d11.tex,432,0.32,0.33,CAUGHT,"CLAIM round-3 shared-geometry baseline: arxiv/sections/results_d11.tex says '+0.12to+0.33', certificate (r1_rounds_recom",+0.32 with no retrieval involv
+arxiv/sections/results_d11.tex,433,85,86,MISSED,,"end early, leaving n$\approx$85 at round 3. Nor does gis"
+arxiv/sections/results_d11.tex,433,3,4,MISSED,,"nd early, leaving n$\approx$85 at round 3. Nor does gist-in-target"
+arxiv/sections/results_d11.tex,434,0.40,0.41,MISSED,,m the control here: \texttt{B\_main}'s +0.40 vs \texttt{A\_action\_on
+arxiv/sections/results_d11.tex,435,0.18,0.19,MISSED,,+0.18 is not a significant dif
+arxiv/sections/results_d11.tex,435,1.53,1.54,CAUGHT,"CLAIM round-3 Fisher z: arxiv/sections/results_d11.tex says '1.54', certificate (derived_stats.txt) says '1.53'","not a significant difference (Fisher z=1.53, p=0.13), and we do not"
+arxiv/sections/results_d11.tex,435,0.13,0.14,CAUGHT,"CLAIM round-3 Fisher p: arxiv/sections/results_d11.tex says '0.14', certificate (derived_stats.txt) says '0.13'","ignificant difference (Fisher z=1.53, p=0.13), and we do not"
+arxiv/sections/results_d11.tex,438,1,2,MISSED,,ccordingly the claim is scoped to round 1: \textbf{at round 1 we f
+arxiv/sections/results_d11.tex,438,1,2,MISSED,,is scoped to round 1: \textbf{at round 1 we find no
+arxiv/sections/results_d11.tex,439,0.20,0.21,MISSED,,"detectable conditional trace} ($|r| < 0.20$), and at round 1"
+arxiv/sections/results_d11.tex,439,1,2,MISSED,,"nal trace} ($|r| < 0.20$), and at round 1"
+arxiv/sections/results_d11.tex,441,1,2,MISSED,,-target contributes no detectable round-1 conditionality. Whether
+arxiv/sections/results_d11.tex,448,4.5,4.6,MISSED,,\subsection*{4.5 Limitations}
+arxiv/sections/results_d11.tex,456,2,3,MISSED,,ow stores reset-time pose + seed; paper 2's re-run adds
+arxiv/sections/results_d11.tex,461,0,1,MISSED,,ist pre-action cube pose and trajectory[0] is already one
+arxiv/sections/results_d11.tex,462,100,101,MISSED,,"A frozen-arm diagnostic (seed identical 100/100,"
+arxiv/sections/results_d11.tex,462,100,101,MISSED,,"ozen-arm diagnostic (seed identical 100/100,"
+arxiv/sections/results_d11.tex,463,100,101,MISSED,,"frozen right-arm identical 100/100, active left-arm 1/1"
+arxiv/sections/results_d11.tex,463,100,101,MISSED,,"frozen right-arm identical 100/100, active left-arm 1/100)"
+arxiv/sections/results_d11.tex,463,1,2,MISSED,,"-arm identical 100/100, active left-arm 1/100) shows the"
+arxiv/sections/results_d11.tex,463,100,101,MISSED,,"rm identical 100/100, active left-arm 1/100) shows the"
+arxiv/sections/results_d11.tex,468,16,17,MISSED,,rank-16 LoRA may lack the capaci
+arxiv/sections/results_d11.tex,476,15,16,MISSED,,re-measure (Amendment 15 add-on; 20 steps per pro
+arxiv/sections/results_d11.tex,476,20,21,MISSED,,re-measure (Amendment 15 add-on; 20 steps per protocol on th
+arxiv/sections/results_d11.tex,484,207,208,CAUGHT,COST table row teacher: expected 'memoryteacher&207&14.1' in arxiv/sections/results_d11.tex,memory teacher & 207 & 14.1 \\
+arxiv/sections/results_d11.tex,484,14.1,14.2,CAUGHT,COST table row teacher: expected 'memoryteacher&207&14.1' in arxiv/sections/results_d11.tex,memory teacher & 207 & 14.1 \\
+arxiv/sections/results_d11.tex,485,186,187,CAUGHT,COST table row student_bare: expected 'student(\textttA\_ctrl\_ratweights)&186&11.2' in arxiv/sections/results_d11.tex,udent (\texttt{A\_ctrl\_rat} weights) & 186 & 11.2 \\
+arxiv/sections/results_d11.tex,485,11.2,11.3,CAUGHT,COST table row student_bare: expected 'student(\textttA\_ctrl\_ratweights)&186&11.2' in arxiv/sections/results_d11.tex,(\texttt{A\_ctrl\_rat} weights) & 186 & 11.2 \\
+arxiv/sections/results_d11.tex,486,220,221,CAUGHT,COST table row student_retrieval: expected 'student+retrieval(\textttC\_retrieval)&220&13.7' in arxiv/sections/results_d,t + retrieval (\texttt{C\_retrieval}) & 220 & 13.7 \\
+arxiv/sections/results_d11.tex,486,13.7,13.8,CAUGHT,COST table row student_retrieval: expected 'student+retrieval(\textttC\_retrieval)&220&13.7' in arxiv/sections/results_d,trieval (\texttt{C\_retrieval}) & 220 & 13.7 \\
+arxiv/sections/results_d11.tex,492,31,32,MISSED,,"Teacher and student share the 31B base, so per-token deco"
+arxiv/sections/results_d11.tex,493,44,45,CAUGHT,COST derived '44--48ms/token' not in arxiv/sections/results_d11.tex,"the same (44--48 ms/token), and decod"
+arxiv/sections/results_d11.tex,493,48,49,CAUGHT,COST derived '44--48ms/token' not in arxiv/sections/results_d11.tex,"the same (44--48 ms/token), and decode ac"
+arxiv/sections/results_d11.tex,493,70,71,CAUGHT,COST derived '70--73\%' not in arxiv/sections/results_d11.tex,"--48 ms/token), and decode accounts for 70--73\% of each"
+arxiv/sections/results_d11.tex,493,73,74,CAUGHT,COST derived '70--73\%' not in arxiv/sections/results_d11.tex,"ms/token), and decode accounts for 70--73\% of each"
+arxiv/sections/results_d11.tex,498,15,16,MISSED,,nstrument defects (disclosed; Amendment 15 P1 pack).}
+arxiv/sections/results_d11.tex,499,24,25,MISSED,,"(i) The task inherits a 24\,s environment time-out"
+arxiv/sections/results_d11.tex,501,718,719,MISSED,,"runcation flag, so episodes longer than 718 steps continue on a"
+arxiv/sections/results_d11.tex,506,547,548,MISSED,,instruction field of all 547 frozen-buffer entries an
+arxiv/sections/results_d11.tex,507,517,518,MISSED,,lessons (517/547 lessons name the col
+arxiv/sections/results_d11.tex,507,547,548,MISSED,,lessons (517/547 lessons name the colour)
+arxiv/sections/results_d11.tex,515,15,16,MISSED,,"failed.} Amendment 15 pinned a 1\,mm gate befo"
+arxiv/sections/results_d11.tex,515,1,2,MISSED,,"failed.} Amendment 15 pinned a 1\,mm gate before the resi"
+arxiv/sections/results_d11.tex,518,15,16,MISSED,,"A15.1 re-registered it at 15\,mm, above the 12.1\,mm"
+arxiv/sections/results_d11.tex,518,12.1,12.2,CAUGHT,A15 literal 'abovethe12.1mmmaximumresidual' not in arxiv/sections/results_d11.tex,"1 re-registered it at 15\,mm, above the 12.1\,mm maximum residual"
+arxiv/sections/results_d11.tex,519,15,16,MISSED,,rms. This was done before any Amendment 15 slope was
+arxiv/sections/results_d11.tex,520,15,16,MISSED,,"computed, but after the D11 slopes at 15\,mm had been seen. The"
+arxiv/sections/results_d11.tex,521,15,16,MISSED,,Amendment 15 arms then reached residu
+arxiv/sections/results_d11.tex,521,13.4,13.5,CAUGHT,"A15 literal 'upto13.4mm,1.6mmunder' not in arxiv/sections/results_d11.tex","15 arms then reached residuals of up to 13.4\,mm, 1.6\,mm under"
+arxiv/sections/results_d11.tex,521,1.6,1.7,CAUGHT,"A15 literal 'upto13.4mm,1.6mmunder' not in arxiv/sections/results_d11.tex","en reached residuals of up to 13.4\,mm, 1.6\,mm under"
+arxiv/sections/results_d11.tex,531,100,101,MISSED,,"\caption{Confirmatory contrasts ($n$=100/arm, two-sided $z$ prima"
+arxiv/sections/results_d11.tex,536,95,96,MISSED,,est & Contrast & $\Delta$ SR & $\Delta$ 95\% CI (Newcombe) & z & p\
+arxiv/sections/results_d11.tex,538,1,2,MISSED,,"T1 & B\_main $-$ A\_action\_only & +1 pp & [$-$11.0, +13.0] &"
+arxiv/sections/results_d11.tex,538,11.0,11.1,CAUGHT,"CLAIM T1 CI: arxiv/sections/results_d11.tex says '-11.1,+13.0', certificate (derived_stats.txt) says '-11.0,+13.0'","_main $-$ A\_action\_only & +1 pp & [$-$11.0, +13.0] & 0.16 & 0.87 &"
+arxiv/sections/results_d11.tex,538,13.0,13.1,CAUGHT,"CLAIM T1 CI: arxiv/sections/results_d11.tex says '-11.0,+13.1', certificate (derived_stats.txt) says '-11.0,+13.0'","-$ A\_action\_only & +1 pp & [$-$11.0, +13.0] & 0.16 & 0.87 & 1.0 & \"
+arxiv/sections/results_d11.tex,538,0.16,0.17,MISSED,,"tion\_only & +1 pp & [$-$11.0, +13.0] & 0.16 & 0.87 & 1.0 & \checkmar"
+arxiv/sections/results_d11.tex,538,0.87,0.88,MISSED,,"nly & +1 pp & [$-$11.0, +13.0] & 0.16 & 0.87 & 1.0 & \checkmark & FAI"
+arxiv/sections/results_d11.tex,538,1.0,1.1,MISSED,,"1 pp & [$-$11.0, +13.0] & 0.16 & 0.87 & 1.0 & \checkmark & FAIL @ $\"
+arxiv/sections/results_d11.tex,538,0.020,0.021,MISSED,,87 & 1.0 & \checkmark & FAIL @ $\alpha$=0.020 $\rightarrow$ \textbf{nu
+arxiv/sections/results_d11.tex,539,11,12,MISSED,,"T1a & B\_main $-$ A\_ctrl\_rat & +11 pp & [$-$0.2, +22.0] & 1"
+arxiv/sections/results_d11.tex,539,0.2,0.3,CAUGHT,"CLAIM T1a CI: arxiv/sections/results_d11.tex says '-0.3,+22.0', certificate (derived_stats.txt) says '-0.2,+22.0'","B\_main $-$ A\_ctrl\_rat & +11 pp & [$-$0.2, +22.0] & 1.93 & 0.054 &"
+arxiv/sections/results_d11.tex,539,22.0,22.1,CAUGHT,"CLAIM T1a CI: arxiv/sections/results_d11.tex says '-0.2,+22.1', certificate (derived_stats.txt) says '-0.2,+22.0'","n $-$ A\_ctrl\_rat & +11 pp & [$-$0.2, +22.0] & 1.93 & 0.054 & 0.046"
+arxiv/sections/results_d11.tex,539,1.93,1.94,MISSED,,"_ctrl\_rat & +11 pp & [$-$0.2, +22.0] & 1.93 & 0.054 & 0.046 & \check"
+arxiv/sections/results_d11.tex,539,0.054,0.055,MISSED,,"rat & +11 pp & [$-$0.2, +22.0] & 1.93 & 0.054 & 0.046 & \checkmark & \"
+arxiv/sections/results_d11.tex,539,0.046,0.047,MISSED,,"1 pp & [$-$0.2, +22.0] & 1.93 & 0.054 & 0.046 & \checkmark & \textbf{n"
+arxiv/sections/results_d11.tex,539,0.020,0.021,MISSED,,& \checkmark & \textbf{n.s.} @ $\alpha$=0.020 \\
+arxiv/sections/results_d11.tex,540,23,24,MISSED,,"T4 & C\_retrieval $-$ B\_main & +23 pp & [+9.6, +35.3] & 3.3"
+arxiv/sections/results_d11.tex,540,9.6,9.7,CAUGHT,"CLAIM T4 CI: arxiv/sections/results_d11.tex says '+9.7,+35.3', certificate (derived_stats.txt) says '+9.6,+35.3'","& C\_retrieval $-$ B\_main & +23 pp & [+9.6, +35.3] & 3.36 & 7.8e-4"
+arxiv/sections/results_d11.tex,540,35.3,35.4,CAUGHT,"CLAIM T4 CI: arxiv/sections/results_d11.tex says '+9.6,+35.4', certificate (derived_stats.txt) says '+9.6,+35.3'","etrieval $-$ B\_main & +23 pp & [+9.6, +35.3] & 3.36 & 7.8e-4 & 1.0e-"
+arxiv/sections/results_d11.tex,540,3.36,3.37,MISSED,,"$-$ B\_main & +23 pp & [+9.6, +35.3] & 3.36 & 7.8e-4 & 1.0e-3 & \che"
+arxiv/sections/results_d11.tex,540,7.8,7.9,MISSED,,"_main & +23 pp & [+9.6, +35.3] & 3.36 & 7.8e-4 & 1.0e-3 & \checkmark"
+arxiv/sections/results_d11.tex,540,4,5,MISSED,,"& +23 pp & [+9.6, +35.3] & 3.36 & 7.8e-4 & 1.0e-3 & \checkmark &"
+arxiv/sections/results_d11.tex,540,1.0,1.1,MISSED,,"23 pp & [+9.6, +35.3] & 3.36 & 7.8e-4 & 1.0e-3 & \checkmark & \textb"
+arxiv/sections/results_d11.tex,540,3,4,MISSED,,"& [+9.6, +35.3] & 3.36 & 7.8e-4 & 1.0e-3 & \checkmark & \textbf{P"
+arxiv/sections/results_d11.tex,540,0.010,0.011,MISSED,,& \checkmark & \textbf{PASS} @ $\alpha$=0.010 \\
+arxiv/sections/results_d11.tex,541,0.7,0.8,MISSED,,T3 & B\_main SR vs 0.7$\times$teacher floor & 2
+arxiv/sections/results_d11.tex,541,26,27,MISSED,,\_main SR vs 0.7$\times$teacher floor & 26\% vs 36.2\% & --- & $-$2
+arxiv/sections/results_d11.tex,541,36.2,36.3,MISSED,,R vs 0.7$\times$teacher floor & 26\% vs 36.2\% & --- & $-$2.12 & 0.98
+arxiv/sections/results_d11.tex,541,2.12,2.13,MISSED,,acher floor & 26\% vs 36.2\% & --- & $-$2.12 & 0.98$^{1}$ & --- & ---
+arxiv/sections/results_d11.tex,541,0.98,0.99,MISSED,,loor & 26\% vs 36.2\% & --- & $-$2.12 & 0.98$^{1}$ & --- & --- & \tex
+arxiv/sections/results_d11.tex,541,1,2,MISSED,,26\% vs 36.2\% & --- & $-$2.12 & 0.98$^{1}$ & --- & --- & \textbf{
+arxiv/sections/results_d11.tex,543,9,0,MISSED,,\multicolumn{9}{l}{\emph{Auto-reset sen
+arxiv/sections/results_d11.tex,543,15,16,MISSED,,"\emph{Auto-reset sensitivity (Amendment 15 pin 8; reported beside,"
+arxiv/sections/results_d11.tex,543,8,9,MISSED,,"uto-reset sensitivity (Amendment 15 pin 8; reported beside, never"
+arxiv/sections/results_d11.tex,544,19,10,MISSED,,T1 sens. & 19 vs 21 & $-$2 pp & [$-$13
+arxiv/sections/results_d11.tex,544,21,22,MISSED,,"T1 sens. & 19 vs 21 & $-$2 pp & [$-$13.1, +9"
+arxiv/sections/results_d11.tex,544,2,3,MISSED,,"T1 sens. & 19 vs 21 & $-$2 pp & [$-$13.1, +9.1] & $"
+arxiv/sections/results_d11.tex,544,13.1,13.2,MISSED,,"T1 sens. & 19 vs 21 & $-$2 pp & [$-$13.1, +9.1] & $-$0.35 & 0.72"
+arxiv/sections/results_d11.tex,544,9.1,9.2,MISSED,,"sens. & 19 vs 21 & $-$2 pp & [$-$13.1, +9.1] & $-$0.35 & 0.72 & 0.80"
+arxiv/sections/results_d11.tex,544,0.35,0.36,MISSED,,"vs 21 & $-$2 pp & [$-$13.1, +9.1] & $-$0.35 & 0.72 & 0.80 & \checkma"
+arxiv/sections/results_d11.tex,544,0.72,0.73,MISSED,,"& $-$2 pp & [$-$13.1, +9.1] & $-$0.35 & 0.72 & 0.80 & \checkmark & nu"
+arxiv/sections/results_d11.tex,544,0.80,0.81,MISSED,,"pp & [$-$13.1, +9.1] & $-$0.35 & 0.72 & 0.80 & \checkmark & null \\"
+arxiv/sections/results_d11.tex,545,19,10,MISSED,,"T1a sens. & 19 vs 12 & +7 pp & [$-$3.2,"
+arxiv/sections/results_d11.tex,545,12,13,MISSED,,"T1a sens. & 19 vs 12 & +7 pp & [$-$3.2, +17.1"
+arxiv/sections/results_d11.tex,545,7,8,MISSED,,"T1a sens. & 19 vs 12 & +7 pp & [$-$3.2, +17.1] & 1"
+arxiv/sections/results_d11.tex,545,3.2,3.3,MISSED,,"T1a sens. & 19 vs 12 & +7 pp & [$-$3.2, +17.1] & 1.37 & 0.17 &"
+arxiv/sections/results_d11.tex,545,17.1,17.2,MISSED,,"1a sens. & 19 vs 12 & +7 pp & [$-$3.2, +17.1] & 1.37 & 0.17 & 0.14 &"
+arxiv/sections/results_d11.tex,545,1.37,1.38,MISSED,,"& 19 vs 12 & +7 pp & [$-$3.2, +17.1] & 1.37 & 0.17 & 0.14 & \checkma"
+arxiv/sections/results_d11.tex,545,0.17,0.18,MISSED,,"s 12 & +7 pp & [$-$3.2, +17.1] & 1.37 & 0.17 & 0.14 & \checkmark & n."
+arxiv/sections/results_d11.tex,545,0.14,0.15,MISSED,,"+7 pp & [$-$3.2, +17.1] & 1.37 & 0.17 & 0.14 & \checkmark & n.s. \\"
+arxiv/sections/results_d11.tex,546,48,49,MISSED,,"T4 sens. & 48 vs 19 & +29 pp & [+16.0,"
+arxiv/sections/results_d11.tex,546,19,10,MISSED,,"T4 sens. & 48 vs 19 & +29 pp & [+16.0, +40.7"
+arxiv/sections/results_d11.tex,546,29,20,MISSED,,"T4 sens. & 48 vs 19 & +29 pp & [+16.0, +40.7] & 4."
+arxiv/sections/results_d11.tex,546,16.0,16.1,MISSED,,"T4 sens. & 48 vs 19 & +29 pp & [+16.0, +40.7] & 4.35 & 1.4e-5"
+arxiv/sections/results_d11.tex,546,40.7,40.8,MISSED,,"T4 sens. & 48 vs 19 & +29 pp & [+16.0, +40.7] & 4.35 & 1.4e-5 & 4.4e-"
+arxiv/sections/results_d11.tex,546,4.35,4.36,MISSED,,"& 48 vs 19 & +29 pp & [+16.0, +40.7] & 4.35 & 1.4e-5 & 4.4e-5 & \che"
+arxiv/sections/results_d11.tex,546,1.4,1.5,MISSED,,"s 19 & +29 pp & [+16.0, +40.7] & 4.35 & 1.4e-5 & 4.4e-5 & \checkmark"
+arxiv/sections/results_d11.tex,546,5,6,MISSED,,"& +29 pp & [+16.0, +40.7] & 4.35 & 1.4e-5 & 4.4e-5 & \checkmark &"
+arxiv/sections/results_d11.tex,546,4.4,4.5,MISSED,,"9 pp & [+16.0, +40.7] & 4.35 & 1.4e-5 & 4.4e-5 & \checkmark & PASS \"
+arxiv/sections/results_d11.tex,546,5,6,MISSED,,"& [+16.0, +40.7] & 4.35 & 1.4e-5 & 4.4e-5 & \checkmark & PASS \\"
+arxiv/sections/results_d11.tex,547,19,10,MISSED,,T3 sens. & 19\% vs 36.2\% & --- & ---
+arxiv/sections/results_d11.tex,547,36.2,36.3,MISSED,,T3 sens. & 19\% vs 36.2\% & --- & --- & $-$3.58
+arxiv/sections/results_d11.tex,547,3.58,3.59,MISSED,,sens. & 19\% vs 36.2\% & --- & --- & $-$3.58 & 1.00 & --- & --- & bel
+arxiv/sections/results_d11.tex,547,1.00,1.01,MISSED,,19\% vs 36.2\% & --- & --- & $-$3.58 & 1.00 & --- & --- & below floo
+arxiv/sections/results_d11.tex,553,1,2,MISSED,,$^{1}$ T3 is a one-sided prop
+arxiv/sections/results_d11.tex,554,0.7,0.8,MISSED,,= 0.7 $\times$ 51.7\% pooled m
+arxiv/sections/results_d11.tex,554,51.7,51.8,MISSED,,= 0.7 $\times$ 51.7\% pooled memory-teacher
+arxiv/sections/results_d11.tex,554,36.2,36.3,MISSED,,imes$ 51.7\% pooled memory-teacher SR = 36.2\% (pre-reg \S4). Reporte
+arxiv/sections/results_d11.tex,557,10,11,MISSED,,wo-tier T1}: T1-strong ($\Delta$ $\ge$ +10 pp \& sig) and T1-weak (
+arxiv/sections/results_d11.tex,557,0,1,MISSED,,10 pp \& sig) and T1-weak ($\Delta$ $>$ 0 \& sig
+arxiv/sections/results_d11.tex,558,0.010,0.011,MISSED,,at $\alpha$=0.010) are graded readings \em
+arxiv/sections/results_d11.tex,558,0.020,0.021,MISSED,,ings \emph{within} T1's single $\alpha$=0.020 budget
+arxiv/sections/results_d11.tex,559,9,0,MISSED,,"line (Amendment 9 \S9.2), not separate fam"
+arxiv/sections/results_d11.tex,561,10,11,MISSED,,"\textbf{$\alpha$ budget (Amendment 10 \S10.2, family-wise 0.06"
+arxiv/sections/results_d11.tex,561,0.060,0.061,MISSED,,"udget (Amendment 10 \S10.2, family-wise 0.060)}: T1 0.020, T1a"
+arxiv/sections/results_d11.tex,561,0.020,0.021,MISSED,,"ment 10 \S10.2, family-wise 0.060)}: T1 0.020, T1a"
+arxiv/sections/results_d11.tex,562,0.020,0.021,MISSED,,"0.020, T3 0.010, T4 0.010. (Th"
+arxiv/sections/results_d11.tex,562,0.010,0.011,MISSED,,"0.020, T3 0.010, T4 0.010. (The original"
+arxiv/sections/results_d11.tex,562,0.010,0.011,MISSED,,"0.020, T3 0.010, T4 0.010. (The original \S4 used"
+arxiv/sections/results_d11.tex,562,0.05,0.06,MISSED,,0.010. (The original \S4 used $\alpha$=0.05 per test; Amendment 1 se
+arxiv/sections/results_d11.tex,562,1,2,MISSED,,used $\alpha$=0.05 per test; Amendment 1 set a
+arxiv/sections/results_d11.tex,563,0.060,0.061,MISSED,,-test non-uniform allocation summing to 0.060; Amendment 10 dropped
+arxiv/sections/results_d11.tex,563,10,11,MISSED,,allocation summing to 0.060; Amendment 10 dropped
+arxiv/sections/results_d11.tex,564,0.010,0.011,MISSED,,"B\_matched and moved its 0.010 to T1a, keeping 0.060. T"
+arxiv/sections/results_d11.tex,564,0.060,0.061,MISSED,,"hed and moved its 0.010 to T1a, keeping 0.060. The documented"
+arxiv/sections/results_d11.tex,568,0.2,0.3,CAUGHT,"CLAIM T1a CI: arxiv/sections/results_d11.tex says '-0.3,+22.0', certificate (derived_stats.txt) says '-0.2,+22.0'","\textbf{Reading the CIs}: T1a's [$-$0.2, +22.0] is the honest st"
+arxiv/sections/results_d11.tex,568,22.0,22.1,CAUGHT,"CLAIM T1a CI: arxiv/sections/results_d11.tex says '-0.2,+22.1', certificate (derived_stats.txt) says '-0.2,+22.0'","extbf{Reading the CIs}: T1a's [$-$0.2, +22.0] is the honest statement"
+arxiv/sections/results_d11.tex,571,9.6,9.7,CAUGHT,"CLAIM T4 CI: arxiv/sections/results_d11.tex says '+9.7,+35.3', certificate (derived_stats.txt) says '+9.6,+35.3'","$ and make no directional claim. T4's [+9.6, +35.3]"
+arxiv/sections/results_d11.tex,571,35.3,35.4,CAUGHT,"CLAIM T4 CI: arxiv/sections/results_d11.tex says '+9.6,+35.4', certificate (derived_stats.txt) says '+9.6,+35.3'","make no directional claim. T4's [+9.6, +35.3]"
+arxiv/sections/methods_d11.tex,9,3,4,MISSED,,\section*{3. Methods}
+arxiv/sections/methods_d11.tex,11,3.1,3.2,MISSED,,\subsection*{3.1 Task and environment}
+arxiv/sections/methods_d11.tex,17,0.05,0.06,MISSED,,end-effector comes within 0.05 m of the target; each ep
+arxiv/sections/methods_d11.tex,18,24,25,MISSED,,"budget (and is subject to an inherited 24\,s environment"
+arxiv/sections/methods_d11.tex,24,3.2,3.3,MISSED,,\subsection*{3.2 Teacher and memory pipel
+arxiv/sections/methods_d11.tex,26,4,5,MISSED,,The teacher is Gemma-4-31B-it~\citep{gemma2024}
+arxiv/sections/methods_d11.tex,26,31,32,MISSED,,The teacher is Gemma-4-31B-it~\citep{gemma2024} (m
+arxiv/sections/methods_d11.tex,26,4,5,MISSED,,"4-31B-it~\citep{gemma2024} (multimodal, 4-bit)"
+arxiv/sections/methods_d11.tex,28,1,2,MISSED,,pisode it writes a self-recap; at round 1 of a new episode it
+arxiv/sections/methods_d11.tex,40,3.3,3.4,MISSED,,"\subsection*{3.3 Students, arms, and the"
+arxiv/sections/methods_d11.tex,40,2,3,MISSED,,"subsection*{3.3 Students, arms, and the 2$\times$2 factorial}"
+arxiv/sections/methods_d11.tex,40,2,3,MISSED,,"n*{3.3 Students, arms, and the 2$\times$2 factorial}"
+arxiv/sections/methods_d11.tex,42,16,17,MISSED,,"re LoRA~\citep{lora2021} adapters (rank-16, $\alpha$=32, dropout 0."
+arxiv/sections/methods_d11.tex,42,32,33,MISSED,,"p{lora2021} adapters (rank-16, $\alpha$=32, dropout 0.05) on the sa"
+arxiv/sections/methods_d11.tex,42,0.05,0.06,MISSED,,"adapters (rank-16, $\alpha$=32, dropout 0.05) on the same"
+arxiv/sections/methods_d11.tex,43,4,5,MISSED,,"Gemma-4-31B-it base, targeting t"
+arxiv/sections/methods_d11.tex,43,31,32,MISSED,,"Gemma-4-31B-it base, targeting the"
+arxiv/sections/methods_d11.tex,46,4,5,MISSED,,"ame} pinned trajectory pool: SFT (stage 4-A, 992 desirable"
+arxiv/sections/methods_d11.tex,46,992,993,MISSED,,"pinned trajectory pool: SFT (stage 4-A, 992 desirable"
+arxiv/sections/methods_d11.tex,47,1,2,MISSED,,"progress-rounds, 1 epoch, lr 2e-4) followed"
+arxiv/sections/methods_d11.tex,47,2,3,MISSED,,"progress-rounds, 1 epoch, lr 2e-4) followed by composab"
+arxiv/sections/methods_d11.tex,47,4,5,MISSED,,"progress-rounds, 1 epoch, lr 2e-4) followed by composable-"
+arxiv/sections/methods_d11.tex,48,4,5,MISSED,,"(stage 4-B, 992 desirable + 1799"
+arxiv/sections/methods_d11.tex,48,992,993,MISSED,,"(stage 4-B, 992 desirable + 1799 undesir"
+arxiv/sections/methods_d11.tex,48,1799,1790,MISSED,,"(stage 4-B, 992 desirable + 1799 undesirable rounds, 1 ep"
+arxiv/sections/methods_d11.tex,48,1,2,MISSED,,"92 desirable + 1799 undesirable rounds, 1 epoch, lr 5e-5,"
+arxiv/sections/methods_d11.tex,48,5,6,MISSED,,"+ 1799 undesirable rounds, 1 epoch, lr 5e-5,"
+arxiv/sections/methods_d11.tex,48,5,6,MISSED,,"1799 undesirable rounds, 1 epoch, lr 5e-5,"
+arxiv/sections/methods_d11.tex,49,0.1,0.2,MISSED,,"$\beta$=0.1, auto-balanced class wei"
+arxiv/sections/methods_d11.tex,54,2,3,MISSED,,The four training arms form a 2$\times$2 factorial over
+arxiv/sections/methods_d11.tex,54,2,3,MISSED,,The four training arms form a 2$\times$2 factorial over two binar
+arxiv/sections/methods_d11.tex,72,2791,2792,MISSED,,l four arms are pinned to the identical 2791-round pool (992
+arxiv/sections/methods_d11.tex,72,992,993,MISSED,,inned to the identical 2791-round pool (992
+arxiv/sections/methods_d11.tex,73,1799,1790,MISSED,,"desirable + 1799 undesirable), verified b"
+arxiv/sections/methods_d11.tex,73,256,257,MISSED,,"le + 1799 undesirable), verified by SHA-256 before training"
+arxiv/sections/methods_d11.tex,74,12,13,MISSED,,"(Appendix A1, Amendments 12--13); this makes trainin"
+arxiv/sections/methods_d11.tex,74,13,14,MISSED,,"(Appendix A1, Amendments 12--13); this makes training-sa"
+arxiv/sections/methods_d11.tex,77,3.4,3.5,MISSED,,\subsection*{3.4 Evaluation protocols}
+arxiv/sections/methods_d11.tex,79,100,101,MISSED,,"Five inference protocols are evaluated, 100 episodes each, all at th"
+arxiv/sections/methods_d11.tex,108,8,9,MISSED,,and confirmatory (Amendment 8).
+arxiv/sections/methods_d11.tex,112,12,13,MISSED,,s not written during the run (Amendment 12--13).
+arxiv/sections/methods_d11.tex,112,13,14,MISSED,,t written during the run (Amendment 12--13).
+arxiv/sections/methods_d11.tex,114,4500,4501,MISSED,,ls share a fixed environment seed base (4500; per-
+arxiv/sections/methods_d11.tex,115,4500,4501,MISSED,,"episode seed = 4500 + episode index), so epi"
+arxiv/sections/methods_d11.tex,117,11,12,MISSED,,(Amendment 11).
+arxiv/sections/methods_d11.tex,119,3.5,3.6,MISSED,,\subsection*{3.5 Pre-registered hypothese
+arxiv/sections/methods_d11.tex,122,9,0,MISSED,,Amendments 9--10):
+arxiv/sections/methods_d11.tex,122,10,11,MISSED,,Amendments 9--10):
+arxiv/sections/methods_d11.tex,125,10,11,MISSED,,on\_only. Rejection: $\Delta$ SR $\ge$ +10 pp
+arxiv/sections/methods_d11.tex,126,0.020,0.021,MISSED,,"AND significant, two-sided, $\alpha$=0.020. A graded reading within"
+arxiv/sections/methods_d11.tex,127,10,11,MISSED,,"budget line: T1-strong ($\ge$+10 pp) and T1-weak ($>$0, s"
+arxiv/sections/methods_d11.tex,127,0,1,MISSED,,"T1-strong ($\ge$+10 pp) and T1-weak ($>$0, significant at"
+arxiv/sections/methods_d11.tex,128,0.010,0.011,MISSED,,$\alpha$=0.010). Explicit falsification
+arxiv/sections/methods_d11.tex,130,0.020,0.021,MISSED,,"n $-$ A\_ctrl\_rat, two-sided, $\alpha$=0.020."
+arxiv/sections/methods_d11.tex,131,0.010,0.011,MISSED,,"rieval $-$ B\_main, two-sided, $\alpha$=0.010."
+arxiv/sections/methods_d11.tex,132,0.7,0.8,MISSED,,\item \textbf{T3}: B\_main SR $\ge$ 0.7 $\times$ pooled memory-t
+arxiv/sections/methods_d11.tex,132,36.2,36.3,MISSED,,"0.7 $\times$ pooled memory-teacher SR (=36.2\%),"
+arxiv/sections/methods_d11.tex,134,0.060,0.061,MISSED,,"\item Family-wise $\alpha$=0.060 (Amendment 10, non-unifo"
+arxiv/sections/methods_d11.tex,134,10,11,MISSED,,"m Family-wise $\alpha$=0.060 (Amendment 10, non-uniform allocation)"
+arxiv/sections/methods_d11.tex,136,9,0,MISSED,,Amendment 9 \S9.3; exploratory per A
+arxiv/sections/methods_d11.tex,136,14,15,MISSED,,"ment 9 \S9.3; exploratory per Amendment 14 \S14.5, with pre-registe"
+arxiv/sections/methods_d11.tex,137,1,2,MISSED,,per-arm predictions): round-1 target X minus initial E
+arxiv/sections/methods_d11.tex,138,1,2,CAUGHT,CLAIM R1 grid unit: no occurrence in arxiv/sections/methods_d11.tex,"scalar-guard grid units (1 unit $=$ 0.45\,cm along"
+arxiv/sections/methods_d11.tex,138,0.45,0.46,CAUGHT,"CLAIM R1 grid unit: arxiv/sections/methods_d11.tex says '0.46', certificate (derived_stats.txt) says '0.45'","scalar-guard grid units (1 unit $=$ 0.45\,cm along x; the pre-reg"
+arxiv/sections/methods_d11.tex,140,16,17,MISSED,,"Amendment 16, \texttt{730b9fc}), agai"
+arxiv/sections/methods_d11.tex,141,23.5,23.6,MISSED,,"$-$23.5, memory-teacher last-qua"
+arxiv/sections/methods_d11.tex,141,15.8,15.9,MISSED,,"-$23.5, memory-teacher last-quartile $-$15.8), with a registered bran"
+arxiv/sections/methods_d11.tex,143,15,16,MISSED,,"xtbf{Auto-reset sensitivity} (Amendment 15 pin 8, registered"
+arxiv/sections/methods_d11.tex,143,8,9,MISSED,,"to-reset sensitivity} (Amendment 15 pin 8, registered"
+arxiv/sections/methods_d11.tex,144,2026,2027,MISSED,,2026-10-05 before any Amendme
+arxiv/sections/methods_d11.tex,144,10,11,MISSED,,2026-10-05 before any Amendment
+arxiv/sections/methods_d11.tex,144,05,06,MISSED,,2026-10-05 before any Amendment 15
+arxiv/sections/methods_d11.tex,144,15,16,MISSED,,2026-10-05 before any Amendment 15 run): the task inherits
+arxiv/sections/methods_d11.tex,144,24,25,MISSED,,"Amendment 15 run): the task inherits a 24\,s"
+arxiv/sections/methods_d11.tex,145,720,721,MISSED,,environment time-out (720 steps) that auto-resets
+arxiv/sections/methods_d11.tex,147,718,719,MISSED,,"iguration (boundary at trajectory index 718, located per"
+arxiv/sections/methods_d11.tex,154,3.6,3.7,MISSED,,\subsection*{3.6 Analysis rules (locked p
+arxiv/sections/methods_d11.tex,157,14,15,MISSED,,locked (Amendment 14) after collection but be
+arxiv/sections/methods_d11.tex,161,5,6,MISSED,,"egrity gate}: for each episode index, a 5-way"
+arxiv/sections/methods_d11.tex,162,1,2,MISSED,,\texttt{allclose} ($\varepsilon$=1e-4 m) on the initial con
+arxiv/sections/methods_d11.tex,162,4,5,MISSED,,\texttt{allclose} ($\varepsilon$=1e-4 m) on the initial config
+arxiv/sections/methods_d11.tex,171,100,101,MISSED,,"a frozen-arm diagnostic (seed identical 100/100,"
+arxiv/sections/methods_d11.tex,171,100,101,MISSED,,"ozen-arm diagnostic (seed identical 100/100,"
+arxiv/sections/methods_d11.tex,172,100,101,MISSED,,"frozen right-arm identical 100/100, active left-arm 1/1"
+arxiv/sections/methods_d11.tex,172,100,101,MISSED,,"frozen right-arm identical 100/100, active left-arm 1/100)"
+arxiv/sections/methods_d11.tex,172,1,2,MISSED,,"-arm identical 100/100, active left-arm 1/100) confirms the"
+arxiv/sections/methods_d11.tex,172,100,101,MISSED,,"rm identical 100/100, active left-arm 1/100) confirms the"
+arxiv/sections/methods_d11.tex,175,1,2,MISSED,,all contrasts (Table~1).
+arxiv/sections/methods_d11.tex,177,3.7,3.8,MISSED,,\subsection*{3.7 Data curation and its ho
+arxiv/sections/methods_d11.tex,183,13,14,MISSED,,"ins (structurally guaranteed, Amendment 13)"
+arxiv/sections/methods_d11.tex,185,992,993,MISSED,,filter drops no rows and the four arms' 992/2791 counts are
+arxiv/sections/methods_d11.tex,185,2791,2792,MISSED,,er drops no rows and the four arms' 992/2791 counts are
+arxiv/sections/methods_d11.tex,193,1,2,MISSED,,before the step it governed. Amendments 1--13
+arxiv/sections/methods_d11.tex,193,13,14,MISSED,,ore the step it governed. Amendments 1--13
+arxiv/sections/methods_d11.tex,194,14,15,MISSED,,d before any adapter trained; Amendment 14 was filed after
+arxiv/sections/methods_d11.tex,200,6.6,6.7,MISSED,,\begin{tabular}{@{}c l p{6.6cm} p{2.6cm}@{}}
+arxiv/sections/methods_d11.tex,200,2.6,2.7,MISSED,,\begin{tabular}{@{}c l p{6.6cm} p{2.6cm}@{}}
+arxiv/sections/methods_d11.tex,204,1,2,MISSED,,1 & 07-06 & Sample-count c
+arxiv/sections/methods_d11.tex,204,07,08,MISSED,,1 & 07-06 & Sample-count contro
+arxiv/sections/methods_d11.tex,204,06,07,MISSED,,1 & 07-06 & Sample-count control a
+arxiv/sections/methods_d11.tex,205,2,3,MISSED,,2 & 07-06 & Filter + strat
+arxiv/sections/methods_d11.tex,205,07,08,MISSED,,2 & 07-06 & Filter + stratified
+arxiv/sections/methods_d11.tex,205,06,07,MISSED,,2 & 07-06 & Filter + stratified bl
+arxiv/sections/methods_d11.tex,205,85,86,MISSED,,ed audit; escalation rule (agreement $<$85\% $\rightarrow$ LLM judg
+arxiv/sections/methods_d11.tex,206,3,4,MISSED,,3 & 07-06 & Asymmetric KTO
+arxiv/sections/methods_d11.tex,206,07,08,MISSED,,3 & 07-06 & Asymmetric KTO drop
+arxiv/sections/methods_d11.tex,206,06,07,MISSED,,3 & 07-06 & Asymmetric KTO drop po
+arxiv/sections/methods_d11.tex,206,2,3,CAUGHT,SHA 3ba693c cited in arxiv/sections/methods_d11.tex does not resolve to a commit,undesirable) + auto-balance invariant & 2ba693c \\
+arxiv/sections/methods_d11.tex,207,4,5,MISSED,,4 & 07-07 & Rule-1 sentenc
+arxiv/sections/methods_d11.tex,207,07,08,MISSED,,4 & 07-07 & Rule-1 sentence cla
+arxiv/sections/methods_d11.tex,207,07,08,MISSED,,4 & 07-07 & Rule-1 sentence classi
+arxiv/sections/methods_d11.tex,207,1,2,MISSED,,4 & 07-07 & Rule-1 sentence classifier (pas
+arxiv/sections/methods_d11.tex,208,5,6,MISSED,,5 & 07-07 & Rule-2 demoted
+arxiv/sections/methods_d11.tex,208,07,08,MISSED,,5 & 07-07 & Rule-2 demoted to f
+arxiv/sections/methods_d11.tex,208,07,08,MISSED,,5 & 07-07 & Rule-2 demoted to flag
+arxiv/sections/methods_d11.tex,208,2,3,MISSED,,5 & 07-07 & Rule-2 demoted to flag; composi
+arxiv/sections/methods_d11.tex,208,6,7,CAUGHT,SHA 7a29103 cited in arxiv/sections/methods_d11.tex does not resolve to a commit,to flag; composite-agreement rejected & 6a29103 \\
+arxiv/sections/methods_d11.tex,209,6,7,MISSED,,6 & 07-07 & Coherence filt
+arxiv/sections/methods_d11.tex,209,07,08,MISSED,,6 & 07-07 & Coherence filter $\
+arxiv/sections/methods_d11.tex,209,07,08,MISSED,,6 & 07-07 & Coherence filter $\rig
+arxiv/sections/methods_d11.tex,209,992,993,MISSED,,r $\rightarrow$ advisory flags (v-final 992+1810) & 9b0a9da \\
+arxiv/sections/methods_d11.tex,209,1810,1811,MISSED,,rightarrow$ advisory flags (v-final 992+1810) & 9b0a9da \\
+arxiv/sections/methods_d11.tex,209,9,0,CAUGHT,SHA 0b0a9da cited in arxiv/sections/methods_d11.tex does not resolve to a commit,ow$ advisory flags (v-final 992+1810) & 9b0a9da \\
+arxiv/sections/methods_d11.tex,210,7,8,MISSED,,7 & 07-08 & Pre-flight che
+arxiv/sections/methods_d11.tex,210,07,08,MISSED,,7 & 07-08 & Pre-flight checklis
+arxiv/sections/methods_d11.tex,210,08,09,MISSED,,7 & 07-08 & Pre-flight checklist (
+arxiv/sections/methods_d11.tex,211,8,9,MISSED,,8 & 07-08 & Cross-arm targ
+arxiv/sections/methods_d11.tex,211,07,08,MISSED,,8 & 07-08 & Cross-arm target hy
+arxiv/sections/methods_d11.tex,211,08,09,MISSED,,8 & 07-08 & Cross-arm target hygie
+arxiv/sections/methods_d11.tex,211,2,3,MISSED,,8 & 07-08 & Cross-arm target hygiene + 2$\times$2 + C\_retrieval
+arxiv/sections/methods_d11.tex,211,2,3,MISSED,,8 & Cross-arm target hygiene + 2$\times$2 + C\_retrieval protocol
+arxiv/sections/methods_d11.tex,211,1,2,CAUGHT,SHA 2a44d61 cited in arxiv/sections/methods_d11.tex does not resolve to a commit,+ 2$\times$2 + C\_retrieval protocol & 1a44d61 / a7bada2 \\
+arxiv/sections/methods_d11.tex,212,9,0,MISSED,,"9 & 07-08 & T1 threshold,"
+arxiv/sections/methods_d11.tex,212,07,08,MISSED,,"9 & 07-08 & T1 threshold, R1 pr"
+arxiv/sections/methods_d11.tex,212,08,09,MISSED,,"9 & 07-08 & T1 threshold, R1 probe"
+arxiv/sections/methods_d11.tex,212,503496,503497,CAUGHT,SHA 503497b cited in arxiv/sections/methods_d11.tex does not resolve to a commit,"probe branches, thought-leak, rename & 503496b \\"
+arxiv/sections/methods_d11.tex,213,10,11,MISSED,,10 & 07-08 & B\_matched rem
+arxiv/sections/methods_d11.tex,213,07,08,MISSED,,10 & 07-08 & B\_matched removed
+arxiv/sections/methods_d11.tex,213,08,09,MISSED,,10 & 07-08 & B\_matched removed (co
+arxiv/sections/methods_d11.tex,214,11,12,MISSED,,11 & 07-08 & Paired design
+arxiv/sections/methods_d11.tex,214,07,08,MISSED,,11 & 07-08 & Paired design $\rig
+arxiv/sections/methods_d11.tex,214,08,09,MISSED,,11 & 07-08 & Paired design $\righta
+arxiv/sections/methods_d11.tex,214,4500,4501,MISSED,,$\rightarrow$ McNemar; env\_seed\_base=4500; SHA gate & bfa7cc6 \\
+arxiv/sections/methods_d11.tex,215,12,13,MISSED,,12 & 07-08 & Canonical file
+arxiv/sections/methods_d11.tex,215,07,08,MISSED,,12 & 07-08 & Canonical filenames
+arxiv/sections/methods_d11.tex,215,08,09,MISSED,,"12 & 07-08 & Canonical filenames, D"
+arxiv/sections/methods_d11.tex,215,0,1,CAUGHT,SHA 1e26443 cited in arxiv/sections/methods_d11.tex does not resolve to a commit,"eval slot, SHA-gate timing & ae196b5 / 0e26443 \\"
+arxiv/sections/methods_d11.tex,216,13,14,MISSED,,13 & 07-08 & Step-2 row-cou
+arxiv/sections/methods_d11.tex,216,07,08,MISSED,,13 & 07-08 & Step-2 row-count se
+arxiv/sections/methods_d11.tex,216,08,09,MISSED,,13 & 07-08 & Step-2 row-count senti
+arxiv/sections/methods_d11.tex,216,2,3,MISSED,,13 & 07-08 & Step-2 row-count sentinel; stru
+arxiv/sections/methods_d11.tex,216,9,0,CAUGHT,SHA 0f5bec1 cited in arxiv/sections/methods_d11.tex does not resolve to a commit,; structural \texttt{flags\_only\_a6} & 9f5bec1 / cd1eb94 \\
+arxiv/sections/methods_d11.tex,217,14,15,MISSED,,14 & 07-13 & Analysis-time
+arxiv/sections/methods_d11.tex,217,07,08,MISSED,,14 & 07-13 & Analysis-time decis
+arxiv/sections/methods_d11.tex,217,13,14,MISSED,,14 & 07-13 & Analysis-time decision
+arxiv/sections/methods_d11.tex,217,00,01,CAUGHT,SHA 01be6d5 cited in arxiv/sections/methods_d11.tex does not resolve to a commit,"sion lock (gate, fallback, two-sided) & 00be6d5 / 73e712b \\"
+arxiv/sections/methods_d11.tex,217,73,74,CAUGHT,SHA 74e712b cited in arxiv/sections/methods_d11.tex does not resolve to a commit,"(gate, fallback, two-sided) & 00be6d5 / 73e712b \\"
+arxiv/sections/methods_d11.tex,222,5,6,MISSED,,\emph{(Amendments 5--13 were filed 07-07/07-
+arxiv/sections/methods_d11.tex,222,13,14,MISSED,,\emph{(Amendments 5--13 were filed 07-07/07-08 i
+arxiv/sections/methods_d11.tex,222,07,08,MISSED,,\emph{(Amendments 5--13 were filed 07-07/07-08 in the pre-flig
+arxiv/sections/methods_d11.tex,222,07,08,MISSED,,\emph{(Amendments 5--13 were filed 07-07/07-08 in the pre-flight
+arxiv/sections/methods_d11.tex,222,07,08,MISSED,,emph{(Amendments 5--13 were filed 07-07/07-08 in the pre-flight win
+arxiv/sections/methods_d11.tex,222,08,09,MISSED,,h{(Amendments 5--13 were filed 07-07/07-08 in the pre-flight window
+arxiv/sections/methods_d11.tex,227,992,993,MISSED,,counts are 992 + 1799 (Amendment 8 re-p
+arxiv/sections/methods_d11.tex,227,1799,1790,MISSED,,counts are 992 + 1799 (Amendment 8 re-pinned f
+arxiv/sections/methods_d11.tex,227,8,9,MISSED,,counts are 992 + 1799 (Amendment 8 re-pinned from A6's 992
+arxiv/sections/methods_d11.tex,227,992,993,MISSED,,+ 1799 (Amendment 8 re-pinned from A6's 992 + 1810 after a
+arxiv/sections/methods_d11.tex,227,1810,1811,MISSED,,(Amendment 8 re-pinned from A6's 992 + 1810 after a
+arxiv/sections/methods_d11.tex,228,11,12,MISSED,,trajectory-set ID diff removed 11 no-retrieval-hit rounds
+arxiv/sections/methods_d11.tex,229,1799,1790,MISSED,,isode). The methods body uses the final 1799.}
+arxiv/sections/methods_d11.tex,234,1,2,MISSED,,Rules 1--2 precision on the corr
+arxiv/sections/methods_d11.tex,234,2,3,MISSED,,Rules 1--2 precision on the correct
+arxiv/sections/methods_d11.tex,235,4,5,MISSED,,ing their demotion to flags (Amendments 4--6). The
+arxiv/sections/methods_d11.tex,235,6,7,MISSED,,their demotion to flags (Amendments 4--6). The
+arxiv/sections/methods_d11.tex,237,13,14,MISSED,,zero-drop guarantee (Amendment 13): all three rules comput
+arxiv/sections/methods_d11.tex,238,992,993,MISSED,,"dvisory flags, none drops a row, so the 992/2791 pool is"
+arxiv/sections/methods_d11.tex,238,2791,2792,MISSED,,"ory flags, none drops a row, so the 992/2791 pool is"
+arxiv/sections/methods_l2.tex,9,1,2,MISSED,,"by the L2 pre-registration (Amendments 1/1a/2/3),"
+arxiv/sections/methods_l2.tex,9,1,2,MISSED,,"y the L2 pre-registration (Amendments 1/1a/2/3),"
+arxiv/sections/methods_l2.tex,9,2,3,MISSED,,"he L2 pre-registration (Amendments 1/1a/2/3),"
+arxiv/sections/methods_l2.tex,9,3,4,MISSED,,"L2 pre-registration (Amendments 1/1a/2/3),"
+arxiv/sections/methods_l2.tex,16,1,2,MISSED,,es to ``\S3.x'' point to the Experiment-1 Methods.
+arxiv/sections/methods_l2.tex,18,5,6,MISSED,,\section*{5. Experiment 2 (L2 positi
+arxiv/sections/methods_l2.tex,18,2,3,MISSED,,\section*{5. Experiment 2 (L2 position-goal reach)
+arxiv/sections/methods_l2.tex,20,5.1,5.2,MISSED,,\subsection*{5.1 Task: dual-arm position-
+arxiv/sections/methods_l2.tex,20,6,7,MISSED,,k: dual-arm position-goal reaching in a 6-DoF control space (Amend
+arxiv/sections/methods_l2.tex,20,1,2,MISSED,,ing in a 6-DoF control space (Amendment 1 \S2)}
+arxiv/sections/methods_l2.tex,22,6,7,MISSED,,al-arm position-goal reaching task in a 6-DoF control space}
+arxiv/sections/methods_l2.tex,23,1,2,MISSED,,working title ``dual\_push''; Amendment 1 \S2). Both
+arxiv/sections/methods_l2.tex,27,1,2,MISSED,,(l2\_diagnosis.md Step 1). \textbf{Naming discipl
+arxiv/sections/methods_l2.tex,27,3,4,MISSED,,). \textbf{Naming discipline (Amendment 3 \S4):} although
+arxiv/sections/methods_l2.tex,28,6,7,MISSED,,the control space is 6-DoF and the state carrie
+arxiv/sections/methods_l2.tex,29,0.05,0.06,MISSED,,position-only} ($\|$EE$-$target$\|$ $<$ 0.05 m; no
+arxiv/sections/methods_l2.tex,30,6,7,MISSED,,rm is scored). The paper must not let ``6-DoF / pose'' imply a
+arxiv/sections/methods_l2.tex,32,6,7,MISSED,,"reaching in a 6-DoF control space'', not"
+arxiv/sections/methods_l2.tex,32,6,7,MISSED,,"ching in a 6-DoF control space'', not ``6-DoF pose-reach''. The pa"
+arxiv/sections/methods_l2.tex,38,5.2,5.3,MISSED,,\subsection*{5.2 Per-arm scoring (Amendme
+arxiv/sections/methods_l2.tex,38,1,2,MISSED,,section*{5.2 Per-arm scoring (Amendment 1 \S1) --- disclosed post-
+arxiv/sections/methods_l2.tex,41,1,2,MISSED,,was \textbf{1/100} on the L2 collect;
+arxiv/sections/methods_l2.tex,41,100,101,MISSED,,was \textbf{1/100} on the L2 collect; per-
+arxiv/sections/methods_l2.tex,41,28,29,MISSED,,"L2 collect; per-arm success was \textbf{28/100 left,"
+arxiv/sections/methods_l2.tex,41,100,101,MISSED,,"collect; per-arm success was \textbf{28/100 left,"
+arxiv/sections/methods_l2.tex,42,28,29,MISSED,,28/100 right}. Each arm rea
+arxiv/sections/methods_l2.tex,42,100,101,MISSED,,28/100 right}. Each arm reachin
+arxiv/sections/methods_l2.tex,42,28,29,MISSED,,"ts goal at some point (best-in-episode, 28/100;"
+arxiv/sections/methods_l2.tex,42,100,101,MISSED,,"goal at some point (best-in-episode, 28/100;"
+arxiv/sections/methods_l2.tex,43,10,11,MISSED,,both arms in 10/100) is not the same eve
+arxiv/sections/methods_l2.tex,43,100,101,MISSED,,both arms in 10/100) is not the same event a
+arxiv/sections/methods_l2.tex,44,1,2,MISSED,,"simultaneously at episode end (1/100), so the primary L2"
+arxiv/sections/methods_l2.tex,44,100,101,MISSED,,"simultaneously at episode end (1/100), so the primary L2 metr"
+arxiv/sections/methods_l2.tex,46,1,2,MISSED,,"1 \S1, same immunisation s"
+arxiv/sections/methods_l2.tex,46,14,15,MISSED,,immunisation standard as D11 Amendment 14): its motivation is
+arxiv/sections/methods_l2.tex,54,0.05,0.06,MISSED,,"best-in-episode $\|$EE$-$target$\|$ $<$ 0.05 m, the"
+arxiv/sections/methods_l2.tex,55,28,29,MISSED,,tered threshold) $\rightarrow$ $\approx$28 desirable-arm instances
+arxiv/sections/methods_l2.tex,68,5.3,5.4,MISSED,,\subsection*{5.3 Buffer re-tag: arm-align
+arxiv/sections/methods_l2.tex,68,1,2,MISSED,,g: arm-aligned success-floor (Amendment 1a)}
+arxiv/sections/methods_l2.tex,70,100,101,MISSED,,The 100 L2 recaps were tagged \t
+arxiv/sections/methods_l2.tex,71,1,2,MISSED,,time (1 True / 99 False). Full-p
+arxiv/sections/methods_l2.tex,71,99,90,MISSED,,time (1 True / 99 False). Full-population
+arxiv/sections/methods_l2.tex,71,46,47,MISSED,,/ 99 False). Full-population re-score: 46/100 episodes have
+arxiv/sections/methods_l2.tex,71,100,101,MISSED,,99 False). Full-population re-score: 46/100 episodes have
+arxiv/sections/methods_l2.tex,72,1,2,MISSED,,"$\ge$1 arm reaching goal, of wh"
+arxiv/sections/methods_l2.tex,72,45,46,MISSED,,"e$1 arm reaching goal, of which \textbf{45 carry \texttt{is\_succes"
+arxiv/sections/methods_l2.tex,74,45,46,MISSED,,"buffer's labels are wrong for $\approx$45\% of episodes, and the n"
+arxiv/sections/methods_l2.tex,96,1,2,MISSED,,operations was locked (Amendment 1a): re-tag $\rightarrow$
+arxiv/sections/methods_l2.tex,96,3,4,MISSED,,ed (Amendment 1a): re-tag $\rightarrow$ 3--5-line retriever change
+arxiv/sections/methods_l2.tex,96,5,6,MISSED,,(Amendment 1a): re-tag $\rightarrow$ 3--5-line retriever change $\
+arxiv/sections/methods_l2.tex,98,100,101,MISSED,,"s}, post-retag \texttt{a79581cd\ldots}, 100/100 recaps"
+arxiv/sections/methods_l2.tex,98,100,101,MISSED,,"post-retag \texttt{a79581cd\ldots}, 100/100 recaps"
+arxiv/sections/methods_l2.tex,103,5.4,5.5,MISSED,,\subsection*{5.4 Scope: L2 tests the answ
+arxiv/sections/methods_l2.tex,103,2,3,MISSED,,ests the answerable question (Amendment 2)}
+arxiv/sections/methods_l2.tex,105,511,512,MISSED,,L2's desirable pool is 511 per-arm rounds from 56 p
+arxiv/sections/methods_l2.tex,105,56,57,MISSED,,sirable pool is 511 per-arm rounds from 56 per-arm
+arxiv/sections/methods_l2.tex,106,992,993,MISSED,,episode-instances (vs L0a's 992 desirable rounds). The
+arxiv/sections/methods_l2.tex,108,2,3,MISSED,,"\textbf{one} question, not a symmetric 2$\times$2 (Amendment 2):"
+arxiv/sections/methods_l2.tex,108,2,3,MISSED,,"one} question, not a symmetric 2$\times$2 (Amendment 2):"
+arxiv/sections/methods_l2.tex,108,2,3,MISSED,,", not a symmetric 2$\times$2 (Amendment 2):"
+arxiv/sections/methods_l2.tex,112,34,35,MISSED,,"D11's strongest result (+34 pp, z=5.15). At L2 basel"
+arxiv/sections/methods_l2.tex,112,5.15,5.16,MISSED,,"D11's strongest result (+34 pp, z=5.15). At L2 baseline $\appro"
+arxiv/sections/methods_l2.tex,112,15,16,MISSED,,"34 pp, z=5.15). At L2 baseline $\approx$15\%, power at"
+arxiv/sections/methods_l2.tex,113,100,101,MISSED,,"n=100, $\alpha$=0.010 is \text"
+arxiv/sections/methods_l2.tex,113,0.010,0.011,MISSED,,"n=100, $\alpha$=0.010 is \textbf{76\% (+20 pp)"
+arxiv/sections/methods_l2.tex,113,76,77,MISSED,,"n=100, $\alpha$=0.010 is \textbf{76\% (+20 pp) / 99\% (+30 p"
+arxiv/sections/methods_l2.tex,113,20,21,MISSED,,"n=100, $\alpha$=0.010 is \textbf{76\% (+20 pp) / 99\% (+30 pp) / 10"
+arxiv/sections/methods_l2.tex,113,99,90,MISSED,,alpha$=0.010 is \textbf{76\% (+20 pp) / 99\% (+30 pp) / 100\% (+34
+arxiv/sections/methods_l2.tex,113,30,31,MISSED,,0.010 is \textbf{76\% (+20 pp) / 99\% (+30 pp) / 100\% (+34 pp)}.
+arxiv/sections/methods_l2.tex,113,100,101,MISSED,,\textbf{76\% (+20 pp) / 99\% (+30 pp) / 100\% (+34 pp)}.
+arxiv/sections/methods_l2.tex,113,34,35,MISSED,,76\% (+20 pp) / 99\% (+30 pp) / 100\% (+34 pp)}.
+arxiv/sections/methods_l2.tex,115,1,2,MISSED,,tbf{T1-class (bake-in)} --- L0a effect +1 pp; L2 critical differen
+arxiv/sections/methods_l2.tex,115,0.020,0.021,MISSED,,"pp; L2 critical difference at $\alpha$=0.020, n=100 is"
+arxiv/sections/methods_l2.tex,115,100,101,MISSED,,"ritical difference at $\alpha$=0.020, n=100 is"
+arxiv/sections/methods_l2.tex,116,12,13,MISSED,,\textbf{12--13 pp} ($\approx$50\%-p
+arxiv/sections/methods_l2.tex,116,13,14,MISSED,,\textbf{12--13 pp} ($\approx$50\%-power
+arxiv/sections/methods_l2.tex,116,50,51,MISSED,,\textbf{12--13 pp} ($\approx$50\%-power MDE). A $\approx
+arxiv/sections/methods_l2.tex,116,1,2,MISSED,,} ($\approx$50\%-power MDE). A $\approx$1 pp effect on a 12 pp-cri
+arxiv/sections/methods_l2.tex,116,12,13,MISSED,,power MDE). A $\approx$1 pp effect on a 12 pp-critical-difference
+arxiv/sections/methods_l2.tex,118,1,2,MISSED,,\emph{design choice} (the \textcircled{1} lesson used
+arxiv/sections/methods_l2.tex,122,1,2,MISSED,,\textbf{Stage 1} (the window's scope): t
+arxiv/sections/methods_l2.tex,123,56,57,MISSED,,all 56 desirable episode-instan
+arxiv/sections/methods_l2.tex,124,56,57,MISSED,,power --- not conflated): the 56 desirable episode-instan
+arxiv/sections/methods_l2.tex,125,511,512,MISSED,,\textbf{511 desirable / 1119 undesir
+arxiv/sections/methods_l2.tex,125,1119,1110,MISSED,,\textbf{511 desirable / 1119 undesirable per-arm ROUN
+arxiv/sections/methods_l2.tex,126,511,512,MISSED,,"rounds; SFT = 511 behavior-cloning rounds,"
+arxiv/sections/methods_l2.tex,126,511,512,MISSED,,"FT = 511 behavior-cloning rounds, KTO = 511 + 1119). Two eval"
+arxiv/sections/methods_l2.tex,126,1119,1110,MISSED,,"11 behavior-cloning rounds, KTO = 511 + 1119). Two eval"
+arxiv/sections/methods_l2.tex,132,2,3,MISSED,,"n criterion (pinned pre-data, Amendment 2): if"
+arxiv/sections/methods_l2.tex,134,2,3,MISSED,,n optionally add A\_action\_only (Stage 2) for the L2
+arxiv/sections/methods_l2.tex,140,2,3,MISSED,,Amendment 2 pre-specified that \emph
+arxiv/sections/methods_l2.tex,142,2,3,MISSED,,effect} (not of the full 2$\times$2). The observed
+arxiv/sections/methods_l2.tex,142,2,3,MISSED,,effect} (not of the full 2$\times$2). The observed contrast
+arxiv/sections/methods_l2.tex,144,2,3,MISSED,,Amendment 2's diagnostic branch (\S5
+arxiv/sections/methods_l2.tex,147,5.5,5.6,MISSED,,\subsection*{5.5 Per-arm evaluation: sing
+arxiv/sections/methods_l2.tex,147,3,4,MISSED,,matches single-arm training (Amendment 3)}
+arxiv/sections/methods_l2.tex,149,1,2,MISSED,,Amendment~1~\S3 defined the per-arm
+arxiv/sections/methods_l2.tex,150,3,4,MISSED,,only); Amendment~3 completes the \textbf{ev
+arxiv/sections/methods_l2.tex,157,1,2,MISSED,,definition that produced SR = 1/100 and motivated the pe
+arxiv/sections/methods_l2.tex,157,100,101,MISSED,,definition that produced SR = 1/100 and motivated the per-ar
+arxiv/sections/methods_l2.tex,169,0.05,0.06,MISSED,,"$<$ 0.05 m), reusing the L0a sing"
+arxiv/sections/methods_l2.tex,184,2,3,MISSED,,"bf{Scope: main eval = LEFT-scored only, 2 protocols $\times$ n=100"
+arxiv/sections/methods_l2.tex,184,100,101,MISSED,,"EFT-scored only, 2 protocols $\times$ n=100, seed\_base"
+arxiv/sections/methods_l2.tex,185,4600,4601,MISSED,,4600 shared} (paired McNemar
+arxiv/sections/methods_l2.tex,186,1,2,MISSED,,"ion, not a compute shortcut}: Amendment 1a already anchored the"
+arxiv/sections/methods_l2.tex,192,2,3,MISSED,,"(Amendment 2). Right-scored eval, if"
+arxiv/sections/methods_l2.tex,197,5.6,5.7,MISSED,,\subsection*{5.6 Analysis rules (carried
+arxiv/sections/methods_l2.tex,202,1,2,MISSED,,"(Debt \#1 dry-run, timestamped bef"
+arxiv/sections/methods_l2.tex,209,4600,4601,MISSED,,ill valid). L2 eval seed base = \textbf{4600} (shared
+arxiv/sections/methods_l2.tex,211,3,4,MISSED,,"C\_retrieval; paired design, Amendment 3 \S3), distinct"
+arxiv/sections/methods_l2.tex,212,4500,4501,MISSED,,from D11's eval seed base 4500 (the L2 teacher collect
+arxiv/sections/methods_l2.tex,216,5.7,5.8,MISSED,,"\subsection*{5.7 R1-bias probe, L2 redefi"
+arxiv/sections/methods_l2.tex,218,1,2,MISSED,,The L0a R1 probe measured the round-1 lateral (X) bias of the
+arxiv/sections/methods_l2.tex,219,1,2,MISSED,,equivalent is the \textbf{per-arm round-1
+arxiv/sections/methods_l2.tex,222,1,2,MISSED,,over both arms of $|$round-1 target $-$ init EE$|$ al
+arxiv/sections/methods_l2.tex,227,23.5,23.6,MISSED,,"), \textbf{not} the transplanted L0a $-$23.5/$-$15.8 grid-unit"
+arxiv/sections/methods_l2.tex,227,15.8,15.9,MISSED,,bf{not} the transplanted L0a $-$23.5/$-$15.8 grid-unit
+arxiv/sections/methods_l2.tex,230,5.8,5.9,MISSED,,\subsection*{5.8 Pipeline integrity (veri
+arxiv/sections/methods_l2.tex,232,2,3,MISSED,,The D11 Step-2 row-count sentinel and S
+arxiv/sections/methods_l2.tex,234,3,4,MISSED,,layer twice more (interception rate 3/3 across the program) --
+arxiv/sections/methods_l2.tex,234,3,4,MISSED,,layer twice more (interception rate 3/3 across the program) ---
+arxiv/sections/methods_l2.tex,236,1,2,MISSED,,"dir (joint-success 1/100), so pool selection"
+arxiv/sections/methods_l2.tex,236,100,101,MISSED,,"dir (joint-success 1/100), so pool selection is b"
+arxiv/sections/methods_l2.tex,238,1119,1110,MISSED,,ht a would-be training-semantics error (1119
+arxiv/sections/methods_l2.tex,240,2,3,MISSED,,(Amendment 2 addendum 2026-07-16); an
+arxiv/sections/methods_l2.tex,240,2026,2027,MISSED,,(Amendment 2 addendum 2026-07-16); and (ii) a versi
+arxiv/sections/methods_l2.tex,240,07,08,MISSED,,(Amendment 2 addendum 2026-07-16); and (ii) a version-
+arxiv/sections/methods_l2.tex,240,16,17,MISSED,,(Amendment 2 addendum 2026-07-16); and (ii) a version-dri
+arxiv/sections/methods_l2.tex,244,2,3,MISSED,,cceeds but silently mis-maps (Amendment 2 addendum 2026-07-21). Me
+arxiv/sections/methods_l2.tex,244,2026,2027,MISSED,,silently mis-maps (Amendment 2 addendum 2026-07-21). Methods
+arxiv/sections/methods_l2.tex,244,07,08,MISSED,,tly mis-maps (Amendment 2 addendum 2026-07-21). Methods
+arxiv/sections/methods_l2.tex,244,21,22,MISSED,,mis-maps (Amendment 2 addendum 2026-07-21). Methods
+arxiv/sections/methods_l2.tex,247,3,4,MISSED,,A fourth interception (Amendment 3 \S7) closes a recurring
+arxiv/sections/methods_l2.tex,250,1,2,MISSED,,\emph{reactively} (crashing at episode 1). The permanent fix is
+arxiv/sections/methods_l2.tex,257,4,5,MISSED,,"train/eval-contract interception rate 4/4 and, from here, prospe"
+arxiv/sections/methods_l2.tex,257,4,5,MISSED,,"train/eval-contract interception rate 4/4 and, from here, prospect"
+arxiv/sections/methods_l2.tex,260,5.9,5.0,MISSED,,\subsection*{5.9 Results}
+arxiv/sections/methods_l2.tex,267,5.9,5.0,MISSED,,\subsubsection*{5.9.1 Confirmatory contrast
+arxiv/sections/methods_l2.tex,269,3,4,MISSED,,"Per-arm eval (Amendment 3: left-scored, n=100 pair"
+arxiv/sections/methods_l2.tex,269,100,101,MISSED,,"r-arm eval (Amendment 3: left-scored, n=100 paired, seed\_base 4600)"
+arxiv/sections/methods_l2.tex,269,4600,4601,MISSED,,": left-scored, n=100 paired, seed\_base 4600):"
+arxiv/sections/methods_l2.tex,277,14,15,MISSED,,A\_ctrl\_rat (bare) & 14 / 100 & 14\% \\
+arxiv/sections/methods_l2.tex,277,100,101,MISSED,,A\_ctrl\_rat (bare) & 14 / 100 & 14\% \\
+arxiv/sections/methods_l2.tex,277,14,15,MISSED,,A\_ctrl\_rat (bare) & 14 / 100 & 14\% \\
+arxiv/sections/methods_l2.tex,278,20,21,MISSED,,me weights + frozen re-tagged buffer) & 20 / 100 & 20\% \\
+arxiv/sections/methods_l2.tex,278,100,101,MISSED,,ights + frozen re-tagged buffer) & 20 / 100 & 20\% \\
+arxiv/sections/methods_l2.tex,278,20,21,MISSED,,+ frozen re-tagged buffer) & 20 / 100 & 20\% \\
+arxiv/sections/methods_l2.tex,283,6.0,6.1,MISSED,,textbf{C\_retrieval $-$ A\_ctrl\_rat = +6.0 pp}
+arxiv/sections/methods_l2.tex,284,95,96,MISSED,,"(Newcombe 95\% CI \textbf{[$-$4.5, +1"
+arxiv/sections/methods_l2.tex,284,4.5,4.6,MISSED,,"(Newcombe 95\% CI \textbf{[$-$4.5, +16.4] pp}). Primary te"
+arxiv/sections/methods_l2.tex,284,16.4,16.5,MISSED,,"(Newcombe 95\% CI \textbf{[$-$4.5, +16.4] pp}). Primary test: two"
+arxiv/sections/methods_l2.tex,285,1.129,1.120,MISSED,,"z = 1.129, \textbf{p = 0.259, n.s."
+arxiv/sections/methods_l2.tex,285,0.259,0.250,MISSED,,"z = 1.129, \textbf{p = 0.259, n.s.} at the pre-regist"
+arxiv/sections/methods_l2.tex,285,0.010,0.011,MISSED,,"9, n.s.} at the pre-registered $\alpha$=0.010 (T4-class)."
+arxiv/sections/methods_l2.tex,287,14,15,MISSED,,"fell back to z per Amendment 14 \S14.2 (\S5.9.2), and Mc"
+arxiv/sections/methods_l2.tex,288,9,0,MISSED,,cells (9 vs 3; exact McNemar p=0.
+arxiv/sections/methods_l2.tex,288,3,4,MISSED,,cells (9 vs 3; exact McNemar p=0.146)
+arxiv/sections/methods_l2.tex,288,0.146,0.147,CAUGHT,"CLAIM L2 McNemar exact: arxiv/sections/methods_l2.tex says '0.147', certificate (derived_stats.txt) says '0.146'",cells (9 vs 3; exact McNemar p=0.146) give the same n.s. conc
+arxiv/sections/methods_l2.tex,289,15,16,MISSED,,"Auto-reset sensitivity (Amendment 15 pin 8 rule, \S3.5; L2 in"
+arxiv/sections/methods_l2.tex,289,8,9,MISSED,,"uto-reset sensitivity (Amendment 15 pin 8 rule, \S3.5; L2 inherits"
+arxiv/sections/methods_l2.tex,290,24,25,MISSED,,"same 24\,s time-out): 10 \texttt"
+arxiv/sections/methods_l2.tex,290,10,11,MISSED,,"same 24\,s time-out): 10 \texttt{A\_ctrl\_rat} an"
+arxiv/sections/methods_l2.tex,290,9,0,MISSED,,time-out): 10 \texttt{A\_ctrl\_rat} and 9 \texttt{C\_retrieval}
+arxiv/sections/methods_l2.tex,292,20,21,MISSED,,"itivity counts equal the as-run counts: 20 vs 14, +6.0 pp (z=1.129,"
+arxiv/sections/methods_l2.tex,292,14,15,MISSED,,"y counts equal the as-run counts: 20 vs 14, +6.0 pp (z=1.129,"
+arxiv/sections/methods_l2.tex,292,6.0,6.1,MISSED,,"nts equal the as-run counts: 20 vs 14, +6.0 pp (z=1.129,"
+arxiv/sections/methods_l2.tex,292,1.129,1.120,MISSED,,"the as-run counts: 20 vs 14, +6.0 pp (z=1.129,"
+arxiv/sections/methods_l2.tex,293,0.259,0.250,MISSED,,"p=0.259), same verdict"
+arxiv/sections/methods_l2.tex,297,20,21,MISSED,,"imate is below the pre-registered MDE (+20 pp for 76\% power, Amend"
+arxiv/sections/methods_l2.tex,297,76,77,MISSED,,"elow the pre-registered MDE (+20 pp for 76\% power, Amendment"
+arxiv/sections/methods_l2.tex,298,2,3,MISSED,,2); the direction agrees w
+arxiv/sections/methods_l2.tex,299,2,3,MISSED,,"o and a moderate effect.} Per Amendment 2's pinned rule, a"
+arxiv/sections/methods_l2.tex,301,6,7,MISSED,,arms --- and the +6 pp result was predicted
+arxiv/sections/methods_l2.tex,302,6,7,MISSED,,\textbf{not} call +6 pp a positive replicatio
+arxiv/sections/methods_l2.tex,305,5.9,5.0,MISSED,,\subsubsection*{5.9.2 Pairing integrity (why
+arxiv/sections/methods_l2.tex,307,100,101,MISSED,,s identical across the two protocols on 100/100
+arxiv/sections/methods_l2.tex,307,100,101,MISSED,,entical across the two protocols on 100/100
+arxiv/sections/methods_l2.tex,308,3,4,MISSED,,"es, and the frozen right arm (Amendment 3 hold-in-place) matched a"
+arxiv/sections/methods_l2.tex,309,94,95,MISSED,,integer + RPY resolution on 94/100. The float fingerpri
+arxiv/sections/methods_l2.tex,309,100,101,MISSED,,integer + RPY resolution on 94/100. The float fingerprint g
+arxiv/sections/methods_l2.tex,309,1,2,MISSED,,e float fingerprint gate ($\varepsilon$=1e-4)
+arxiv/sections/methods_l2.tex,309,4,5,MISSED,,loat fingerprint gate ($\varepsilon$=1e-4)
+arxiv/sections/methods_l2.tex,310,17,18,MISSED,,failed on 17 episodes at $\approx$1e-
+arxiv/sections/methods_l2.tex,310,1,2,MISSED,,failed on 17 episodes at $\approx$1e-4 drift because \texttt
+arxiv/sections/methods_l2.tex,310,4,5,MISSED,,failed on 17 episodes at $\approx$1e-4 drift because \texttt{tr
+arxiv/sections/methods_l2.tex,314,14,15,MISSED,,(Amendment 14 \S14.2) selected the two
+arxiv/sections/methods_l2.tex,317,5.9,5.0,MISSED,,\subsubsection*{5.9.3 Diagnostic appendix --
+arxiv/sections/methods_l2.tex,323,2,3,MISSED,,"l quality --- a cross-task correlate (n=2 tasks, not a"
+arxiv/sections/methods_l2.tex,325,1,2,MISSED,,n L0a under an identical retriever (top-1 median 0.900 $\rightarro
+arxiv/sections/methods_l2.tex,325,0.900,0.901,MISSED,,er an identical retriever (top-1 median 0.900 $\rightarrow$
+arxiv/sections/methods_l2.tex,326,0.870,0.871,MISSED,,"0.870, MW p=4.7e-17; top-3 0.8"
+arxiv/sections/methods_l2.tex,326,4.7,4.8,MISSED,,"0.870, MW p=4.7e-17; top-3 0.883 $\right"
+arxiv/sections/methods_l2.tex,326,17,18,MISSED,,"0.870, MW p=4.7e-17; top-3 0.883 $\rightarro"
+arxiv/sections/methods_l2.tex,326,3,4,MISSED,,"0.870, MW p=4.7e-17; top-3 0.883 $\rightarrow$ 0.82"
+arxiv/sections/methods_l2.tex,326,0.883,0.884,MISSED,,"0.870, MW p=4.7e-17; top-3 0.883 $\rightarrow$ 0.827, p=1"
+arxiv/sections/methods_l2.tex,326,0.827,0.828,MISSED,,"MW p=4.7e-17; top-3 0.883 $\rightarrow$ 0.827, p=1.3e-26), consistent"
+arxiv/sections/methods_l2.tex,326,1.3,1.4,MISSED,,"-17; top-3 0.883 $\rightarrow$ 0.827, p=1.3e-26), consistent with a"
+arxiv/sections/methods_l2.tex,326,26,27,MISSED,,"top-3 0.883 $\rightarrow$ 0.827, p=1.3e-26), consistent with a"
+arxiv/sections/methods_l2.tex,327,5.5,5.6,MISSED,,5.5$\times$ thinner buffer (
+arxiv/sections/methods_l2.tex,327,547,548,MISSED,,"5.5$\times$ thinner buffer (547 vs 100 recaps, $\approx$"
+arxiv/sections/methods_l2.tex,327,100,101,MISSED,,"5.5$\times$ thinner buffer (547 vs 100 recaps, $\approx$28 usab"
+arxiv/sections/methods_l2.tex,327,28,29,MISSED,,"ner buffer (547 vs 100 recaps, $\approx$28 usable left-aligned). St"
+arxiv/sections/methods_l2.tex,333,1,2,MISSED,,Retrieval restores the teacher's round-1 bias.} Round-1 left-arm
+arxiv/sections/methods_l2.tex,333,1,2,MISSED,,ores the teacher's round-1 bias.} Round-1 left-arm
+arxiv/sections/methods_l2.tex,335,17.1,17.2,MISSED,,"transplant): teacher $-$17.1, A\_ctrl\_rat (distilled"
+arxiv/sections/methods_l2.tex,335,4.8,4.9,MISSED,,".1, A\_ctrl\_rat (distilled) \textbf{$-$4.8}, C\_retrieval"
+arxiv/sections/methods_l2.tex,336,17.2,17.3,MISSED,,\textbf{$-$17.2}. The pre-registered $\s
+arxiv/sections/methods_l2.tex,336,15.5,15.6,MISSED,,"ed $\sigma$ test did not fire ($\sigma$ 15.5 vs 17.3,"
+arxiv/sections/methods_l2.tex,336,17.3,17.4,MISSED,,"ma$ test did not fire ($\sigma$ 15.5 vs 17.3,"
+arxiv/sections/methods_l2.tex,337,1.25,1.26,MISSED,,F=1.25 --- reported plainly); t
+arxiv/sections/methods_l2.tex,338,28,29,MISSED,,o a magnitude-deficient prior ($\approx$28\% of teacher
+arxiv/sections/methods_l2.tex,340,4.8,4.9,MISSED,,teacher's magnitude almost exactly ($-$4.8 $\rightarrow$ $-$17.2 $\
+arxiv/sections/methods_l2.tex,340,17.2,17.3,MISSED,,almost exactly ($-$4.8 $\rightarrow$ $-$17.2 $\approx$ $-$17.1). This
+arxiv/sections/methods_l2.tex,340,17.1,17.2,MISSED,,$4.8 $\rightarrow$ $-$17.2 $\approx$ $-$17.1). This is the
+arxiv/sections/methods_l2.tex,346,16.7,16.8,MISSED,,($-$16.7 $\approx$ $-$15.8); on L
+arxiv/sections/methods_l2.tex,346,15.8,15.9,MISSED,,($-$16.7 $\approx$ $-$15.8); on L2 the distilled pr
+arxiv/sections/methods_l2.tex,346,4.8,4.9,MISSED,,L2 the distilled prior reaches only $-$4.8 against
+arxiv/sections/methods_l2.tex,347,17.1,17.2,MISSED,,$-$17.1 ($\approx$72\% short). T
+arxiv/sections/methods_l2.tex,347,72,73,MISSED,,$-$17.1 ($\approx$72\% short). Training dose
+arxiv/sections/methods_l2.tex,348,511,512,MISSED,,distillation saw 511 desirable rounds vs L0a'
+arxiv/sections/methods_l2.tex,348,992,993,MISSED,,"ation saw 511 desirable rounds vs L0a's 992), suggesting"
+arxiv/sections/methods_l2.tex,351,2,3,MISSED,,"mposition are confounded with dose at n=2, so no single cause is"
+arxiv/sections/methods_l2.tex,352,2,3,MISSED,,"isolable. Labelled exploratory (n=2 tasks, a single before/a"
+arxiv/sections/methods_l2.tex,356,6,7,MISSED,,The +6 pp = 9 rescues (C\checkm
+arxiv/sections/methods_l2.tex,356,9,0,MISSED,,The +6 pp = 9 rescues (C\checkmark A$\
+arxiv/sections/methods_l2.tex,356,3,4,MISSED,,= 9 rescues (C\checkmark A$\times$) $-$ 3 regressions (A\checkmark
+arxiv/sections/methods_l2.tex,357,13.9,13.0,MISSED,,re: rescue init \texttt{dist\_red} mean 13.9 cm vs
+arxiv/sections/methods_l2.tex,358,21.6,21.7,MISSED,,"both-fail 21.6 cm (MW z=$-$3.88, p=1e-4"
+arxiv/sections/methods_l2.tex,358,3.88,3.89,MISSED,,"both-fail 21.6 cm (MW z=$-$3.88, p=1e-4) --- retrieval r"
+arxiv/sections/methods_l2.tex,358,1,2,MISSED,,"both-fail 21.6 cm (MW z=$-$3.88, p=1e-4) --- retrieval rescue"
+arxiv/sections/methods_l2.tex,358,4,5,MISSED,,"both-fail 21.6 cm (MW z=$-$3.88, p=1e-4) --- retrieval rescues a"
+arxiv/sections/methods_l2.tex,360,0.847,0.848,MISSED,,"(0.847 vs 0.868, p=0.03), so st"
+arxiv/sections/methods_l2.tex,360,0.868,0.869,MISSED,,"(0.847 vs 0.868, p=0.03), so start dista"
+arxiv/sections/methods_l2.tex,360,0.03,0.04,MISSED,,"(0.847 vs 0.868, p=0.03), so start distance, not"
+arxiv/sections/methods_l2.tex,365,6,7,MISSED,,"and in \textbf{direction} (+6 pp), but its conversion"
+arxiv/sections/methods_l2.tex,367,0,1,MISSED,,"anchored on \texttt{init\_L\_EE}, round-0 only --- verified litera"
+arxiv/sections/methods_l2.tex,370,0.05,0.06,MISSED,,reach of the 0.05 m gate (c). Far-start ep
+arxiv/sections/methods_l2.tex,371,6,7,MISSED,,"The effect is therefore \textbf{small (+6 pp, n.s.), not"
+arxiv/sections/methods_l2.tex,373,2,3,MISSED,,"' objection: \emph{between tasks} (a, n=2) thinner"
+arxiv/sections/methods_l2.tex,377,5.9,5.0,MISSED,,\subsubsection*{5.9.4 Headroom-normalized cr
+arxiv/sections/methods_l2.tex,380,99,90,MISSED,,"er basis, L0a retrieval closed $\approx$99\% of the"
+arxiv/sections/methods_l2.tex,381,34.0,34.1,CAUGHT,"CLAIM L0a parity gap: arxiv/sections/methods_l2.tex says '34.1of34.3', certificate (derived_stats.txt) says '34.0of34.3'","parity gap (34.0 of 34.3 pp, A\_ctrl\_rat"
+arxiv/sections/methods_l2.tex,381,34.3,34.4,CAUGHT,"CLAIM L0a parity gap: arxiv/sections/methods_l2.tex says '34.0of34.4', certificate (derived_stats.txt) says '34.0of34.3'","parity gap (34.0 of 34.3 pp, A\_ctrl\_rat 15\% $\"
+arxiv/sections/methods_l2.tex,381,15,16,MISSED,,"rity gap (34.0 of 34.3 pp, A\_ctrl\_rat 15\% $\rightarrow$ teacher"
+arxiv/sections/methods_l2.tex,381,49.3,49.4,MISSED,,A\_ctrl\_rat 15\% $\rightarrow$ teacher 49.3\%); \textbf{L2 retrieval
+arxiv/sections/methods_l2.tex,381,42.9,42.0,MISSED,,er 49.3\%); \textbf{L2 retrieval closes 42.9\%} of the per-arm gap (A
+arxiv/sections/methods_l2.tex,382,14,15,MISSED,,14\% $\rightarrow$ L2 per-a
+arxiv/sections/methods_l2.tex,382,28.0,28.1,MISSED,,"\rightarrow$ L2 per-arm teacher \textbf{28.0\%}, pinned from \texttt{"
+arxiv/sections/methods_l2.tex,383,14,15,MISSED,,"headroom 14 pp, +6 pp recovered = 6/"
+arxiv/sections/methods_l2.tex,383,6,7,MISSED,,"headroom 14 pp, +6 pp recovered = 6/14). Th"
+arxiv/sections/methods_l2.tex,383,6,7,MISSED,,"headroom 14 pp, +6 pp recovered = 6/14). This framing is \te"
+arxiv/sections/methods_l2.tex,383,14,15,MISSED,,"headroom 14 pp, +6 pp recovered = 6/14). This framing is \textb"
+arxiv/sections/methods_l2.tex,384,28.0,28.1,MISSED,,fter the raw SR was known); pinning the 28.0\%
+arxiv/sections/methods_l2.tex,386,6,7,MISSED,,+6 pp n.s. is always report
+arxiv/sections/methods_l2.tex,397,1.7,1.8,MISSED,,\begin{tabular}{@{}l p{1.7cm} p{6.4cm} p{3.1cm}@{}}
+arxiv/sections/methods_l2.tex,397,6.4,6.5,MISSED,,\begin{tabular}{@{}l p{1.7cm} p{6.4cm} p{3.1cm}@{}}
+arxiv/sections/methods_l2.tex,397,3.1,3.2,MISSED,,begin{tabular}{@{}l p{1.7cm} p{6.4cm} p{3.1cm}@{}}
+arxiv/sections/methods_l2.tex,401,1,2,MISSED,,L2-1 & 07-15 & Per-arm scorin
+arxiv/sections/methods_l2.tex,401,07,08,MISSED,,L2-1 & 07-15 & Per-arm scoring (po
+arxiv/sections/methods_l2.tex,401,15,16,MISSED,,L2-1 & 07-15 & Per-arm scoring (post-
+arxiv/sections/methods_l2.tex,402,1,2,MISSED,,L2-1a & 07-15 & Buffer re-tag
+arxiv/sections/methods_l2.tex,402,07,08,MISSED,,L2-1a & 07-15 & Buffer re-tag (dual
+arxiv/sections/methods_l2.tex,402,15,16,MISSED,,L2-1a & 07-15 & Buffer re-tag (dual la
+arxiv/sections/methods_l2.tex,402,83337879,83337870,MISSED,,abel) + arm-aligned success-floor; pins 83337879$\rightarrow$a79581cd & l
+arxiv/sections/methods_l2.tex,403,2,3,MISSED,,L2-2 & 07-15 & Scope to answe
+arxiv/sections/methods_l2.tex,403,07,08,MISSED,,L2-2 & 07-15 & Scope to answerable
+arxiv/sections/methods_l2.tex,403,15,16,MISSED,,L2-2 & 07-15 & Scope to answerable qu
+arxiv/sections/methods_l2.tex,403,1,2,MISSED,,werable question (T4-class only); Stage-1 A\_ctrl\_rat; T1 not run
+arxiv/sections/methods_l2.tex,404,2,3,MISSED,,L2-2 add & 07-16 & Per-arm SF
+arxiv/sections/methods_l2.tex,404,07,08,MISSED,,L2-2 add & 07-16 & Per-arm SFT pool se
+arxiv/sections/methods_l2.tex,404,16,17,MISSED,,L2-2 add & 07-16 & Per-arm SFT pool selec
+arxiv/sections/methods_l2.tex,404,2,3,MISSED,,ed by label not directory (verify-layer 2/2) & l2\_amendment\_2.md
+arxiv/sections/methods_l2.tex,404,2,3,MISSED,,by label not directory (verify-layer 2/2) & l2\_amendment\_2.md \
+arxiv/sections/methods_l2.tex,405,2,3,MISSED,,L2-2 add & 07-21 & GGUF conve
+arxiv/sections/methods_l2.tex,405,07,08,MISSED,,L2-2 add & 07-21 & GGUF conversion ver
+arxiv/sections/methods_l2.tex,405,21,22,MISSED,,L2-2 add & 07-21 & GGUF conversion versio
+arxiv/sections/methods_l2.tex,405,3,4,MISSED,,ollback + arch byte-patch (verify-layer 3/3) & l2\_amendment\_2.md
+arxiv/sections/methods_l2.tex,405,3,4,MISSED,,lback + arch byte-patch (verify-layer 3/3) & l2\_amendment\_2.md \
+arxiv/sections/methods_l2.tex,406,3,4,MISSED,,L2-3 & 07-22 decided / 07-28
+arxiv/sections/methods_l2.tex,406,07,08,MISSED,,L2-3 & 07-22 decided / 07-28 re-fi
+arxiv/sections/methods_l2.tex,406,22,23,MISSED,,L2-3 & 07-22 decided / 07-28 re-filed
+arxiv/sections/methods_l2.tex,406,07,08,MISSED,,L2-3 & 07-22 decided / 07-28 re-filed & Per-arm EV
+arxiv/sections/methods_l2.tex,406,28,29,MISSED,,L2-3 & 07-22 decided / 07-28 re-filed & Per-arm EVAL:
+arxiv/sections/methods_l2.tex,406,2,3,MISSED,,"-scored arm frozen; left-scored $\times$2 protocols n=100, seed 46"
+arxiv/sections/methods_l2.tex,406,100,101,MISSED,,"ozen; left-scored $\times$2 protocols n=100, seed 4600; position-onl"
+arxiv/sections/methods_l2.tex,406,4600,4601,MISSED,,"-scored $\times$2 protocols n=100, seed 4600; position-only success;"
+arxiv/sections/methods_l2.tex,406,4,5,MISSED,,ess; format-contract gate (verify-layer 4/4) & l2\_amendment\_3.md
+arxiv/sections/methods_l2.tex,406,4,5,MISSED,,s; format-contract gate (verify-layer 4/4) & l2\_amendment\_3.md (
+arxiv/sections/methods_l2.tex,406,07,08,MISSED,,"pec-implementing code \texttt{0398568}, 07-22, before the eval) \\"
+arxiv/sections/methods_l2.tex,406,22,23,MISSED,,"-implementing code \texttt{0398568}, 07-22, before the eval) \\"
+arxiv/sections/methods_l2.tex,411,3,4,MISSED,,\emph{L2-3 was decided before any L
+arxiv/sections/methods_l2.tex,411,8,9,MISSED,,any L2 eval number existed --- the Step-8
+arxiv/sections/methods_l2.tex,412,1,2,MISSED,,eval crashed at episode~1 on a missing prompt temp
+arxiv/sections/appendix_amendments.tex,11,1,2,MISSED,,amendments (1--14) in Appendix~A1 (Ame
+arxiv/sections/appendix_amendments.tex,11,14,15,MISSED,,amendments (1--14) in Appendix~A1 (Amendme
+arxiv/sections/appendix_amendments.tex,11,15,16,MISSED,,"ments (1--14) in Appendix~A1 (Amendment 15, 2026-10-05, registers"
+arxiv/sections/appendix_amendments.tex,11,2026,2027,MISSED,,"s (1--14) in Appendix~A1 (Amendment 15, 2026-10-05, registers"
+arxiv/sections/appendix_amendments.tex,11,10,11,MISSED,,"-14) in Appendix~A1 (Amendment 15, 2026-10-05, registers"
+arxiv/sections/appendix_amendments.tex,11,05,06,MISSED,,") in Appendix~A1 (Amendment 15, 2026-10-05, registers"
+arxiv/sections/appendix_amendments.tex,13,16,17,MISSED,,"Amendment 16, 2026-10-05, \texttt{730"
+arxiv/sections/appendix_amendments.tex,13,2026,2027,MISSED,,"Amendment 16, 2026-10-05, \texttt{730b9fc},"
+arxiv/sections/appendix_amendments.tex,13,10,11,MISSED,,"Amendment 16, 2026-10-05, \texttt{730b9fc}, is"
+arxiv/sections/appendix_amendments.tex,13,05,06,MISSED,,"Amendment 16, 2026-10-05, \texttt{730b9fc}, is a"
+arxiv/sections/appendix_amendments.tex,15,1,2,MISSED,,is change) at the end of the Experiment-1 Methods
+arxiv/sections/appendix_amendments.tex,16,1,2,MISSED,,"(\S3), and the L2 amendments (1/1a/2/3) in the table at"
+arxiv/sections/appendix_amendments.tex,16,1,2,MISSED,,"(\S3), and the L2 amendments (1/1a/2/3) in the table at th"
+arxiv/sections/appendix_amendments.tex,16,2,3,MISSED,,"(\S3), and the L2 amendments (1/1a/2/3) in the table at the e"
+arxiv/sections/appendix_amendments.tex,16,3,4,MISSED,,"(\S3), and the L2 amendments (1/1a/2/3) in the table at the end"
+arxiv/sections/appendix_amendments.tex,17,2,3,MISSED,,Experiment-2 Methods (\S5). Every ame
+arxiv/sections/related_work.tex,2,2,3,MISSED,,\section*{2. Related Work}
+arxiv/sections/related_work.tex,49,0.6,0.7,MISSED,,\emph{into weights}: RECAP / $\pi^{*}_{0.6}$~\citep{pistar06_2025}
+arxiv/sections/related_work.tex,70,1,2,MISSED,,inference did not help ($+1$ pp) while retrieved con
+arxiv/sections/related_work.tex,70,23,24,MISSED,,$+1$ pp) while retrieved content did ($+23$ pp) ---
+arxiv/sections/appendix_teacher_provenance.tex,9,2026,2027,MISSED,,unchanged from commit \texttt{a2aebb9} (2026-06-08) through the entir
+arxiv/sections/appendix_teacher_provenance.tex,9,06,07,MISSED,,nged from commit \texttt{a2aebb9} (2026-06-08) through the entire D
+arxiv/sections/appendix_teacher_provenance.tex,9,08,09,MISSED,,d from commit \texttt{a2aebb9} (2026-06-08) through the entire D10
+arxiv/sections/appendix_teacher_provenance.tex,11,2026,2027,MISSED,,"(2026-07-14). Same binary, sam"
+arxiv/sections/appendix_teacher_provenance.tex,11,07,08,MISSED,,"(2026-07-14). Same binary, same m"
+arxiv/sections/appendix_teacher_provenance.tex,11,14,15,MISSED,,"(2026-07-14). Same binary, same mode"
+arxiv/sections/appendix_teacher_provenance.tex,11,4,5,MISSED,,"-07-14). Same binary, same model (gemma-4-31B-it Q4\_K\_M), same"
+arxiv/sections/appendix_teacher_provenance.tex,11,31,32,MISSED,,"7-14). Same binary, same model (gemma-4-31B-it Q4\_K\_M), same"
+arxiv/sections/appendix_teacher_provenance.tex,12,16384,16385,MISSED,,"mmproj, same ctx-size 16384, same \texttt{--parallel"
+arxiv/sections/appendix_teacher_provenance.tex,17,4,5,MISSED,,"0 (L0a-Left, single-arm):} inline Stage-4 recap generation"
+arxiv/sections/appendix_teacher_provenance.tex,21,547,548,MISSED,,(recaps\_d10 = 547 records total across 7 r
+arxiv/sections/appendix_teacher_provenance.tex,21,7,8,MISSED,,(recaps\_d10 = 547 records total across 7 runs).
+arxiv/sections/appendix_teacher_provenance.tex,22,8,9,MISSED,,"sh) first collect:} inline recap failed 8/8 episodes,"
+arxiv/sections/appendix_teacher_provenance.tex,22,8,9,MISSED,,") first collect:} inline recap failed 8/8 episodes,"
+arxiv/sections/appendix_teacher_provenance.tex,27,2026,2027,MISSED,,deterministically 2026-07-14): gemma-4's reason
+arxiv/sections/appendix_teacher_provenance.tex,27,07,08,MISSED,,deterministically 2026-07-14): gemma-4's reasoning
+arxiv/sections/appendix_teacher_provenance.tex,27,14,15,MISSED,,deterministically 2026-07-14): gemma-4's reasoning mo
+arxiv/sections/appendix_teacher_provenance.tex,27,4,5,MISSED,,"deterministically 2026-07-14): gemma-4's reasoning mode, enable"
+arxiv/sections/appendix_teacher_provenance.tex,28,400,401,MISSED,,"ing-budget 512}, can consume the entire 400-token output"
+arxiv/sections/appendix_teacher_provenance.tex,40,469,460,MISSED,,returned empty now returns a real 469-char lesson in 7 s. Reas
+arxiv/sections/appendix_teacher_provenance.tex,40,7,8,MISSED,,y now returns a real 469-char lesson in 7 s. Reasoning-off
+arxiv/sections/appendix_teacher_provenance.tex,41,512,513,MISSED,,is safe for L0a too (D10 succeeded on 512 precisely because it nev
+arxiv/sections/appendix_teacher_provenance.tex,46,512,513,MISSED,,generated \textbf{reasoning-on (budget 512)}.
+arxiv/sections/appendix_teacher_provenance.tex,47,0,1,MISSED,,generated \textbf{reasoning-off (budget 0)}.
+arxiv/sections/appendix_teacher_provenance.tex,53,1,2,MISSED,,\item Stage-1 reasoning quality may di
+arxiv/sections/appendix_teacher_provenance.tex,54,1,2,MISSED,,reasoning-on. D10's Stage-1 ran reasoning-on; if a c
+arxiv/sections/appendix_teacher_provenance.tex,63,4,5,MISSED,,"\item D10 / L0a teacher: gemma-4-31B Q4\_K\_M, ctx 16384,"
+arxiv/sections/appendix_teacher_provenance.tex,63,31,32,MISSED,,"\item D10 / L0a teacher: gemma-4-31B Q4\_K\_M, ctx 16384, \t"
+arxiv/sections/appendix_teacher_provenance.tex,63,16384,16385,MISSED,,"L0a teacher: gemma-4-31B Q4\_K\_M, ctx 16384, \textbf{reasoning-budge"
+arxiv/sections/appendix_teacher_provenance.tex,63,512,513,MISSED,,"_M, ctx 16384, \textbf{reasoning-budget 512}."
+arxiv/sections/appendix_teacher_provenance.tex,64,2026,2027,MISSED,,"\item L2 teacher (from 2026-07-14): same, \textbf{re"
+arxiv/sections/appendix_teacher_provenance.tex,64,07,08,MISSED,,"\item L2 teacher (from 2026-07-14): same, \textbf{reaso"
+arxiv/sections/appendix_teacher_provenance.tex,64,14,15,MISSED,,"\item L2 teacher (from 2026-07-14): same, \textbf{reasonin"
+arxiv/sections/appendix_teacher_provenance.tex,64,0,1,MISSED,,"): same, \textbf{reasoning off / budget 0}."
