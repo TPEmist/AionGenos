@@ -8,8 +8,8 @@ in this repository; the source is named next to it.
 
 ## Status of the inputs
 
-**Status:** checkable and runnable once the adapters and the release buffer
-are posted (arXiv upload day); until then, checkable only.
+**Status:** checkable and runnable once the GitHub Release `paper-v1-artifacts`
+is published (arXiv upload day); until then, checkable only.
 
 
 | input | identifier | release |
@@ -18,9 +18,9 @@ are posted (arXiv upload day); until then, checkable only.
 | simulator task | Isaac Lab upstream `isaac-sim/IsaacLab` @ `84dc3f66ce` (v2.2.1-290), task cfg `manipulation/reach/config/openarm/bimanual/reach_openarm_bi_env_cfg.py`, unmodified | public |
 | base model | `ggml-org/gemma-4-31B-it-GGUF`, files `gemma-4-31B-it-Q4_K_M.gguf` + `mmproj-gemma-4-31B-it-Q8_0.gguf` (`server_side/reload_student_dual.sh`) | public (Apache-2.0) |
 | inference server | llama.cpp `llama-server` (`server_side/reload_student_dual.sh`, ctx 16384) | public (MIT) |
-| `A_ctrl_rat` adapters | `d11_A_ctrl_rat_sft/adapter.gguf` + `d11_A_ctrl_rat_kto/adapter.gguf`; sha256 SFT `4807767d2140ba3166a790fc5d621d19096d85e59c9332f0ebb34ed369e55ebc`, KTO `7f7f73636e1a3453bfd6f236b0446e765e4cb3cd16d29ea8deb167421415a036` (isaac handoff `7229335`, hashed read-only on the GPU host) | to be released on the arXiv upload day (PI account, HF or Zenodo): `[URL]`. Trained from public Gemma weights on simulator-generated data; no company data |
+| `A_ctrl_rat` adapters | `d11_A_ctrl_rat_sft/adapter.gguf` + `d11_A_ctrl_rat_kto/adapter.gguf`; sha256 SFT `4807767d2140ba3166a790fc5d621d19096d85e59c9332f0ebb34ed369e55ebc`, KTO `7f7f73636e1a3453bfd6f236b0446e765e4cb3cd16d29ea8deb167421415a036` (isaac handoff `7229335`, hashed read-only on the GPU host); released as `d11_A_ctrl_rat_sft.gguf` and `d11_A_ctrl_rat_kto.gguf` | GitHub Release `paper-v1-artifacts` of this repository, published on the arXiv upload day: `https://github.com/TPEmist/AionGenos/releases/download/paper-v1-artifacts/d11_A_ctrl_rat_sft.gguf`, `https://github.com/TPEmist/AionGenos/releases/download/paper-v1-artifacts/d11_A_ctrl_rat_kto.gguf`. Trained from public Gemma weights on simulator-generated data; no company data |
 | frozen retrieval buffer — **evaluated identity** | `d10ext_final_buffer.tar.gz`, sha256 `a762386b79e18ce50440d1ff3e7045f6f82f32bd7b05092ac332b9217fb0eb9c` (`scripts/training/run_d11_pipeline_v2.sh:56`; re-hashed 2026-10-06); 547 recap JSONs (lesson text, outcome, state anchor, 768-d DINOv2 image embedding, absolute image-anchor paths) | the hash identifies the buffer that was evaluated; this exact tarball is not the release file |
-| frozen retrieval buffer — **release identity** | `aiongenos_d10ext_frozen_buffer_v1.tar.gz`, sha256 `7a405eb1cbe83a2199152918cc78b375cda2fb465dca8dc0a26324235fdfaaa0` (pack tree hash `e29224a196fa778f89d638e8ba693cabe600aeb7d1cbb1a60ec09f10a558a673`); built by `scripts/release/build_buffer_release.py` (deterministic: two builds give the same hash; handoff `docs/handoff/2026-10-06_paper-release-artifact-shas.md`); `buffer/` (547 recap JSONs) + `images/` (the 547 `init_pre` anchor images) + `MANIFEST.sha256` + `README.md` | to be released on the arXiv upload day (PI account): `[URL]` |
+| frozen retrieval buffer — **release identity** | `aiongenos_d10ext_frozen_buffer_v1.tar.gz`, sha256 `7a405eb1cbe83a2199152918cc78b375cda2fb465dca8dc0a26324235fdfaaa0` (pack tree hash `e29224a196fa778f89d638e8ba693cabe600aeb7d1cbb1a60ec09f10a558a673`); built by `scripts/release/build_buffer_release.py` (deterministic: two builds give the same hash; handoff `docs/handoff/2026-10-06_paper-release-artifact-shas.md`); `buffer/` (547 recap JSONs) + `images/` (the 547 `init_pre` anchor images) + `MANIFEST.sha256` + `README.md` | same GitHub Release: `https://github.com/TPEmist/AionGenos/releases/download/paper-v1-artifacts/aiongenos_d10ext_frozen_buffer_v1.tar.gz` |
 | raw replays / other images | `data/replays/`, other `data/collect_dumps/` images | not released: generated on company hardware; the permission covers publication, not data release |
 
 **Evaluated vs release identity.** The records are byte-identical except
@@ -61,10 +61,16 @@ From a clone at `e0ad00f`, with Isaac Lab installed at the commit above
 and a GPU host serving the student:
 
 ```bash
+# 0. Release files (GitHub Release `paper-v1-artifacts`) + integrity check
+for f in d11_A_ctrl_rat_sft.gguf d11_A_ctrl_rat_kto.gguf aiongenos_d10ext_frozen_buffer_v1.tar.gz; do
+  curl -LO https://github.com/TPEmist/AionGenos/releases/download/paper-v1-artifacts/$f
+done
+sha256sum d11_A_ctrl_rat_sft.gguf d11_A_ctrl_rat_kto.gguf   # must equal 4807767d...5ebc / 7f7f7363...a036
+
 # 1. Student server: base + the A_ctrl_rat SFT and KTO adapters (summed).
 MODEL_PATH=<gemma-4-31B-it-Q4_K_M.gguf> MMPROJ_PATH=<mmproj-gemma-4-31B-it-Q8_0.gguf> \
   bash server_side/reload_student_dual.sh \
-    <d11_A_ctrl_rat_sft/adapter.gguf> <d11_A_ctrl_rat_kto/adapter.gguf>
+    d11_A_ctrl_rat_sft.gguf d11_A_ctrl_rat_kto.gguf
 
 # 2. A_ctrl_rat (bare)
 <isaaclab>/isaaclab.sh -p scripts/run_collect.py \
