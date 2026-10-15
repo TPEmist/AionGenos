@@ -66,7 +66,6 @@ PUSH_PLATEAU_MIN_DISP_M = 0.01
 # and IsaacLab auto-reset INSIDE env.step mid-episode. The env's own episode
 # budget must exceed the push round budget by this margin.
 PUSH_EP_LEN_MARGIN = 1.5
-GIF_STRIP_PX = 14         # bottom margin strip for the GIF text tag
 ORI_ERR_TAIL_STEPS = 20
 # Pin-12 (PI 2026-10-06): from rung 1b on, the plateau counter ARMS only after
 # first contact (a round whose contact report saw the cube start moving, or
@@ -298,8 +297,9 @@ def run_push_collect_loop(
             if gif_frame_every and seg.get("frames"):
                 tag = (f"R{round_idx+1}  cube->goal {cube_goal_dist*100:.1f}cm (GT)  "
                        f"contact: {first_move.get('anatomy', 'none')}")
-                for f in seg["frames"]:
-                    gif_frames.append((f, tag))
+                tops = seg.get("frames_top") or [b""] * len(seg["frames"])
+                for f, t in zip(seg["frames"], tops):
+                    gif_frames.append((f, t, tag))
             tcp_final = seg.get("tcp_final_b")
             tcp_reach_err_cm = (round(float(np.linalg.norm(np.array(tcp_final) - np.array([tx, ty, tz]))) * 100, 2)
                                 if tcp_final is not None else None)
@@ -435,17 +435,12 @@ def run_push_collect_loop(
     logger.info(f"push_collect DONE: {summary['n_success']}/{num_episodes} success")
     if gif_frame_every and gif_frames:
         try:
-            import imageio.v2 as _imageio, io as _io, numpy as _np
-            from PIL import Image as _Image, ImageDraw as _ImageDraw
-            imgs = []
-            for png, tag in gif_frames:
-                scene = _Image.open(_io.BytesIO(png)).convert("RGB")
-                # bottom margin strip BELOW the scene (canvas grows; no scene
-                # pixel is covered); default PIL font, legible at 256px
-                im = _Image.new("RGB", (scene.width, scene.height + GIF_STRIP_PX), (0, 0, 0))
-                im.paste(scene, (0, 0))
-                _ImageDraw.Draw(im).text((2, scene.height + 2), tag, fill=(255, 255, 0))
-                imgs.append(_np.asarray(im))
+            import imageio.v2 as _imageio
+            from aiongenos.orchestrator.push_gif import compose_frame
+            # PI convention (2026-10-15): front | top, each labelled FED / PI-only.
+            # The front image is always fed; the top view is fed from rung-1b on.
+            imgs = [compose_frame(png, top, tag, front_fed=True, top_fed=top_view)
+                    for png, top, tag in gif_frames]
             gif_path = f"logs/push_gif_{run_id}.gif"
             _imageio.mimsave(gif_path, imgs, duration=0.08)
             summary["gif_path"] = gif_path

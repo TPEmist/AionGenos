@@ -26,7 +26,6 @@ Outputs: logs/wp3a_reach_real.json and one GIF per seed
 Usage: isaaclab.sh -p scripts/diagnostics/wp3a_reach_real.py --headless --enable_cameras [--seeds 5000,5018]
 """
 import argparse
-import io
 import json
 import sys
 
@@ -48,12 +47,12 @@ import omni.usd  # noqa: E402
 import torch  # noqa: E402
 from isaaclab.utils.math import quat_apply, quat_apply_inverse  # noqa: E402
 from isaaclab_tasks.utils import parse_env_cfg  # noqa: E402
-from PIL import Image, ImageDraw  # noqa: E402
 from pxr import Usd, UsdGeom  # noqa: E402
 
 import aiongenos.tasks  # noqa: E402,F401
 from aiongenos.orchestrator import push_body as pb  # noqa: E402
 from aiongenos.orchestrator.isaaclab_env_interface import IsaacLabEnvInterface  # noqa: E402
+from aiongenos.orchestrator.push_gif import compose_frame  # noqa: E402
 from aiongenos.tasks.WP1_contact_testbed import push_s3a_cfg as C  # noqa: E402
 
 GID = "Isaac-AionGenos-WP1-Push-TopCam-v0"
@@ -130,19 +129,6 @@ def state(cube0_b, goal_b) -> dict:
                                               - float(robot.data.root_pos_w[0, 2]) - TABLE_TOP_B) * 100, 2)}
 
 
-def tag_frames(frames_f, frames_t, tag):
-    out = []
-    for f, t in zip(frames_f, frames_t):
-        a_ = Image.open(io.BytesIO(f)).convert("RGB")
-        b_ = Image.open(io.BytesIO(t)).convert("RGB").resize(a_.size)
-        im = Image.new("RGB", (a_.width * 2, a_.height + 14))
-        im.paste(a_, (0, 0))
-        im.paste(b_, (a_.width, 0))
-        ImageDraw.Draw(im).text((2, a_.height + 2), tag, fill=(255, 255, 0))
-        out.append(np.asarray(im))
-    return out
-
-
 report = {}
 for seed in [int(s) for s in a.seeds.split(",")]:
     iface.reset(seed=seed)
@@ -158,19 +144,20 @@ for seed in [int(s) for s in a.seeds.split(",")]:
     rows, gif = [], []
     for phase, tgt in (("A_approach", appr), ("B_push_end", end)):
         for rnd in range(ROUNDS):
-            # front frames every frame_every steps; top view = end of the round
             seg = iface.execute_push_segment(torch.tensor(tgt, dtype=torch.float32), q_cmd, SEG,
                                              frame_every=a.frame_every, target_is_tcp=True)
             ff = seg.get("frames") or []
-            tf = [iface.get_rgb_top()] * len(ff)   # top view at segment end (front is per-step)
+            tf = seg.get("frames_top") or [b""] * len(ff)
             s = state(cube0, goal)
             s.update({"phase": phase, "round": rnd + 1, "target_b": tgt.round(4).tolist(),
                       "tcp_err_cm": round(float(np.linalg.norm(np.array(s["tcp_b"]) - tgt)) * 100, 2),
                       "first_cube_move": (seg.get("contact") or {}).get("first_cube_move"),
                       "guard": (seg.get("table_guard") or {}).get("target_clamp")})
             rows.append(s)
-            gif += tag_frames(ff, tf, f"seed{seed} {phase} R{rnd+1} finger-cube {s['finger_to_cube_cm']}cm "
+            tag = (f"seed{seed} {phase} R{rnd+1} finger-cube {s['finger_to_cube_cm']}cm "
                                       f"cube moved {s['cube_moved_cm']}cm j4 {s['elbow_j4_rad']}")
+            # scripted probe, no model in the loop → both panels are PI-only views
+            gif += [compose_frame(f, t, tag, front_fed=False, top_fed=False) for f, t in zip(ff, tf)]
             print(f"[REAL] seed{seed} {phase} R{rnd+1} tgt {tgt.round(3)} tcp {s['tcp_b']} err {s['tcp_err_cm']}cm "
                   f"finger→cube {s['finger_to_cube_cm']}cm moved {s['cube_moved_cm']}cm cube→goal {s['cube_goal_cm']}cm "
                   f"j4 {s['elbow_j4_rad']} sh→tcp {s['shoulder_tcp_cm']}cm tight {s['tightest_joint']} "

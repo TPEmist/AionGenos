@@ -610,6 +610,7 @@ class IsaacLabEnvInterface:
         peak_pre = 0.0; peak_post = 0.0; warn = 0; flag = 0
         per_step_pre = []
         frames = []
+        frames_top = []   # parallel to frames (GIF only; PI view)
         dmin = 1e9
         for _si in range(steps):
             # carrot setpoint: current EE (base frame) + ≤lead toward approach
@@ -668,6 +669,7 @@ class IsaacLabEnvInterface:
                 png = self.get_rgb()
                 if png:
                     frames.append(png)
+                    frames_top.append(self.get_rgb_top())   # b"" when the env has no top camera
 
         ee_final = r.data.body_pos_w[0, ee_idx, :3]
         root = r.data.root_pos_w[0, :3]
@@ -682,6 +684,7 @@ class IsaacLabEnvInterface:
             "tau_pre_per_step": per_step_pre,
             "n_steps": steps,
             "frames": frames,            # PNG bytes (if frame_every>0) for the GIF
+            "frames_top": frames_top,    # parallel top-view PNGs (b"" if no top camera)
             "ori_err_deg": ori_err,      # per step, hand orientation vs command
             "ori_err_deg_final": ori_err[-1] if ori_err else None,
             "tcp_target_b": None if tcp_target_b is None else [round(float(v), 4) for v in tcp_target_b],
