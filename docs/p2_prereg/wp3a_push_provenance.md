@@ -2249,6 +2249,27 @@ original prompt template and code path. Never go by the description.
 | target line | `Target coordinate was predicted at: X= Y= Z=` | same (teacher's raw target, before the scene guard) |
 | movement line | `Actual movement: from X Y Z to X Y Z` | same (TCP grid, = LEFT_EE_POS) |
 | distance | one line, EE → task target | rung ≥ 2: fingertip → cube and cube → goal, start → end; rung < 2: none |
-| result line | progress / regression / flat (1 cm dead band) + "STOP only when…" | **not included**: PI's three fields only. Open to the PI |
+| result line | progress / regression / flat (1 cm dead band) + "STOP only when…" | **included (PI 10-15 evening)**: same templates, on cube → goal; rung < 2: none |
 | arms | LEFT and RIGHT blocks | LEFT only (the right arm holds) |
-| conversation history | first turn + last 6 pairs | **none**: stateless rounds plus the feedback block. Open to the PI |
+| conversation history | first turn + last 6 pairs | **same (PI 10-15 evening)**: one `EpisodeConversation` per episode, `--round_history` |
+
+### 2026-10-15 (evening): PI ruling — rung-2′ runs under the FULL P1 condition; Rule 10's first interception
+- **Ruling.** All three P1 elements are on:
+  - conversation history: one `EpisodeConversation` per episode, first
+    turn + last 6 pairs;
+  - previous-round feedback;
+  - the progress / regression / flat verdict line.
+- **rung-1′ (if triggered by a rung-2′ success)** uses the same setting
+  without the distances. The verdict is distance-derived, so it goes as
+  well.
+- **The PI records that the main commander's earlier ruling, "previous
+  round only, consistent with P1", was wrong.** Rule 10's field-by-field
+  check caught it before any run. This is Rule 10's first interception.
+- **Verdict mapping.**
+  - P1 applies its verdict to the distance its success criterion uses (EE →
+    reach target).
+  - Push applies the same templates and the same 1 cm dead band to its own
+    success distance (cube → goal).
+  - Code: `push_feedback._p1_verdict`.
+- **Flags:** `--round_feedback --round_history`. Both off → stateless,
+  byte-identical prompts (tests: `tests/test_push_memory.py`).

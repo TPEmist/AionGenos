@@ -148,6 +148,7 @@ def run_push_collect_loop(
     recap_buffer_readonly: bool = False,         # read memory, never write recaps (collect.py gate)
     dump_images_root: Optional[Path] = None,     # {root}/{run_id}/{ep_id}/ round PNGs + meta.json
     round_feedback: bool = False,                # rung-2' (PI 2026-10-15): report of round r-1 in round r
+    round_history: bool = False,                 # rung-2' full P1 condition: one EpisodeConversation per episode
 ) -> dict:
     """Drive `num_episodes` push episodes. Returns a summary dict.
 
@@ -171,7 +172,7 @@ def run_push_collect_loop(
     summary = {"run_id": run_id, "label": episode_label, "obs_rung": obs_rung, "episodes": [],
                "n_success": 0, "memory_on": memory_retriever is not None,
                "top_view": top_view, "plateau_rule": "pin12_after_contact" if pin12 else "pin11_from_round1",
-               "round_feedback": round_feedback}
+               "round_feedback": round_feedback, "round_history": round_history}
     gif_frames = []   # PNG bytes across the run (if gif_frame_every>0)
 
     for ep_idx in range(num_episodes):
@@ -250,13 +251,21 @@ def run_push_collect_loop(
             # fresh single-turn EpisodeConversation (same payload layout as the
             # stateless call + preamble). Rounds 2+ — and every round when no
             # preamble — keep conversation=None (stateless, unchanged).
-            r1_conv = (EpisodeConversation(get_stage1_system_prompt())
-                       if round_idx == 0 and memory_text else None)
+            if round_history:
+                # P1 collect.py: one conversation for the whole episode (first turn +
+                # last DEFAULT_RECENT_WINDOW pairs, older images stripped by client.py);
+                # the memory preamble still rides round 1 only.
+                if round_idx == 0:
+                    ep_conv = EpisodeConversation(get_stage1_system_prompt())
+                r1_conv = ep_conv
+            else:
+                r1_conv = (EpisodeConversation(get_stage1_system_prompt())
+                           if round_idx == 0 and memory_text else None)
             parsed, latency_ms, err = run_stage1_eef(
                 level_config, teacher_url, rgb, state,
                 conversation=r1_conv,
-                memory_preamble_text=memory_text if r1_conv is not None else None,
-                memory_preamble_images_b64=memory_imgs if r1_conv is not None else None,
+                memory_preamble_text=memory_text if r1_conv is not None and round_idx == 0 else None,
+                memory_preamble_images_b64=memory_imgs if r1_conv is not None and round_idx == 0 else None,
                 # rung 1b+: top-down view right after the front image
                 extra_image_bytes=[rgb_top] if top_view else None,
                 critic_feedback=critic_feedback,
@@ -321,7 +330,7 @@ def run_push_collect_loop(
                 "round": round_idx + 1,
                 # pre-action state: EE start = TCP (proprio) + GT cube/goal (offline)
                 **pm.snapshot_to_round_fields(pre_snap),
-                "memory_preamble": r1_conv is not None,
+                "memory_preamble": round_idx == 0 and memory_text is not None and r1_conv is not None,
                 "round_feedback": critic_feedback,          # rung-2': text shown this round (None = off / round 1)
                 # A-spec v2 EEF action = TCP target (r-tracking raw material)
                 "eef_target_int": [parsed.target_pos.x, parsed.target_pos.y, parsed.target_pos.z],
@@ -391,6 +400,7 @@ def run_push_collect_loop(
             "obs_rung": obs_rung,
             "top_view": top_view,
             "round_feedback": round_feedback,
+            "round_history": round_history,
             "plateau_armed_round": plateau_armed_round,
             "ee_reference": "tcp",                      # init_left_ee_pose = init TCP
             "init_left_tcp_int": list(init_snap.tcp_int),

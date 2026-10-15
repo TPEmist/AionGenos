@@ -692,8 +692,10 @@ def test_round_feedback_rung2_adds_the_two_distances(tmp_path, monkeypatch):
     env = _FakePushEnv(rung="2")
     pc.run_push_collect_loop(env, _lc(), "u", ReplayBuffer(tmp_path / "rp"), 1, round_feedback=True)
     lines = calls[1]["fb"].splitlines()
-    assert lines[-2].startswith("    Fingertip-to-cube distance: started at ")
-    assert lines[-1].startswith("    Cube-to-goal distance: started at 8.2 cm, ended at 5.2 cm")
+    assert lines[-3].startswith("    Fingertip-to-cube distance: started at ")
+    assert lines[-2].startswith("    Cube-to-goal distance: started at 8.2 cm, ended at 5.2 cm")
+    # P1 verdict on the task's success distance (cube→goal: −3.0 cm > 1 cm dead band)
+    assert lines[-1] == "    Result: Successful progress. Left arm moved 3.0 cm closer to target."
 
 
 def test_round_feedback_uses_p1_wording_verbatim():
@@ -722,3 +724,32 @@ def test_stage1_eef_prompt_unchanged_without_feedback(monkeypatch):
     base = prompts.get_stage1_prompt(lc, dict(state))
     assert seen[0] == base
     assert seen[1] == base + "\n\n" + prompts.CRITIC_FEEDBACK_INJECTION_HEADER + "\nREPORT"
+
+
+def test_round_feedback_verdict_uses_p1_templates_and_dead_band():
+    from aiongenos.orchestrator.push_feedback import format_round_feedback
+    from aiongenos.vlm import prompts
+    flat = format_round_feedback((1, 2, 3), (4, 5, 6), (7, 8, 9), (5.0, 8.0), (2.0, 7.5)).splitlines()[-1]
+    assert flat == prompts.CRITIC_FEEDBACK_FLAT.format(d_end=7.5)
+    reg = format_round_feedback((1, 2, 3), (4, 5, 6), (7, 8, 9), (5.0, 8.0), (2.0, 9.5)).splitlines()[-1]
+    assert reg == prompts.CRITIC_FEEDBACK_REGRESS.format(Arm="Left", delta=1.5)
+
+
+def test_round_history_one_conversation_preamble_round1_only(tmp_path, monkeypatch):
+    calls = []
+    pc = importlib.import_module("aiongenos.orchestrator.push_collect")
+    convs = []
+
+    def fake(lc, url, rgb, state, conversation=None, memory_preamble_text=None,
+             memory_preamble_images_b64=None, **kw):
+        convs.append(conversation)
+        calls.append({"pre": memory_preamble_text, "fb": kw.get("critic_feedback")})
+        return _Parsed(), 10.0, None
+    monkeypatch.setattr(pc, "run_stage1_eef", fake)
+    summ = pc.run_push_collect_loop(_FakePushEnv(rung="2"), _lc(), "u", ReplayBuffer(tmp_path / "rp"), 1,
+                                    round_feedback=True, round_history=True)
+    assert len(convs) == 2 and convs[0] is not None and convs[0] is convs[1]   # same episode conversation
+    assert calls[0]["pre"] is None and calls[1]["pre"] is None                # no memory here
+    assert calls[0]["fb"] is None and calls[1]["fb"].startswith("DIAGNOSTIC REPORT")
+    assert summ["round_history"] is True
+    assert all(r["memory_preamble"] is False for r in summ["episodes"][0]["round_meta"])

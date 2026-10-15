@@ -28,6 +28,9 @@ parser.add_argument("--round_feedback", action="store_true",
                     help="rung-2' (PI 2026-10-15, interface fix): round r carries the P1-format report "
                          "of round r-1 (target, TCP from->to; the two distances only at rung >= 2). "
                          "Unset -> stateless rounds, byte-identical prompts.")
+parser.add_argument("--round_history", action="store_true",
+                    help="rung-2' full P1 condition: one EpisodeConversation per episode (first turn + "
+                         "last 6 pairs, as P1 collect.py). Unset -> stateless rounds.")
 # ── cross-episode memory (push_memory; mirrors run_collect.py's flag set) ──
 parser.add_argument("--recap_buffer_root", type=str, default=None,
                     help="When set, write a push recap per episode here (and read it for "
@@ -168,6 +171,7 @@ def main():
         recap_buffer_readonly=args_cli.recap_buffer_readonly,
         dump_images_root=dump_root,
         round_feedback=args_cli.round_feedback,
+        round_history=args_cli.round_history,
     )
     _p(f"SUMMARY run_id={summary['run_id']} success={summary['n_success']}/{args_cli.episodes}")
     for ep in summary["episodes"]:
