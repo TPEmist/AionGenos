@@ -25,7 +25,7 @@ is published (arXiv upload day); until then, checkable only.
 
 **Evaluated vs release identity.** The records are byte-identical except
 for `image_anchors`. `init_pre` is rewritten from
-`/home/control/AionGenos/data/collect_dumps/<run>/<ep>/round_01_pre.png` to
+`<repo root>/data/collect_dumps/<run>/<ep>/round_01_pre.png` (absolute) to
 the relative path `images/<run>/<ep>/init_pre.png`, and that file is a byte
 copy of the original (547/547 hashes match). `final_post` and
 `key_round_pre` are set to null and their images are not included: they were
