@@ -380,6 +380,16 @@ CRITIC_PROGRESS_DEAD_BAND_CM: Final[float] = 1.0
 # Critic feedback header token (Stage 1 user prompt suffix when feedback exists).
 CRITIC_FEEDBACK_INJECTION_HEADER: Final[str] = "### CRITIC FEEDBACK FROM PREVIOUS ROUND:"
 
+# WP1-③a rung-2' per-round feedback (PI 2026-10-15, interface fix). The push
+# feedback reuses the P1 header + LEFT-arm target/movement lines verbatim
+# (CRITIC_FEEDBACK_ARM_BLOCK lines 1-3); the push task's two distances (the
+# rung-2 scalars) replace P1's single "distance to target" line and are shown
+# only at rung >= 2, so rung-1' feedback carries proprioception only.
+PUSH_FEEDBACK_DIST_LINES: Final[str] = (
+    "    Fingertip-to-cube distance: started at {tip_start:.1f} cm, ended at {tip_end:.1f} cm\n"
+    "    Cube-to-goal distance: started at {cg_start:.1f} cm, ended at {cg_end:.1f} cm"
+)
+
 
 def get_stage1_prompt(
     level_config: LevelConfig,

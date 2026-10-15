@@ -335,6 +335,11 @@ class _FakePushEnv:
     def get_left_hand_quat_b(self):
         return self.Q_REST.clone()
 
+    def push_scalars_m(self):
+        """(TCP→cube, cube→goal) m — stand-in for the env's rung-2 scalars."""
+        return (float(np.linalg.norm(self.tcp[:2] - self.cube[:2])),
+                float(np.linalg.norm(self.cube[:2] - self.goal[:2])))
+
     def execute_push_segment(self, target, quat, steps, frame_every=0, target_is_tcp=False):
         self.seg_calls.append({"target": target.clone(), "quat": quat.clone(), "tcp": target_is_tcp})
         self.rounds += 1
@@ -371,7 +376,7 @@ def _patch_stage1(monkeypatch, calls):
     def fake(lc, url, rgb, state, conversation=None, memory_preamble_text=None,
              memory_preamble_images_b64=None, **kw):
         calls.append({"conv": conversation is not None, "pre": memory_preamble_text, "state": dict(state),
-                      "extra": kw.get("extra_image_bytes")})
+                      "extra": kw.get("extra_image_bytes"), "fb": kw.get("critic_feedback")})
         return _Parsed(), 10.0, None
     monkeypatch.setattr(pc, "run_stage1_eef", fake)
     return pc
@@ -470,12 +475,16 @@ def test_gif_tag_in_bottom_strip(tmp_path, monkeypatch):
     summ = pc.run_push_collect_loop(_FakePushEnv(frames=True), _lc(), "u", ReplayBuffer(tmp_path / "rp"), 1,
                                     gif_frame_every=1)
     import imageio.v2 as imageio
+    from aiongenos.orchestrator import push_gif
     frames = imageio.mimread(summ["gif_path"])
     h, w = frames[0].shape[:2]
-    assert (w, h) == (32, 24 + pc.GIF_STRIP_PX)
-    # scene rows untouched (original solid colour), strip rows carry the tag
-    assert np.all(frames[0][:24, :, :3] == np.array([10, 20, 30]))
-    assert frames[0][24:, :, :3].max() > 0
+    # rung-1 env has no top camera → one FRONT panel: label row + scene + tag strip
+    assert (w, h) == (32, push_gif.LABEL_PX + 24 + push_gif.STRIP_PX)
+    # scene rows untouched (original solid colour); label + strip rows carry text
+    scene = frames[0][push_gif.LABEL_PX:push_gif.LABEL_PX + 24, :, :3]
+    assert np.all(scene == np.array([10, 20, 30]))
+    assert frames[0][:push_gif.LABEL_PX, :, :3].max() > 0
+    assert frames[0][push_gif.LABEL_PX + 24:, :, :3].max() > 0
 
 
 # ── rung 1b (PI 2026-10-06): top view, byte-identical rung-1 prompt, Pin-12 ──
@@ -646,3 +655,70 @@ def test_confabulation_flagger():
                                          "c": "Nothing happened."})
     assert out["n_recaps_cube_never_moved"] == 2                  # b excluded: cube did move
     assert out["keyword_flagged"] == 1 and out["assertive_rate"] == 0.5
+
+
+# ── rung-2' per-round feedback (PI 2026-10-15) ──
+
+def test_round_feedback_off_by_default_is_stateless(tmp_path, monkeypatch):
+    calls = []
+    pc = _patch_stage1(monkeypatch, calls)
+    summ = pc.run_push_collect_loop(_FakePushEnv(), _lc(), "u", ReplayBuffer(tmp_path / "rp"), 1)
+    assert len(calls) == 2 and all(c["fb"] is None for c in calls)
+    assert summ["round_feedback"] is False
+    assert all(r["round_feedback"] is None for r in summ["episodes"][0]["round_meta"])
+
+
+def test_round_feedback_rung1_reports_previous_round_proprio_only(tmp_path, monkeypatch):
+    calls = []
+    pc = _patch_stage1(monkeypatch, calls)
+    summ = pc.run_push_collect_loop(_FakePushEnv(rung="1"), _lc(), "u", ReplayBuffer(tmp_path / "rp"), 1,
+                                    round_feedback=True)
+    assert calls[0]["fb"] is None                           # round 1: nothing to report
+    fb = calls[1]["fb"]
+    s0, s1 = calls[0]["state"], calls[1]["state"]
+    assert fb.splitlines() == [
+        "DIAGNOSTIC REPORT FOR PREVIOUS ROUND:",
+        "  LEFT ARM:",
+        "    Target coordinate was predicted at: X=45 Y=8 Z=48",
+        f"    Actual movement: from X={s0['left_x']} Y={s0['left_y']} Z={s0['left_z']} "
+        f"to X={s1['left_x']} Y={s1['left_y']} Z={s1['left_z']}"]
+    assert "distance" not in fb.lower()                     # rung-1: no scalars
+    assert summ["episodes"][0]["round_meta"][1]["round_feedback"] == fb
+
+
+def test_round_feedback_rung2_adds_the_two_distances(tmp_path, monkeypatch):
+    calls = []
+    pc = _patch_stage1(monkeypatch, calls)
+    env = _FakePushEnv(rung="2")
+    pc.run_push_collect_loop(env, _lc(), "u", ReplayBuffer(tmp_path / "rp"), 1, round_feedback=True)
+    lines = calls[1]["fb"].splitlines()
+    assert lines[-2].startswith("    Fingertip-to-cube distance: started at ")
+    assert lines[-1].startswith("    Cube-to-goal distance: started at 8.2 cm, ended at 5.2 cm")
+
+
+def test_round_feedback_uses_p1_wording_verbatim():
+    from aiongenos.orchestrator.push_feedback import format_round_feedback
+    from aiongenos.vlm import prompts
+    fb = format_round_feedback((1, 2, 3), (4, 5, 6), (7, 8, 9))
+    p1 = prompts.CRITIC_FEEDBACK_HEADER + "\n" + "\n".join(
+        prompts.CRITIC_FEEDBACK_ARM_BLOCK.split("\n")[:3]).format(
+        arm="LEFT", px=1, py=2, pz=3, sx=4, sy=5, sz=6, ex=7, ey=8, ez=9)
+    assert fb == p1
+    with pytest.raises(ValueError):
+        format_round_feedback((1, 2, 3), (4, 5, 6), (7, 8, 9), (1.0, 2.0), None)
+
+
+def test_stage1_eef_prompt_unchanged_without_feedback(monkeypatch):
+    from aiongenos.pipeline import stage1_reasoning as s1
+    from aiongenos.vlm import prompts
+    seen = []
+    monkeypatch.setattr(s1, "call_vlm_sync", lambda **kw: seen.append(kw["user_prompt"]) or "x")
+    monkeypatch.setattr(s1, "parse_stage1_eef", lambda raw: (_ for _ in ()).throw(ValueError("stop")))
+    lc = _lc()
+    state = {"instruction": "push", "left_x": 1, "left_y": 2, "left_z": 3, "right_x": 0, "right_y": 0,
+             "right_z": 0, "left_gripper": "closed (locked)", "oracle_block": "", "view_block": ""}
+    s1.run_stage1_eef(lc, "u", _png(), dict(state), max_retries=0)
+    s1.run_stage1_eef(lc, "u", _png(), dict(state), max_retries=0, critic_feedback="REPORT")
+    base = prompts.get_stage1_prompt(lc, dict(state))
+    assert seen[0] == base
+    assert seen[1] == base + "\n\n" + prompts.CRITIC_FEEDBACK_INJECTION_HEADER + "\nREPORT"

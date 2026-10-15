@@ -52,7 +52,7 @@ Every number in this file comes from `python3 scripts/analysis/a15_ab_stats.py`
 | (b) B_main+buffer vs C_retrieval | 53 vs 49 | +4 pp | +0.57 | 0.572 | 17/13, p=0.584 | 50 vs 48, Δ +2, p=0.777 |
 | (b) D_gist+buffer vs C_retrieval | 55 vs 49 | +6 pp | +0.85 | 0.396 | 20/14, p=0.391 | 55 vs 48, Δ +7, p=0.322 |
 | (b) action_only+buffer vs own D11 (A_action_only, no retrieval) | 53 vs 25 | **+28 pp** | +4.06 | 4.9e-5 | 38/10, p=9.7e-5 | 53 vs 21, Δ +32, p=2.8e-6 |
-| (b) B_main+buffer vs own D11 (B_main) | 53 vs 26 | **+27 pp** | +3.90 | 9.4e-5 | 36/9, p=1.1e-4 | 50 vs 19, Δ +31, p=4.0e-6 |
+| (b) B_main+buffer vs own D11 (B_main) | 53 vs 26 | **+27 pp** | +3.91 | 9.4e-5 | 36/9, p=1.1e-4 | 50 vs 19, Δ +31, p=4.0e-6 |
 | (b) D_gist+buffer vs own D11 (D_gist) | 55 vs 19 | **+36 pp** | +5.27 | 1.4e-7 | 39/3, p=6.6e-8 | 55 vs 17, Δ +38, p=2.2e-8 |
 
 ## Against the lock
@@ -153,3 +153,8 @@ The two rows are identical because no L2 success happened after the reset. The
 **verdict is unchanged**: below the +20 pp MDE, n.s., DIAGNOSE branch. For the
 paper: the L2 methods should state the 24 s time-out and that 9–10 episodes per
 arm crossed it, with no success after the crossing.
+
+**Erratum (2026-10-15, isaac):** B_main + buffer vs its own D11 run is z = 3.9055.
+That rounds to **+3.91**; this file had said +3.90, which was a double rounding
+(`a15_ab_stats.json` stores z to 3 dp, as 3.905). The paper's 3.91 is correct.
+Found during PREPUB audit #2.

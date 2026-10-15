@@ -62,6 +62,34 @@ base-axis ORI) is the same at every rung:
   - Activating it needs explicit PI consent, recorded in the Ledger
     (`dual_collect_equivalence_ledger.md`) before the run.
   - The 1 → 1b → 2 steps stay mechanical.
+- **Amendment (PI, 2026-10-15): per-round feedback, rung-2′.** This is an
+  interface bug fix, not a new rung.
+  - Push rounds had been stateless. The teacher never saw its previous target
+    or the result of its last move. P1's L0 collect gave both.
+  - Fix: round r ≥ 2 carries the previous round's report in P1 format:
+    `DIAGNOSTIC REPORT FOR PREVIOUS ROUND` with the predicted target and the
+    TCP "from → to".
+    - At rung ≥ 2 it also carries the two distances, before → after.
+    - Below rung 2 those distances are not observations, so the report is
+      proprioception only.
+  - Flag: `run_push_collect.py --round_feedback`. When it is off, prompts are
+    byte-identical.
+  - **The three 0/50 results (rung-1 e4aebf36, rung-1b 30f15f0c, rung-2
+    3e8c52d4) are all labelled "obtained without inter-round feedback".**
+    - Their reading on whether a viewpoint helps (1 → 1b) is **void**.
+  - The corrected condition is **rung-2′**: the same seeds 5000–5049, run
+    episode by episode against 3e8c52d4.
+  - **If rung-2′ has any success**, rung-1′ (image + feedback) is re-run
+    before any ladder comparison. The ladder rungs are comparable only under
+    the same interface.
+  - rung-2′ with < 5 successes → STOP and report (the 10-07 rule; no
+    automatic rung-3).
+  - Open (Rule 10 finding, raised to the PI): P1's L0 collect also kept a
+    multi-turn conversation history (first turn + the last 6 user/assistant
+    pairs, `client.EpisodeConversation.DEFAULT_RECENT_WINDOW`).
+    - "Previous round only" therefore matches P1's *feedback* but not its
+      *history*.
+    - Implemented as ruled: previous-round feedback, no history.
 - successes **≥ 5** at the current rung → proceed to (d) at that rung.
 - Every rung activation is recorded here + in the provenance log; every
   replay / recap carries `obs_rung`; the P2 paper states which rung the data

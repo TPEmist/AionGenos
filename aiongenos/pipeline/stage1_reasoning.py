@@ -223,6 +223,7 @@ def run_stage1_eef(
     memory_preamble_text: Optional[str] = None,
     memory_preamble_images_b64: Optional[list[str]] = None,
     extra_image_bytes: Optional[list[bytes]] = None,
+    critic_feedback: Optional[str] = None,
 ) -> tuple[Optional[EEFStage1Response], float, Optional[str]]:
     """Stage 1 for the RUNG-1 general EEF push language (A-spec v2-final,
     teacher-only). Same VLM-call/retry/raw-capture machinery as run_stage1;
@@ -231,9 +232,15 @@ def run_stage1_eef(
     Separate function — reach/L2 run_stage1 byte-untouched.
 
     extra_image_bytes (push rung-1b+): extra current-scene views (the top-down
-    camera), placed right AFTER the current front image in both paths."""
+    camera), placed right AFTER the current front image in both paths.
+
+    critic_feedback (push rung-2', PI 2026-10-15): the previous round's report,
+    appended exactly as run_stage1 appends P1's critic feedback. None → the
+    prompt is byte-identical to before."""
     system_prompt = get_stage1_system_prompt()
     user_prompt = get_stage1_prompt(level_config, state)  # _S1_EEF_PUSH via control_mode
+    if critic_feedback:
+        user_prompt += f"\n\n{CRITIC_FEEDBACK_INJECTION_HEADER}\n{critic_feedback}"
     img_b64 = encode_image_bytes_base64(rgb_bytes)
     extra_b64 = [encode_image_bytes_base64(b) for b in (extra_image_bytes or []) if b]
 

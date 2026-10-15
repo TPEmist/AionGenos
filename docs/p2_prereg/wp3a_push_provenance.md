@@ -2223,3 +2223,32 @@ targets.
   for the scalars but not for the feedback.
 - Within-episode history is the agent's own experience, not an oracle.
   Proposed to the PI as the next step before rung-3. Not implemented.
+
+### 2026-10-15: rung-2′ interface fix (PI B1/B2) and Rule 10 (PI B5)
+**Rule 10 (PI, 2026-10-15).** When a condition is claimed to replicate another
+(for example "the P1 L0a condition"), compare it field by field against the
+original prompt template and code path. Never go by the description.
+- **Trigger:** rung-2 was described as "the P1 L0a scalar condition".
+  - It copied the scalars.
+  - It missed P1's per-round critic feedback
+    (`stage3_critic.generate_critic_feedback`, injected under
+    `### CRITIC FEEDBACK FROM PREVIOUS ROUND:`).
+  - It also missed P1's multi-turn conversation
+    (`collect.py` passes one `EpisodeConversation` to every round; window =
+    first turn + last 6 pairs).
+- **First application of Rule 10, to the rung-2′ ruling itself.** "Previous
+  round only, consistent with P1" holds for the feedback block (P1 reports
+  only round r−1) but not for the conversation history. Reported to the PI;
+  implemented as ruled.
+
+**Field-by-field: P1 L0 vs push rung-2′ as implemented**
+
+| field | P1 L0 collect | push rung-2′ |
+|---|---|---|
+| header + injection header | `DIAGNOSTIC REPORT FOR PREVIOUS ROUND:` under `### CRITIC FEEDBACK FROM PREVIOUS ROUND:` | same strings (imported, not copied) |
+| target line | `Target coordinate was predicted at: X= Y= Z=` | same (teacher's raw target, before the scene guard) |
+| movement line | `Actual movement: from X Y Z to X Y Z` | same (TCP grid, = LEFT_EE_POS) |
+| distance | one line, EE → task target | rung ≥ 2: fingertip → cube and cube → goal, start → end; rung < 2: none |
+| result line | progress / regression / flat (1 cm dead band) + "STOP only when…" | **not included**: PI's three fields only. Open to the PI |
+| arms | LEFT and RIGHT blocks | LEFT only (the right arm holds) |
+| conversation history | first turn + last 6 pairs | **none**: stateless rounds plus the feedback block. Open to the PI |

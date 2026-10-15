@@ -54,6 +54,7 @@ from aiongenos.replay.buffer import ReplayBuffer
 from aiongenos.replay.schema import EpisodeOutcome
 from aiongenos.orchestrator import push_memory as pm
 from aiongenos.orchestrator import push_body as pb
+from aiongenos.orchestrator.push_feedback import format_round_feedback
 
 logger = logging.getLogger(__name__)
 
@@ -146,6 +147,7 @@ def run_push_collect_loop(
     memory_retriever: Optional[object] = None,   # push_memory.PushMemoryRetriever
     recap_buffer_readonly: bool = False,         # read memory, never write recaps (collect.py gate)
     dump_images_root: Optional[Path] = None,     # {root}/{run_id}/{ep_id}/ round PNGs + meta.json
+    round_feedback: bool = False,                # rung-2' (PI 2026-10-15): report of round r-1 in round r
 ) -> dict:
     """Drive `num_episodes` push episodes. Returns a summary dict.
 
@@ -158,6 +160,8 @@ def run_push_collect_loop(
     obs_rung = pm.norm_rung(env.push_obs_rung)
     top_view = pm.has_top_view(obs_rung)          # rung 1b/2/3: + fixed top-down camera
     pin12 = _plateau_arms_after_contact(obs_rung)
+    # rung-2': the feedback shows the two distances only where the rung shows them
+    fb_scalars = round_feedback and pm.oracle_level(obs_rung) >= 2
     if memory_retriever is not None and pm.norm_rung(memory_retriever.obs_rung) != obs_rung:
         raise RuntimeError(f"push_collect: retriever obs_rung={memory_retriever.obs_rung} "
                            f"!= env push_obs_rung={obs_rung}")
@@ -166,7 +170,8 @@ def run_push_collect_loop(
     logger.info(f"push_collect run_id={run_id} episodes={num_episodes} label={episode_label} obs_rung={obs_rung}")
     summary = {"run_id": run_id, "label": episode_label, "obs_rung": obs_rung, "episodes": [],
                "n_success": 0, "memory_on": memory_retriever is not None,
-               "top_view": top_view, "plateau_rule": "pin12_after_contact" if pin12 else "pin11_from_round1"}
+               "top_view": top_view, "plateau_rule": "pin12_after_contact" if pin12 else "pin11_from_round1",
+               "round_feedback": round_feedback}
     gif_frames = []   # PNG bytes across the run (if gif_frame_every>0)
 
     for ep_idx in range(num_episodes):
@@ -224,6 +229,7 @@ def run_push_collect_loop(
             except Exception as e:
                 logger.warning(f"  ep{ep_idx} memory retrieval failed (continuing without): {e}")
 
+        prev_fb = None   # (target_int, tcp_start_int, scalars_cm or None) of the previous round
         for round_idx in range(PUSH_ROUND_CAP):
             rgb = env.get_rgb()
             pm.dump_png(ep_dump_dir, f"round_{round_idx + 1:02d}_pre.png", rgb)
@@ -231,6 +237,11 @@ def run_push_collect_loop(
             pm.dump_png(ep_dump_dir, f"round_{round_idx + 1:02d}_pre_top.png", rgb_top)
             state = env.get_state(level_config)
             pre_snap = pm.snapshot_push_state(env, level_config, state)
+            scalars_now = (tuple(round(v * 100, 1) for v in env.push_scalars_m()) if fb_scalars else None)
+            critic_feedback = None
+            if round_feedback and prev_fb is not None:
+                critic_feedback = format_round_feedback(prev_fb[0], prev_fb[1], pre_snap.tcp_int,
+                                                        prev_fb[2], scalars_now)
             # inject instruction (get_state doesn't; collect.py does the same
             # from task_instruction_template) — the PUSH prompt has {instruction}
             state["instruction"] = level_config.task_instruction_template
@@ -248,6 +259,7 @@ def run_push_collect_loop(
                 memory_preamble_images_b64=memory_imgs if r1_conv is not None else None,
                 # rung 1b+: top-down view right after the front image
                 extra_image_bytes=[rgb_top] if top_view else None,
+                critic_feedback=critic_feedback,
             )
             if parsed is None:
                 flags.append("vlm_parse_fail")
@@ -310,6 +322,7 @@ def run_push_collect_loop(
                 # pre-action state: EE start = TCP (proprio) + GT cube/goal (offline)
                 **pm.snapshot_to_round_fields(pre_snap),
                 "memory_preamble": r1_conv is not None,
+                "round_feedback": critic_feedback,          # rung-2': text shown this round (None = off / round 1)
                 # A-spec v2 EEF action = TCP target (r-tracking raw material)
                 "eef_target_int": [parsed.target_pos.x, parsed.target_pos.y, parsed.target_pos.z],
                 "eef_target_m": [round(tx, 4), round(ty, 4), round(tz, 4)],
@@ -336,6 +349,8 @@ def run_push_collect_loop(
                 "vlm_full_response": vlm_interactions[-1].full_response,
                 "vlm_stop": parsed.stop,
             })
+            prev_fb = ((parsed.target_pos.x, parsed.target_pos.y, parsed.target_pos.z),
+                       pre_snap.tcp_int, scalars_now)
             # Pin-12 arming (before termination so the arming round itself counts)
             if plateau_armed_round is None and _round_touched(contact, cube_disp):
                 plateau_armed_round = round_idx + 1
@@ -375,6 +390,7 @@ def run_push_collect_loop(
             "task": pm.PUSH_TASK_TAG,
             "obs_rung": obs_rung,
             "top_view": top_view,
+            "round_feedback": round_feedback,
             "plateau_armed_round": plateau_armed_round,
             "ee_reference": "tcp",                      # init_left_ee_pose = init TCP
             "init_left_tcp_int": list(init_snap.tcp_int),

@@ -474,13 +474,7 @@ class IsaacLabEnvInterface:
             import numpy as _np
             cube_b = _np.array(self.get_cube_pose_b())
             goal_b = _np.array(self.get_goal_pose_b())
-            u = self.env.unwrapped
-            cube_q = u.scene["object"].data.root_quat_w[0]
-            from aiongenos.tasks.WP1_contact_testbed.push_s3a_cfg import _CUBE_HALF_H
-            tip_cube = _pb.point_to_box_dist(
-                r.data.body_pos_w[0, tcp_idx, :3],
-                u.scene["object"].data.root_pos_w[0, :3], cube_q, _CUBE_HALF_H)
-            cube_goal = float(_np.linalg.norm(cube_b[:2] - goal_b[:2]))
+            tip_cube, cube_goal = self.push_scalars_m()
             lines = ["SCAFFOLD (oracle-measured, disclosed):",
                      f"  LEFT_TIP_TO_CUBE = {tip_cube * 100:.1f} cm",
                      f"  CUBE_TO_GOAL     = {cube_goal * 100:.1f} cm"]
@@ -498,6 +492,23 @@ class IsaacLabEnvInterface:
                           f"  CUBE_TO_GOAL = (dX={g[0] - c[0]}, dY={g[1] - c[1]})"]
             out["oracle_block"] = "\n".join(lines) + "\n"
         return out
+
+    def push_scalars_m(self) -> tuple[float, float]:
+        """The rung-2 scalars, metres: fingertip (TCP) → cube box distance and
+        cube → goal xy distance. Single source for the rung-2 prompt block and
+        the rung-2' round feedback."""
+        import numpy as _np
+        from aiongenos.orchestrator import push_body as _pb
+        from aiongenos.tasks.WP1_contact_testbed.push_s3a_cfg import _CUBE_HALF_H
+        r = self.robot
+        u = self.env.unwrapped
+        tcp_idx = r.find_bodies(_pb.TCP_BODY)[0][0]
+        tip_cube = _pb.point_to_box_dist(
+            r.data.body_pos_w[0, tcp_idx, :3],
+            u.scene["object"].data.root_pos_w[0, :3], u.scene["object"].data.root_quat_w[0], _CUBE_HALF_H)
+        cube_goal = float(_np.linalg.norm(_np.array(self.get_cube_pose_b())[:2]
+                                          - _np.array(self.get_goal_pose_b())[:2]))
+        return tip_cube, cube_goal
 
     def get_rgb_top(self) -> bytes:
         """Top-down view (rung-1b+ sensor) as PNG bytes; b"" if the env has none."""

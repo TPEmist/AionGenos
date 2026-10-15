@@ -24,6 +24,10 @@ parser.add_argument("--teacher-url", type=str, default="http://10.80.9.148:18888
 parser.add_argument("--segment-steps", type=int, default=90)
 parser.add_argument("--gif-frame-every", type=int, default=0,
                     help=">0: capture an RGB frame every N servo steps → logs/push_gif_<run>.gif (human-eye gate)")
+parser.add_argument("--round_feedback", action="store_true",
+                    help="rung-2' (PI 2026-10-15, interface fix): round r carries the P1-format report "
+                         "of round r-1 (target, TCP from->to; the two distances only at rung >= 2). "
+                         "Unset -> stateless rounds, byte-identical prompts.")
 # ── cross-episode memory (push_memory; mirrors run_collect.py's flag set) ──
 parser.add_argument("--recap_buffer_root", type=str, default=None,
                     help="When set, write a push recap per episode here (and read it for "
@@ -163,6 +167,7 @@ def main():
         memory_retriever=memory_retriever,
         recap_buffer_readonly=args_cli.recap_buffer_readonly,
         dump_images_root=dump_root,
+        round_feedback=args_cli.round_feedback,
     )
     _p(f"SUMMARY run_id={summary['run_id']} success={summary['n_success']}/{args_cli.episodes}")
     for ep in summary["episodes"]:
