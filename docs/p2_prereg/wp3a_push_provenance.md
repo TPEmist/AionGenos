@@ -2206,3 +2206,20 @@ targets.
   - The front view cannot show depth: a hand beside or behind the cube can
     look as if it is at the cube. The top view resolves this.
 - **R_max sphere probe: unreliable, not used.** See the script docstring.
+
+### 2026-10-15: root cause missed so far — push rounds are STATELESS within an episode
+- `push_collect.py`: rounds 2+ run with `conversation=None`, and `_S1_EEF_PUSH`
+  carries only the CURRENT state, images and (rung-2) current distances.
+- The teacher never sees its previous target or whether the last move
+  increased or decreased the distance.
+- A scalar distance is only useful as a gradient across rounds. Without
+  history, it cannot be used to close in. This fits the rung-2 data:
+  - Δy sign flips in 51% of moves (a random walk);
+  - TCP→cube grows from 10.6 to 23.8 cm (median);
+  - only 5/50 episodes end closer than after R1.
+- The P1 L0 collect path has a per-round "Critic Feedback / DIAGNOSTIC REPORT
+  FOR PREVIOUS ROUND" (target, start→end distance; visible in the A15 logs).
+  The push path has no equivalent. So rung-2 = "P1 L0a scalar condition" holds
+  for the scalars but not for the feedback.
+- Within-episode history is the agent's own experience, not an oracle.
+  Proposed to the PI as the next step before rung-3. Not implemented.
