@@ -2145,3 +2145,64 @@ targets.
   PI-tuned; this is a body change under the freeze clause).
 - (iii) A task change: a taller cube.
 - Together with the rung-2 STOP decision.
+
+### 2026-10-15: PI rejected the cube-parked reach probe; re-checked with the cube in place
+**PI objection.**
+- Each arm's workspace is roughly a sphere, so "height limited, x/y not" is
+  implausible.
+- In the pilot GIFs the arm looks fully stretched and still cannot touch the
+  cube.
+- The PI asked whether the probe was actually run.
+
+**What was wrong with the 10-08 probe.**
+- It parked the cube and scored TCP against its own commanded target. That is
+  a self-referential measure: it never measured a finger against the real
+  cube.
+
+**New check.** `scripts/diagnostics/wp3a_reach_real.py`
+- The cube stays in place. The executor is the one the pilot uses (TCP
+  target, rest orientation, 90-step rounds).
+- Phase A, 3 rounds: approach point 1 cm behind the cube along cube→goal, at
+  cube-centre height.
+- Phase B, 3 rounds: push end = goal − half-size.
+- Measured in the world after each round: finger collision-mesh → cube box
+  distance, cube displacement, cube→goal, elbow joint4, shoulder→TCP, and the
+  wrist link7 mesh height above the table.
+- Seeds 5000, 5001, 5002, 5018, 5043.
+- Data: `logs/wp3a_reach_real.json`. GIFs (front | top):
+  `logs/reach_real_seed{5000,5001,5002,5018,5043}.gif`.
+
+**Results**
+- **The TCP is on the fingertip.** The finger collision mesh extends 9.55 cm
+  along hand→TCP; the TCP is at 9.3 cm. The "TCP is a virtual point ahead of
+  the fingers" hypothesis is false.
+- **Approach.** Finger→cube 0.05–0.36 cm in every seed (contact).
+- **Push.** The cube moved 8.4–10.3 cm. Final cube→goal 0.3–2.7 cm, so **5/5
+  seeds are inside the 5 cm success radius** with a two-waypoint scripted push.
+  The geometry is winnable by this executor.
+- **Arm extension.**
+  - Elbow joint4 at the push end is 1.17–1.37 rad (0 = straight; standby is
+    1.78).
+  - Shoulder→TCP is 50.7–53.7 cm. The straight-chain length
+    link2→link4→link6→TCP is 22.3 + 22.4 + 18.5 = 63.2 cm.
+  - The push end is therefore at about 80–88% of the straight-arm radius.
+    The worst goal-clip corner is about 56.4 cm = 89%.
+  - **The arm is near its outer shell, which matches the PI's visual
+    impression, but it is inside it.**
+- **Correction to my 10-08 entry.**
+  - "The fingertip only meets the cube's upper half" was **overstated**. The
+    fingertip settles at z ≈ 0.471 against a cube centre of 0.468 (+0.3 cm),
+    and it pushed the cube straight in all 5 seeds.
+  - The z floor does exist: the wrist mesh sits 0.4–0.6 cm above the table at
+    contact, because the rest orientation tips the fingers up and the wrist is
+    lowest.
+  - This floor is a table (plane) collision, not a reach limit. That is why
+    z is limited while x/y is not.
+  - It does **not** explain the ep18 sideways slide. That remains the PI's
+    B verdict, cause not isolated.
+- **Pilot failure, re-read.** The executor can reach and push in all 5 seeds,
+  so the 0/50 comes from the teacher's targets: median |target−cube| is
+  23.5 grid units ≈ 10 cm in x.
+  - The front view cannot show depth: a hand beside or behind the cube can
+    look as if it is at the cube. The top view resolves this.
+- **R_max sphere probe: unreliable, not used.** See the script docstring.
