@@ -12,7 +12,7 @@ re-measure. The script names its sources at the top.
 | `r1_rounds_recompute.py` | `r1_rounds_recompute.txt` | R1 residual correlations per round (paper §4.4b, Table `residual_rounds`) |
 
 ```bash
-python3 docs/paper/birth_certificates/derived_stats.py --data-root <AionGenos data root> > derived_stats.txt
+python3 docs/paper/birth_certificates/derived_stats.py --data-root <AionGenos data root> > derived_stats.txt   # or set $AIONGENOS_DATA_ROOT
 python3 docs/paper/birth_certificates/r1_rounds_recompute.py --data-root <AionGenos data root> > r1_rounds_recompute.txt
 ```
 

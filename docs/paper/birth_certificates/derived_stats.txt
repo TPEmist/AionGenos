@@ -21,6 +21,14 @@
 [Fig qual_end start distance] run=a7b11544 ep=16e50879-8d4: 20.1 cm
 [Fig qual_end start distance] run=09817322 ep=e1837c00-399: 19.2 cm
 [round 3 Fisher z] B_main r=+0.400 (n=84) vs A_action_only r=+0.182 (n=85): z=1.53  p=0.13
+[McNemar T1] discordant 12/11: p=1
+[McNemar T1a] discordant 18/7: p=0.046
+[McNemar T4] discordant 34/11: p=0.001
+[McNemar sens T1] discordant 7/9: p=0.8
+[McNemar sens T1a] discordant 12/5: p=0.14
+[McNemar sens T4] discordant 38/9: p=4.4e-05
+[McNemar sens ID_weights_+34pp] discordant 43/7: p=7.4e-07
+[T3 sens] B_main 19% vs floor 36.2%: z=-3.58  p=1.00
 [sens A_action_only] as-run 25/100 -> sensitivity 21/100
 [sens A_ctrl_rat] as-run 15/100 -> sensitivity 12/100
 [sens B_main] as-run 26/100 -> sensitivity 19/100

@@ -17,6 +17,7 @@ Null: 2000 permutations of the C_retrieval residuals (seeded), two-sided.
         > docs/paper/birth_certificates/r1_rounds_recompute.txt
 """
 import argparse
+import os
 import itertools
 import json
 import math
@@ -80,7 +81,9 @@ def residuals(vals):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--data-root", default="/home/control/AionGenos")
+    ap.add_argument("--data-root", default=os.environ.get("AIONGENOS_DATA_ROOT"),
+                    required="AIONGENOS_DATA_ROOT" not in os.environ,
+                    help="AionGenos data root (or set $AIONGENOS_DATA_ROOT)")
     root = Path(ap.parse_args().data_root)
     arms = arm_table(root)
     eps = {a: episodes(root, arms[a]) for a in DISTILLED + ["C_retrieval"]}

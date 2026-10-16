@@ -20,7 +20,7 @@ margin. The recipe that follows is to externalise the memory.
 
 ## Headline results
 
-Single-arm reach task, n = 100 episodes per arm. "Confirmatory" and
+Single-arm reach task, n = 100 episodes per arm. Success counts are as run; the pre-registered auto-reset sensitivity count (Amendment 15 pin 8) is given beside them. "Confirmatory" and
 "exploratory" are as tagged against the registered plan.
 
 | Result | Number | Status |
@@ -28,9 +28,9 @@ Single-arm reach task, n = 100 episodes per arm. "Confirmatory" and
 | T1: memory-distilled student vs action-only control | +1 pp (n.s.) | confirmatory; underpowered for its own minimum effect, so the memory-in-weights claim is withdrawn |
 | Identical-weights contrast: same adapter, retrieval attached vs bare | +34 pp, z = 5.15 | exploratory (not a registered primary test) |
 | T4: protocol contrast, retrieval arm vs memory-distilled arm | +23 pp, z = 3.36 | confirmatory |
-| Pooled memory-augmented teacher reference | 49.3% | reference (three unseeded collect runs, not seed-matched to the evaluation); the retrieval arm reaches it |
-| Amendment 15: frozen buffer on the base model, no adapter | 48 vs 49 of 100 (retrieval arm) | registered after the main results, before any of its episodes ran |
-| Amendment 15: frozen buffer on the other three adapters | 53 / 53 / 55 of 100 (from 25 / 26 / 19 without it) | registered after the main results, before any of its episodes ran |
+| Pooled memory-augmented teacher reference | 49.3% (sensitivity 47.5%) | reference (three unseeded collect runs, not seed-matched to the evaluation); the retrieval arm reaches it |
+| Amendment 15: frozen buffer on the base model, no adapter | 48 vs 49 of 100 (retrieval arm); sensitivity 48 vs 48 | registered after the main results, before any of its episodes ran |
+| Amendment 15: frozen buffer on the other three adapters | 53 / 53 / 55 of 100 (from 25 / 26 / 19 without it); sensitivity 53 / 50 / 55 (from 21 / 19 / 17) | registered after the main results, before any of its episodes ran |
 | Second, harder task (L2), identical-weights contrast | +6 pp (n.s.) | confirmatory contrast on a per-arm success metric promoted post hoc; below the minimum detectable effect; direction-consistent, not a replication |
 
 What the paper does and does not claim:

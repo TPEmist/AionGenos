@@ -6,7 +6,7 @@ hand. Prose that cites one of these numbers points at the output file
 `derived_stats.txt` next to this script.
 
     python3 docs/paper/birth_certificates/derived_stats.py \
-        --data-root /home/control/AionGenos > docs/paper/birth_certificates/derived_stats.txt
+        --data-root <AionGenos data root> > docs/paper/birth_certificates/derived_stats.txt
 """
 import argparse
 import ast
@@ -75,6 +75,14 @@ def mcnemar_exact(b, c):
     return min(1.0, 2 * tail)
 
 
+def mcnemar_rule(b, c):
+    """The registered rule (scripts/analysis/d11_mcnemar.py mcnemar()): exact
+    two-sided binomial if b+c < 25, else continuity-corrected chi2, 1 dof."""
+    if b + c < 25:
+        return mcnemar_exact(b, c)
+    return math.erfc(math.sqrt((abs(b - c) - 1) ** 2 / (b + c) / 2.0))
+
+
 def mde_and_power(p0, n, alpha, delta):
     """Critical difference at two-sided alpha, and power for a true +delta."""
     za = N.inv_cdf(1 - alpha / 2)
@@ -134,7 +142,9 @@ def pooled_teacher(root):
 # ── report ──────────────────────────────────────────────────────────────
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--data-root", default="/home/control/AionGenos")
+    ap.add_argument("--data-root", default=os.environ.get("AIONGENOS_DATA_ROOT"),
+                    required="AIONGENOS_DATA_ROOT" not in os.environ,
+                    help="AionGenos data root (or set $AIONGENOS_DATA_ROOT)")
     root = ap.parse_args().data_root
     c = d11_counts(root)
     pct = lambda lo_hi: f"[{100 * lo_hi[0]:+.1f}, {100 * lo_hi[1]:+.1f}] pp"
@@ -207,6 +217,17 @@ def main():
 
     # A15 pin 8 auto-reset sensitivity (pre-registered sensitivity; as-run stays primary).
     sens = json.load(open(os.path.join(root, SENS_JSON)))
+    # Confirmatory-table McNemar column (audit #2 FAIL-10): main rows from the
+    # confirmatory report's discordants, sensitivity rows from the pin-8 file.
+    conf_txt = open(os.path.join(root, D11_CONF)).read()
+    for t, (b_, c_) in zip(("T1", "T1a", "T4"), re.findall(r"discordant: \w+-only=(\d+)\s+\w+-only=(\d+)", conf_txt)):
+        print(f"[McNemar {t}] discordant {b_}/{c_}: p={mcnemar_rule(int(b_), int(c_)):.2g}")
+    for row in sens["contrasts"]["sensitivity"]["contrasts"]:
+        pm = mcnemar_rule(row["disc_a_only"], row["disc_b_only"])
+        assert abs(pm - row["p_mcnemar"]) < 1e-9 * max(1, pm), f"{row['name']}: McNemar {pm} != file {row['p_mcnemar']}"
+        print(f"[McNemar sens {row['name']}] discordant {row['disc_a_only']}/{row['disc_b_only']}: p={pm:.2g}")
+    t3 = sens["contrasts"]["sensitivity"]["T3"]
+    print(f"[T3 sens] B_main {100 * t3['B_main_sr']:.0f}% vs floor {100 * t3['floor']:.1f}%: z={t3['z']:.2f}  p={t3['p']:.2f}")
     for arm in c:
         run = sens["runs"][arm]
         assert run["as_run_success"] == c[arm][0], f"{arm}: sensitivity file as-run != CONF"
