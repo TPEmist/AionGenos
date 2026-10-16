@@ -9,9 +9,17 @@ P = TREE / "docs/paper"
 spec = importlib.util.spec_from_file_location("check", P / "birth_certificates/check.py")
 ck = importlib.util.module_from_spec(spec); spec.loader.exec_module(ck)
 DR = "/home/control/AionGenos"
+# The check list is read from check.py's own main() (the `bad = ...` line), so a
+# gate that gains checks is swept with all of them; REGENERATE is dropped
+# because it reads no prose.
+import types
+_src = (P / "birth_certificates/check.py").read_text()
+_expr = re.search(r"^\s*bad = (regenerate\(args\.data_root\) \+ .+)$", _src, re.M).group(1)
+_expr = _expr.replace("regenerate(args.data_root) + ", "")
+_args = types.SimpleNamespace(data_root=DR)
+print("sweeping gate checks:", _expr)
 def gate():
-    return (ck.claims() + ck.residual_table() + ck.shas_resolve(DR) + ck.cost_claims()
-            + ck.bar_claims(DR) + ck.a15_claims())
+    return eval(_expr, vars(ck), {"args": _args})
 assert gate() == [], "gate not clean before sweep"
 NUM = re.compile(r"(?<![A-Za-z0-9_.\\])\d+(?:\.\d+)?")
 SKIP_CMD = re.compile(r"\\(cite[tp]?|ref|label|includegraphics|eqref|url|href|S|texttt|bibliography\w*|cline|cmidrule|resizebox|hspace|vspace|setcounter|small)\s*(\[[^\]]*\])?\{[^}]*$")

@@ -22,7 +22,9 @@ cat_check "3 e-mail"                 "[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+\.[A-Za-z.]
 cat_check "4 repo / account / hosting" "TPEmist|AionGenos|github\.com|huggingface\.co|zenodo|anonymous\.4open"
 # 5: public-repo commit SHAs + package code paths
 n5=0; hits=""
-for t in $(grep -o -E '\b[0-9a-f]{7,40}\b' "$TXT" | grep -E '[a-f]' | grep -E '[0-9]' | sort -u); do
+# all 7-40 hex tokens, INCLUDING all-digit ones (e.g. 0398568; paper session 2026-10-16):
+# a token counts only if it is a commit reachable from the public origin/master
+for t in $(grep -o -E '\b[0-9a-f]{7,40}\b' "$TXT" | sort -u); do
   if git -C "$REPO" merge-base --is-ancestor "$t" origin/master 2>/dev/null; then n5=$((n5+1)); hits="$hits $t"; fi
 done
 np=$(grep -c -E "aiongenos/" "$TXT"); n5=$((n5+np))
