@@ -2273,3 +2273,66 @@ original prompt template and code path. Never go by the description.
   - Code: `push_feedback._p1_verdict`.
 - **Flags:** `--round_feedback --round_history`. Both off → stateless,
   byte-identical prompts (tests: `tests/test_push_memory.py`).
+
+## 2026-10-19 — rung-2′ pilot (full P1 feedback condition), memory ON, 50 ep (run 71134939, seeds 5000–5049)
+
+**Validity.** 50/50 episodes, 597 rounds, 0 VLM connection failures.
+- Feedback and history are active. From round 2 the teacher's thoughts cite
+  the previous move ("increased the distance between the fingertip and the
+  cube").
+- The flags `round_feedback` / `round_history` are recorded in every replay.
+
+**1. Successes: 0/50** (48 timeout, 2 plateau). **B4: STOP. No rung-3; reported
+to the PI for re-deliberation.**
+
+**2. Contact report**
+- The cube moved in 2/50 episodes, 3 rounds, all **finger** (rung-2: 1 finger,
+  1 wrist):
+  - seed 5010 R9: 0.8 cm, cube→goal 9.0 → 8.4;
+  - seed 5045 R8–9: 0.9 + 0.4 cm, 8.8 → 8.2.
+  - All small pushes, roughly toward the goal.
+- TCP→cube closest per episode: median 4.56 cm (rung-2: 5.17); **0 episodes
+  within 1 cm** (rung-2: 3).
+- Scene guard target clamps: 1 (rung-2: 76).
+
+**3. Target distribution vs rungs 1, 1b and 2** (`logs/wp3a_target_hist_2p.{json,png}`)
+
+| Rung | X at 0 | Z at 0 | Median \|target−cube\| X / Y (grid) | ρ(round-1 target, cube) X / Y |
+|---|---|---|---|---|
+| 1 | 31% | 9% | 33 / 12 | +0.03 / −0.11 |
+| 1b | 68% | 21% | 55 / 30 | −0.01 / +0.05 |
+| 2 | 26% | 5% | 23.5 / 17.5 | −0.13 / −0.14 |
+| **2′** | **6%** | **0%** | **13 / 11** | **+0.09 / −0.08** |
+
+- Grid zero is gone, and the targets are closest to the cube of any rung.
+- The round-1 correlation rose from −0.13 to +0.09 (X), but it is still
+  near zero (n = 50; |ρ| < 0.28 is not distinguishable from 0). The first
+  target still does not track the cube; the gain is within the episode.
+- **Within-episode closing improved.** xy TCP→cube went from 6.5 cm after R1
+  to 11.0 cm at the last round (rung-2: 10.6 → 23.8). 13/50 episodes ended
+  closer than after R1 (rung-2: 5/50). In seed-paired comparison, rung-2′
+  got closer than rung-2 in 31/50 episodes.
+- **New failure mode: height.** 509/597 rounds (85%) target z = 0.535 m. That
+  is the standby TCP height (0.536), 4.3 cm above the cube top (0.492; centre
+  0.468).
+  - The fingertip hovers above the cube. The 3D closest distance is about
+    4.5 cm, which is mostly vertical.
+  - Rung-2 (stateless) targets were lower and more varied (Z mode 30–40
+    grid).
+  - With history and feedback, the teacher anchors on its current Z and
+    corrects only x/y.
+- **Verdict line.** All verdicts shown were "No significant progress (still
+  7–9 cm from target)". Before contact the verdict (on cube→goal) cannot
+  move, so it never reports the approach progress that the fingertip→cube
+  line shows.
+
+**4. Recaps:** 50/50 written, median 96 words.
+- The heuristic flags 6/48 as assertive confabulation. **Hand-read: all 6
+  are false positives** (5 imperative "LESSON: … toward the goal", 1 about
+  the TCP).
+- True confabulation **0/48** (rung-2: 0/48).
+- Under-reporting persists: both cube-moving episodes say "the cube did not
+  move" (cumulative 0.8–1.3 cm).
+
+**5. r-estimator:** bootstrap σ(r) 0.113–0.160 @ n = 50. 3/16 candidates are
+above band, at chance level.
