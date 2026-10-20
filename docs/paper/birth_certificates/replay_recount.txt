@@ -1,0 +1,51 @@
+# Replay Recount Birth Certificate — Independent Pre-Publication Audit
+# Date: 2026-10-20
+# Command: python3 scripts/audit/replay_recount.py
+# Mismatches detected: 0
+
+=========================================================================================================
+RUN-LEVEL AUDIT TABLE
+=========================================================================================================
+Run ID    Protocol / Arm             Files  Successes  Report Val  Status    Mtime-Log Agr
+--------  -------------------------  -----  ---------  ----------  --------  -------------
+e4d81bb6  D11 A_action_only            100         25  25          MATCH     100/100      
+56ee684b  D11 A_ctrl_rat               100         15  15          MATCH     100/100      
+a7b11544  D11 B_main                   100         26  26          MATCH     100/100      
+875c04fb  D11 D_gist                   100         19  19          MATCH     100/100      
+09817322  D11 C_retrieval              100         49  49          MATCH     100/100      
+8384a740  L2 A_ctrl_rat                100         14  14          MATCH     100/100      
+2154e57e  L2 C_retrieval               100         20  20          MATCH     100/100      
+995f496c  A15 a_base_ret               100         48  48          MATCH     100/100      
+9be74fc2  A15 b_action_only_ret        100         53  53          MATCH     100/100      
+13c5c402  A15 b_B_main_ret             100         53  53          MATCH     100/100      
+fdb2a9b0  A15 b_D_gist_ret             100         55  55          MATCH     100/100      
+
+=========================================================================================================
+PAIRED CONTRAST AUDIT TABLE
+=========================================================================================================
+Contrast                      Pair (x vs y)          b    c    Report b   Report c   Status  
+----------------------------  ---------------------  ---  ---  ---------  ---------  --------
+T1                            a7b11544 vs e4d81bb6    12   11  12         11         MATCH   
+T1a                           a7b11544 vs 56ee684b    18    7  18         7          MATCH   
+T4                            09817322 vs a7b11544    34   11  34         11         MATCH   
+identical-weights             09817322 vs 56ee684b    44   10  44*        10*        MATCH   
+L2                            2154e57e vs 8384a740     9    3  9          3          MATCH   
+A15 995f496c vs 09817322      995f496c vs 09817322    11   12  11         12         MATCH   
+A15 9be74fc2 vs 09817322      9be74fc2 vs 09817322    19   15  19         15         MATCH   
+A15 13c5c402 vs 09817322      13c5c402 vs 09817322    17   13  17         13         MATCH   
+A15 fdb2a9b0 vs 09817322      fdb2a9b0 vs 09817322    20   14  20         14         MATCH   
+A15 own 9be74fc2 vs e4d81bb6  9be74fc2 vs e4d81bb6    38   10  38         10         MATCH   
+A15 own 13c5c402 vs a7b11544  13c5c402 vs a7b11544    36    9  36         9          MATCH   
+A15 own fdb2a9b0 vs 875c04fb  fdb2a9b0 vs 875c04fb    39    3  39         3          MATCH   
+
+* identical-weights: no report prints these discordant cells (the paper reports z and CI for
+  this contrast, not McNemar). Report-layer comparison added by the auditor (isaac, 2026-10-20):
+  cells computed from workspace/d11_audit/mcnemar_matrix.json ("success" vectors by ep_idx,
+  written by the analysis pipeline) = 44 / 10, equal to this recount. Per-arm successes in that
+  matrix (25/15/26/19/49) also equal the recount.
+
+Auditor verification (rule 4, isaac 2026-10-20): script imports stdlib only (no aiongenos/,
+no scripts/analysis/); re-run reproduces this table byte-for-byte (except the date line); an
+independent minimal recount by the auditor (mtime order, outcome=='success') gives identical
+files/successes for all 11 runs and identical b/c for all 12 contrasts. Pairing by file mtime
+agrees with collect-log episode order 100/100 in every run. Result: 0 mismatches.
