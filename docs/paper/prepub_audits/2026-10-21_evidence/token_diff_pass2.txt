@@ -1,0 +1,21 @@
+=== docs/paper/arxiv/sections/discussion.tex
+  numbers: identical multiset (63)
+  protected: identical multiset (11)
+  hex: identical multiset (0)
+  label-words changed (old,new): {}
+=== docs/paper/arxiv/sections/methods_d11.tex
+  numbers: identical multiset (177)
+  protected: +{'\\footnote{\\repopath{aiongenos/memory/retriever.py}': 1, '\\footnote{\\repopath{training\\_meta.json}': 1}  -{'\\repopath{aiongenos/memory/retriever.py}': 1, '\\repopath{training\\_meta.json}': 1}
+  hex: identical multiset (16)
+  label-words changed (old,new): {}
+=== docs/paper/arxiv/sections/methods_l2.tex
+  numbers: +{'6': 1}  -{'2': 1}
+  protected: +{'\\footnote{Task inspection: \\repopath{docs/paper/l2\\_diagnosis.md}': 1, '\\footnote{Re-score: \\repopath{workspace/l2\\_audit/per\\_arm\\_rescore.json}': 1, '\\footnote{\\repopath{docs/paper/l2\\_memory\\_world\\_asymmetry.md}': 1, '\\footnote{\\repopath{docs/paper/l2\\_analysis\\_adaptation.md}': 1, '\\footnote{Confirmatory analysis: \\repopath{scripts/analysis/l2\\_confirmatory.py}': 1, '\\footnote{\\repopath{docs/paper/data/l2\\_autoreset\\_sensitivity.json}': 1}  -{'\\repopath{docs/paper/l2\\_diagnosis.md}': 1, '\\repopath{workspace/l2\\_audit/per\\_arm\\_rescore.json}': 1, '\\repopath{docs/paper/l2\\_memory\\_world\\_asymmetry.md}': 1, '\\repopath{docs/paper/l2\\_analysis\\_adaptation.md}': 2, '\\repopath{scripts/analysis/l2\\_confirmatory.py}': 1, '\\repopath{docs/paper/data/l2\\_autoreset\\_sensitivity.json}': 1, '\\repopath{per\\_arm\\_rescore.json}': 1}
+  hex: identical multiset (9)
+  label-words changed (old,new): {'exploratory': (9, 8), 'met': (6, 5)}
+=== docs/paper/arxiv/sections/results_d11.tex
+  numbers: identical multiset (533)
+  protected: +{'\\footnote{\\repopath{exploratory.json}': 1, '\\footnote{\\repopath{logs/cost\\_remeasure\\_20261005\\_181930.md}': 1}  -{'\\repopath{exploratory.json}': 1, '\\repopath{logs/cost\\_remeasure\\_20261005\\_181930.md}': 1}
+  hex: identical multiset (3)
+  label-words changed (old,new): {'does not': (14, 13)}
+FILES WITH TOKEN DIFFS: 4
