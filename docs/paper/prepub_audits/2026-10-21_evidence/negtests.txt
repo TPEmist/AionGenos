@@ -1,0 +1,3 @@
+[docs/paper/arxiv/sections/results_d11.tex:102 '49/100 vs 26/100'->'49/100 vs 27/100'] gate rc=0 restored=md5-OK
+[docs/paper/arxiv/sections/discussion.tex:218 '+6 pp, n.s.'->'+7 pp, n.s.'] gate rc=0 restored=md5-OK
+[docs/paper/arxiv/sections/results_d11.tex:225 'three adapters (3/3)'->'three adapters (2/3)'] gate rc=0 restored=md5-OK
