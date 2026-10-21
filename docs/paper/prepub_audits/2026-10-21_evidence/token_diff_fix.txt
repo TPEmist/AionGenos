@@ -1,0 +1,11 @@
+=== docs/paper/arxiv/sections/methods_l2.tex
+  numbers: +{'1': 1}  -{}
+  protected: +{'\\repopath{docs/paper/l2\\_diagnosis.md}': 1, '\\repopath{docs/paper/l2\\_analysis\\_adaptation.md}': 2}  -{}
+  hex: identical multiset (9)
+  label-words changed (old,new): {}
+=== docs/paper/arxiv/sections/results_d11.tex
+  numbers: identical multiset (533)
+  protected: identical multiset (13)
+  hex: identical multiset (3)
+  label-words changed (old,new): {'exploratory': (19, 20)}
+FILES WITH TOKEN DIFFS: 2
