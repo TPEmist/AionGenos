@@ -31,6 +31,10 @@ parser.add_argument("--round_feedback", action="store_true",
 parser.add_argument("--round_history", action="store_true",
                     help="rung-2' full P1 condition: one EpisodeConversation per episode (first turn + "
                          "last 6 pairs, as P1 collect.py). Unset -> stateless rounds.")
+parser.add_argument("--frame_convention", action="store_true",
+                    help="d1 (PI 2026-10-22): add frame-convention line giving base frame axes and cm/grid unit.")
+parser.add_argument("--verdict_contact_switch", action="store_true",
+                    help="d2 (PI 2026-10-22): verdict switches from tip->cube to cube->goal after contact.")
 # ── cross-episode memory (push_memory; mirrors run_collect.py's flag set) ──
 parser.add_argument("--recap_buffer_root", type=str, default=None,
                     help="When set, write a push recap per episode here (and read it for "
@@ -172,6 +176,8 @@ def main():
         dump_images_root=dump_root,
         round_feedback=args_cli.round_feedback,
         round_history=args_cli.round_history,
+        frame_convention=args_cli.frame_convention,
+        verdict_contact_switch=args_cli.verdict_contact_switch,
     )
     _p(f"SUMMARY run_id={summary['run_id']} success={summary['n_success']}/{args_cli.episodes}")
     for ep in summary["episodes"]:

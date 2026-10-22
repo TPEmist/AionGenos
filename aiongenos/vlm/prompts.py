@@ -150,7 +150,7 @@ _S1_EEF_PUSH: Final[str] = (
     "  LEFT_EE_POS  = (X={left_x}, Y={left_y}, Z={left_z})   # left fingertip (TCP)\n"
     "  RIGHT_EE_POS = (X={right_x}, Y={right_y}, Z={right_z})\n"
     "  LEFT_GRIPPER = {left_gripper}\n"
-    "{oracle_block}{view_block}\n"
+    "{frame_block}{oracle_block}{view_block}\n"
     "The yellow cube and the green zone (flat green disc on the table) are seen in\n"
     "the image; their positions are not given as numbers.\n"
     "AFFORDANCE CONTRACT: the cube must end up on the green zone, moved BY PUSHING.\n"
@@ -391,6 +391,34 @@ PUSH_FEEDBACK_DIST_LINES: Final[str] = (
 )
 
 
+def format_frame_convention_line(bounds) -> str:
+    """d1 frame-convention line (Spec §1, R4). Generated at runtime from live WorkspaceBounds.
+
+    Directions:
+      +X: forward, away from robot base (table x-range in static_scene_b [0.17, 0.95]m, cube at x≈0.39m)
+      +Y: robot's left (left shoulder link2 y=+0.15m in logs/wp3a_reach_real.log; left arm drives TCP)
+      +Z: up (table top z=0.444m > ground z=-0.55m in static_scene_b)
+    """
+    from aiongenos.vlm.scalar_guard import INT_MAX, INT_MIN
+    grid_span = INT_MAX - INT_MIN
+    ux = (bounds.x_bounds[1] - bounds.x_bounds[0]) / grid_span * 100.0
+    uy = (bounds.y_bounds[1] - bounds.y_bounds[0]) / grid_span * 100.0
+    uz = (bounds.z_bounds[1] - bounds.z_bounds[0]) / grid_span * 100.0
+    return (
+        f"FRAME (base frame, same grid as the numbers above): "
+        f"+X = forward, away from the robot base; +Y = the robot's left; +Z = up. "
+        f"One grid unit = {ux:.2f} cm in X, {uy:.2f} cm in Y, {uz:.2f} cm in Z."
+    )
+
+
+class _DefaultPromptState(dict):
+    """Mapping wrapper that defaults 'frame_block' to '' if omitted by caller (R4)."""
+    def __missing__(self, key: str):
+        if key == "frame_block":
+            return ""
+        raise KeyError(key)
+
+
 def get_stage1_prompt(
     level_config: LevelConfig,
     state: dict,
@@ -413,8 +441,9 @@ def get_stage1_prompt(
             training target). Ignored for POSITION_ONLY (L0a is single-active-
             arm by level name, not by this flag).
     """
+    state_map = _DefaultPromptState(state)
     if eval_template_variant is None:
-        return STAGE1_TEMPLATES[level_config.control_mode].format_map(state)
+        return STAGE1_TEMPLATES[level_config.control_mode].format_map(state_map)
 
     # L2 Amendment 3: per-arm eval on POSITION_RPY_2DOF.
     if scored_arm in ("left", "right") and level_config.control_mode == ControlMode.POSITION_RPY_2DOF:
@@ -425,7 +454,7 @@ def get_stage1_prompt(
                 f"Wired: {sorted(STAGE1_RPY2_PER_ARM_BY_VARIANT)} (Amendment 3 scopes "
                 f"L2 eval to A_ctrl_rat + C_retrieval)."
             )
-        return per_arm[scored_arm].format_map(state)
+        return per_arm[scored_arm].format_map(state_map)
 
     variant_map = STAGE1_TEMPLATES_BY_VARIANT.get(eval_template_variant)
     if variant_map is None:
@@ -440,7 +469,7 @@ def get_stage1_prompt(
             f"implemented for ControlMode {level_config.control_mode}. "
             f"Only POSITION_ONLY (L0) is supported in Phase 4."
         )
-    return tmpl.format_map(state)
+    return tmpl.format_map(state_map)
 
 
 def get_stage3_prompt(level_config: LevelConfig, state: dict) -> str:

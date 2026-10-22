@@ -149,6 +149,8 @@ def run_push_collect_loop(
     dump_images_root: Optional[Path] = None,     # {root}/{run_id}/{ep_id}/ round PNGs + meta.json
     round_feedback: bool = False,                # rung-2' (PI 2026-10-15): report of round r-1 in round r
     round_history: bool = False,                 # rung-2' full P1 condition: one EpisodeConversation per episode
+    frame_convention: bool = False,              # d1 (PI 2026-10-22): frame convention line in stage-1 prompt
+    verdict_contact_switch: bool = False,        # d2 (PI 2026-10-22): contact-switched P1 verdict
 ) -> dict:
     """Drive `num_episodes` push episodes. Returns a summary dict.
 
@@ -167,12 +169,18 @@ def run_push_collect_loop(
         raise RuntimeError(f"push_collect: retriever obs_rung={memory_retriever.obs_rung} "
                            f"!= env push_obs_rung={obs_rung}")
     bounds = level_config.workspace_bounds
+    if hasattr(env, "push_frame_convention"):
+        env.push_frame_convention = frame_convention
+    from aiongenos.vlm.prompts import format_frame_convention_line
+    frame_line = format_frame_convention_line(bounds) if frame_convention else None
     run_id = ReplayBuffer.new_run_id()
     logger.info(f"push_collect run_id={run_id} episodes={num_episodes} label={episode_label} obs_rung={obs_rung}")
     summary = {"run_id": run_id, "label": episode_label, "obs_rung": obs_rung, "episodes": [],
                "n_success": 0, "memory_on": memory_retriever is not None,
                "top_view": top_view, "plateau_rule": "pin12_after_contact" if pin12 else "pin11_from_round1",
-               "round_feedback": round_feedback, "round_history": round_history}
+               "round_feedback": round_feedback, "round_history": round_history,
+               "frame_convention": frame_convention, "verdict_contact_switch": verdict_contact_switch,
+               "frame_line": frame_line}
     gif_frames = []   # PNG bytes across the run (if gif_frame_every>0)
 
     for ep_idx in range(num_episodes):
@@ -207,6 +215,7 @@ def run_push_collect_loop(
         cube0_b = env.get_cube_pose_b()
         last_step_count = _episode_step_count(env)   # auto-reset detector (ledger 15)
         auto_reset = False
+        round_touched: list[bool] = []
 
         # Memory: retrieve once at ep start (query = start RGB + init TCP);
         # within-run retrieval allowed (this ep's recap does not exist yet).
@@ -238,11 +247,19 @@ def run_push_collect_loop(
             pm.dump_png(ep_dump_dir, f"round_{round_idx + 1:02d}_pre_top.png", rgb_top)
             state = env.get_state(level_config)
             pre_snap = pm.snapshot_push_state(env, level_config, state)
+            cube_quat_b_pre = env.get_cube_quat_b() if hasattr(env, "get_cube_quat_b") else [1.0, 0.0, 0.0, 0.0]
             scalars_now = (tuple(round(v * 100, 1) for v in env.push_scalars_m()) if fb_scalars else None)
             critic_feedback = None
+            verdict_metric = None
             if round_feedback and prev_fb is not None:
-                critic_feedback = format_round_feedback(prev_fb[0], prev_fb[1], pre_snap.tcp_int,
-                                                        prev_fb[2], scalars_now)
+                contact_strictly_before = any(round_touched[:round_idx - 1])
+                if fb_scalars:
+                    verdict_metric = ("cube_goal" if contact_strictly_before else "tip_cube") if verdict_contact_switch else "cube_goal"
+                critic_feedback = format_round_feedback(
+                    prev_fb[0], prev_fb[1], pre_snap.tcp_int,
+                    prev_fb[2], scalars_now,
+                    verdict_metric=(verdict_metric if verdict_contact_switch else None),
+                )
             # inject instruction (get_state doesn't; collect.py does the same
             # from task_instruction_template) — the PUSH prompt has {instruction}
             state["instruction"] = level_config.task_instruction_template
@@ -330,8 +347,10 @@ def run_push_collect_loop(
                 "round": round_idx + 1,
                 # pre-action state: EE start = TCP (proprio) + GT cube/goal (offline)
                 **pm.snapshot_to_round_fields(pre_snap),
+                "cube_quat_b_pre": cube_quat_b_pre,
                 "memory_preamble": round_idx == 0 and memory_text is not None and r1_conv is not None,
                 "round_feedback": critic_feedback,          # rung-2': text shown this round (None = off / round 1)
+                "verdict_metric": verdict_metric,            # d2: tip_cube | cube_goal | None
                 # A-spec v2 EEF action = TCP target (r-tracking raw material)
                 "eef_target_int": [parsed.target_pos.x, parsed.target_pos.y, parsed.target_pos.z],
                 "eef_target_m": [round(tx, 4), round(ty, 4), round(tz, 4)],
@@ -360,8 +379,10 @@ def run_push_collect_loop(
             })
             prev_fb = ((parsed.target_pos.x, parsed.target_pos.y, parsed.target_pos.z),
                        pre_snap.tcp_int, scalars_now)
+            touched = _round_touched(contact, cube_disp)
+            round_touched.append(touched)
             # Pin-12 arming (before termination so the arming round itself counts)
-            if plateau_armed_round is None and _round_touched(contact, cube_disp):
+            if plateau_armed_round is None and touched:
                 plateau_armed_round = round_idx + 1
             round_meta[-1]["plateau_armed"] = plateau_armed_round is not None
             if seg["tau_flag_steps"] > 0:
@@ -401,6 +422,9 @@ def run_push_collect_loop(
             "top_view": top_view,
             "round_feedback": round_feedback,
             "round_history": round_history,
+            "frame_convention": frame_convention,
+            "verdict_contact_switch": verdict_contact_switch,
+            "frame_line": frame_line,
             "plateau_armed_round": plateau_armed_round,
             "ee_reference": "tcp",                      # init_left_ee_pose = init TCP
             "init_left_tcp_int": list(init_snap.tcp_int),
@@ -436,6 +460,8 @@ def run_push_collect_loop(
             "episode_id": ep_id, "run_id": run_id, "level": level_config.level,
             "level_name": level_config.name, "outcome": outcome.value, "flags": list(flags),
             "label": episode_label, "obs_rung": obs_rung, "env_seed": ep_seed, "rounds": round_meta,
+            "frame_convention": frame_convention, "verdict_contact_switch": verdict_contact_switch,
+            "frame_line": frame_line,
         })
 
         # recap — always (any outcome) if a buffer is given and not readonly
