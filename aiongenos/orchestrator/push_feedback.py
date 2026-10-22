@@ -29,18 +29,30 @@ _P1_ARM_HEAD = "\n".join(CRITIC_FEEDBACK_ARM_BLOCK.split("\n")[:3])
 def format_round_feedback(prev_target_int: Sequence[int], tcp_start_int: Sequence[int],
                           tcp_end_int: Sequence[int],
                           scalars_start_cm: Optional[Sequence[float]] = None,
-                          scalars_end_cm: Optional[Sequence[float]] = None) -> str:
+                          scalars_end_cm: Optional[Sequence[float]] = None,
+                          verdict_metric: Optional[str] = None) -> str:
     """Report of the previous round. Scalars = (fingertip→cube, cube→goal) cm,
-    passed only when the rung shows them; both or neither."""
+    passed only when the rung shows them; both or neither.
+    
+    verdict_metric (d2, PI 2026-10-22):
+      'tip_cube': evaluate progress on fingertip→cube (scalars[0])
+      'cube_goal': evaluate progress on cube→goal (scalars[1])
+      None: legacy behaviour (cube→goal), byte-identical.
+    """
     if (scalars_start_cm is None) != (scalars_end_cm is None):
         raise ValueError("round feedback: pass both scalar snapshots or neither")
+    if verdict_metric not in ("tip_cube", "cube_goal", None):
+        raise ValueError(f"Unknown verdict_metric: {verdict_metric!r}")
     (px, py, pz), (sx, sy, sz), (ex, ey, ez) = prev_target_int, tcp_start_int, tcp_end_int
     parts = [CRITIC_FEEDBACK_HEADER,
              _P1_ARM_HEAD.format(arm="LEFT", px=px, py=py, pz=pz, sx=sx, sy=sy, sz=sz, ex=ex, ey=ey, ez=ez)]
     if scalars_start_cm is not None:
         parts.append(PUSH_FEEDBACK_DIST_LINES.format(tip_start=scalars_start_cm[0], tip_end=scalars_end_cm[0],
                                                      cg_start=scalars_start_cm[1], cg_end=scalars_end_cm[1]))
-        parts.append(_p1_verdict(scalars_start_cm[1], scalars_end_cm[1]))
+        if verdict_metric == "tip_cube":
+            parts.append(_p1_verdict(scalars_start_cm[0], scalars_end_cm[0]))
+        else:
+            parts.append(_p1_verdict(scalars_start_cm[1], scalars_end_cm[1]))
     return "\n".join(parts)
 
 

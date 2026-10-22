@@ -453,6 +453,7 @@ class IsaacLabEnvInterface:
 
     # ── WP1-③a push: proprioception + disclosed scaffold rungs ──────────────
     push_obs_rung: int = 1   # set by run_push_collect (pre-registered ladder)
+    push_frame_convention: bool = False  # d1 frame convention line flag (Spec §1, R4)
 
     def _push_state(self, bounds) -> dict:
         from aiongenos.orchestrator import push_body as _pb
@@ -467,8 +468,13 @@ class IsaacLabEnvInterface:
         # 1/1/2/3 gates GT numbers, the top view (1b/2/3) only adds view_block
         from aiongenos.orchestrator import push_memory as _pm
         rung = _pm.oracle_level(self.push_obs_rung)
+        frame_block = ""
+        if getattr(self, "push_frame_convention", False):
+            from aiongenos.vlm.prompts import format_frame_convention_line
+            frame_block = format_frame_convention_line(bounds) + "\n"
         out = {"left_x": tx, "left_y": ty, "left_z": tz,
-               "left_gripper": "closed (locked)", "oracle_block": "",
+               "left_gripper": "closed (locked)", "frame_block": frame_block,
+               "oracle_block": "",
                "view_block": _pm.view_block(self.push_obs_rung)}
         if rung >= 2:
             import numpy as _np
@@ -718,6 +724,15 @@ class IsaacLabEnvInterface:
         root = self.robot.data.root_pos_w[0, :3].cpu().numpy()
         cube_w = u.scene["object"].data.root_pos_w[0, :3].cpu().numpy()
         return (cube_w - root).tolist()
+
+    def get_cube_quat_b(self) -> list[float]:
+        """Cube orientation in base frame (w, x, y, z), rounded to 4 decimals (Spec §3, R6)."""
+        from aiongenos.orchestrator import push_body as _pb
+        u = self.env.unwrapped
+        q_obj = u.scene["object"].data.root_quat_w[0, :4]
+        q_root = self.robot.data.root_quat_w[0, :4]
+        q_b = _pb.quat_mul(_pb.quat_conj(q_root), q_obj)
+        return [round(float(v), 4) for v in q_b.cpu().numpy()]
 
     def get_goal_pose_b(self):
         """Push goal (re-purposed left_ee_pose command term) in base frame."""

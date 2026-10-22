@@ -296,6 +296,8 @@ class _FakePushEnv:
     def __init__(self, mel=2000, reset_at_round=None, frames=False, rung="1", top=None, motion=None):
         self.env = _FakeGym(mel)
         self.push_obs_rung = rung
+        self.push_frame_convention = False
+        self.cube_quat = [1.0, 0.0, 0.0, 0.0]
         self.reset_at_round = reset_at_round
         self.frames = frames
         self.seg_calls = []
@@ -319,9 +321,17 @@ class _FakePushEnv:
 
     def get_state(self, lc):
         g = pm.grid_xyz(self.tcp, lc.workspace_bounds)
+        frame_block = ""
+        if getattr(self, "push_frame_convention", False):
+            from aiongenos.vlm.prompts import format_frame_convention_line
+            frame_block = format_frame_convention_line(lc.workspace_bounds) + "\n"
         return {"left_x": g[0], "left_y": g[1], "left_z": g[2], "right_x": 0, "right_y": 0,
-                "right_z": 0, "left_gripper": "closed (locked)", "oracle_block": "",
+                "right_z": 0, "left_gripper": "closed (locked)", "frame_block": frame_block,
+                "oracle_block": "",
                 "view_block": pm.view_block(self.push_obs_rung)}
+
+    def get_cube_quat_b(self):
+        return list(self.cube_quat)
 
     def get_cube_pose_b(self):
         return self.cube.tolist()
@@ -494,7 +504,7 @@ def test_gif_tag_in_bottom_strip(tmp_path, monkeypatch):
 _RUNG1_PROMPT_SHA = "9344e121460d2776ab9cd5e91381198b4d99b6506b2f164500b07018b6ba00b2"
 _PROMPT_STATE = dict(instruction="Push the yellow cube onto the green zone on the table.",
                      left_x=22, left_y=50, left_z=-14, right_x=1, right_y=-50, right_z=-14,
-                     left_gripper="closed (locked)", oracle_block="")
+                     left_gripper="closed (locked)", frame_block="", oracle_block="")
 
 
 def test_rung1_stage1_prompt_byte_identical():
