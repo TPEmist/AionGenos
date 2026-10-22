@@ -317,3 +317,14 @@ waiting; the task is the remaining dependency. Next real pilot step is
 gated on WP1-③ (or an interim reach-based pilot to sanity-check the
 estimator's variance on real replay data — a methods check, not the Δr
 prior).
+
+## 10. Discussion candidates (pinned 2026-10-22, PI; not claims, not hypotheses)
+1. **History anchors the teacher.**
+   - On the same seeds 5000–5049, stateless rung-2 (run `3e8c52d4`) put 53% of its rounds in the contact band z∈[30,40]. Rung-2′, with within-episode history and feedback (run `71134939`), put 2% there.
+   - Round-2 Z=53 (standby): 1/50 vs 45/50.
+   - The in-context mechanism P1 relies on also makes the teacher copy its own earlier choices.
+   - Source: `docs/p2_prereg/wp3a_rung2p_diagnosis_2026-10-22.md` §2.4; `scripts/analysis/wp3a_rung2_vs_2p_z.py`.
+2. **Teacher perception may be richer than the student's.**
+   - Distillation moves the marginal (P1). Contact height on a fixed table is marginal, so a multi-view teacher can be distilled into a single-view student.
+   - Precedent: Acar et al., RA-L, arXiv 2303.07026.
+

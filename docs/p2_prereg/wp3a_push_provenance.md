@@ -2336,3 +2336,35 @@ to the PI for re-deliberation.**
 
 **5. r-estimator:** bootstrap σ(r) 0.113–0.160 @ n = 50. 3/16 candidates are
 above band, at chance level.
+
+## 2026-10-22 — PI ruling after the rung-2′ diagnosis: d1 + d2, the ladder re-run, rejected options
+Diagnosis: `docs/p2_prereg/wp3a_rung2p_diagnosis_2026-10-22.md` (`26c9fc4`). It found that 0/50 is real as a measurement and identified the interface gaps.
+
+**Adopted:**
+- **d1, frame convention:** one prompt line with the base-frame axis directions and cm per grid unit for each axis. It is a ledger grant (entry **e**); reclamation = P3 autonomous calibration from feedback.
+- **d2, contact-switched verdict:**
+  - before contact, the P1 verdict is computed on fingertip→cube; after contact, on cube→goal;
+  - the switch is driven by the contact report (`first_cube_move`) and is sticky.
+  - This is recorded as the **correct translation of the P1 verdict** (P1 judged progress on the distance the agent can currently change), **not a new grant**.
+- **validate.py** gets the critic's five gaps (auto-reset flags, setpoint clamps, ORI error, τ saturation, reach error vs the guarded target) before any new run.
+
+**Ladder re-run on the new interface:**
+- rung-1′ → rung-1b′ → rung-2″, seeds 5000–5049, 50 episodes each.
+- Each rung reports the four metrics, the target distribution and the z distribution.
+- Climb to the next rung only if the current one has **fewer than 5 successes**.
+- The old rung-1/1b/2/2′ results are not comparable with these (different interface).
+
+**Conditional and ablation:**
+- If rung-2″ still cannot descend to the contact band, add **d3-ii, a side camera**. It is an observation, following the rung-1b precedent. The prereg must record the design reason (multi-view teacher → single-view student; Acar et al., arXiv 2303.07026).
+- **(e) anchoring ablation**, after the ladder: 50 episodes in which the preamble's past round-1 target is rewritten to the position the fingertip actually reached, compared against rung-2′.
+
+**Rejected (PI, reasons verbatim in intent):**
+- **d3-i (contact-terminated descent primitive):**
+  - Deciding Z for the agent confiscates a degree of freedom from the A-spec action language. That is the same family as a fixed vertical, which the PI already vetoed (ledger b/b2 withdrawn 2026-10-01).
+  - "Touching" would be detected from a GT distance, which makes it an **oracle, not touch**.
+- **(a) rung-3 coordinate disclosure:** rejected at this point. It is conditional-knowledge disclosure, and the blocker was not coordinates.
+
+**d2 wording note (design gate, 2026-10-22):**
+- After contact, the reused P1 templates read "moved … closer to target", where "target" is the goal.
+- This is P1 wording reused verbatim, not a rewording.
+- The round in which contact first occurs is still judged on fingertip→cube. Cube→goal applies only from the round after the first contact.
