@@ -31,6 +31,9 @@ from aiongenos.vlm import prompts
 from tests.test_push_memory import _FakePushEnv, _lc, _Parsed
 
 
+BASE_COMMIT_PREFIX = "26c9fc4"
+
+
 def get_commit_sha() -> str:
     try:
         return subprocess.check_output(
@@ -42,6 +45,11 @@ def get_commit_sha() -> str:
 
 def capture_all() -> dict:
     commit_sha = get_commit_sha()
+    if not commit_sha.startswith(BASE_COMMIT_PREFIX):
+        raise RuntimeError(
+            f"generate_goldens.py must only run on unmodified base commit {BASE_COMMIT_PREFIX}, "
+            f"but current HEAD is {commit_sha}. Refusing to overwrite golden strings."
+        )
     goldens = {
         "commit_sha": commit_sha,
         "matrix": {},

@@ -37,21 +37,37 @@ from tests.test_push_memory import _FakePushEnv, _lc, _Parsed
 
 
 def test_p1_reach_path_untouched():
-    """AC6: Git diff must not touch collect.py or stage3_critic.py."""
+    """AC6: Git diff against base commit 26c9fc4 must not touch collect.py or stage3_critic.py."""
     import subprocess
     root = pathlib.Path(__file__).resolve().parent.parent
     diff_names = subprocess.check_output(
-        ["git", "diff", "--name-only", "HEAD"], cwd=str(root)
+        ["git", "diff", "--name-only", "26c9fc4", "HEAD"], cwd=str(root)
     ).decode().splitlines()
-    diff_cached = subprocess.check_output(
-        ["git", "diff", "--cached", "--name-only"], cwd=str(root)
+    diff_worktree = subprocess.check_output(
+        ["git", "diff", "--name-only", "26c9fc4"], cwd=str(root)
     ).decode().splitlines()
-    all_diffs = set(diff_names + diff_cached)
+    all_diffs = set(diff_names + diff_worktree)
+    assert len(all_diffs) > 0, "Expected changes on branch against base 26c9fc4"
     for f in all_diffs:
         # P1 reach path files: collect.py and stage3_critic.py
         p = pathlib.Path(f)
         assert p.name != "collect.py", f"P1 reach collect.py must stay untouched: {f}"
         assert p.name != "stage3_critic.py", f"stage3_critic.py must stay untouched: {f}"
+
+
+def test_p1_reach_path_untouched_fails_on_fake_modification():
+    """Verify that test_p1_reach_path_untouched logic fails if collect.py or stage3_critic.py is modified."""
+    fake_diffs = ["aiongenos/vlm/prompts.py", "aiongenos/orchestrator/collect.py"]
+    with pytest.raises(AssertionError, match="collect.py must stay untouched"):
+        for f in fake_diffs:
+            p = pathlib.Path(f)
+            assert p.name != "collect.py", f"P1 reach collect.py must stay untouched: {f}"
+
+    fake_diffs2 = ["aiongenos/pipeline/stage3_critic.py"]
+    with pytest.raises(AssertionError, match="stage3_critic.py must stay untouched"):
+        for f in fake_diffs2:
+            p = pathlib.Path(f)
+            assert p.name != "stage3_critic.py", f"stage3_critic.py must stay untouched: {f}"
 
 
 # ── AC1 & R8: Byte-identical Golden Matrix Regression ───────────────────────

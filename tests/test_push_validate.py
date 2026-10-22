@@ -135,6 +135,31 @@ def test_d1_valid_line_passes(sample_episode):
     mut["frame_line"] = "FRAME (base frame, same grid as the numbers above): +X = forward, away from the robot base; +Y = the robot's left; +Z = up. One grid unit = 0.45 cm in X, 0.40 cm in Y, 0.35 cm in Z."
     success, stats = validate_episodes([mut])
     assert success is True
+    assert stats["d1_units_OK"] == 1
+
+
+def test_d1_missing_workspace_bounds_reports_na(sample_episode):
+    """When workspace_bounds is missing from meta, d1 reports N/A instead of falling back to default."""
+    mut = copy.deepcopy(sample_episode)
+    mut["frame_convention"] = True
+    mut.pop("workspace_bounds", None)
+    mut["frame_line"] = "FRAME (base frame, same grid as the numbers above): +X = forward, away from the robot base; +Y = the robot's left; +Z = up. One grid unit = 0.45 cm in X, 0.40 cm in Y, 0.35 cm in Z."
+    success, stats = validate_episodes([mut])
+    assert success is True
+    assert stats["d1_bounds_missing"] == 1
+
+
+def test_standby_z_count_equals_509_on_71134939():
+    """Verify that standby_z definition yields exactly 509 rounds on run 71134939."""
+    files = sorted(glob.glob("/home/control/AionGenos/data/collect_dumps/71134939/*/meta.json"))
+    assert len(files) == 50
+    eps = [json.load(open(f, "r", encoding="utf-8")) for f in files]
+    success, stats = validate_episodes(eps)
+    assert success is True
+    assert stats["z_standby_count"] == 509
+    assert stats["z_contact_band_count"] == 13
+    assert stats["z_other_count"] == 75
+    assert stats["rounds"] == 597
 
 
 def test_box_dist_quat_equivalence_on_identity():

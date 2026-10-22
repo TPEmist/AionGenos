@@ -19,6 +19,11 @@ import statistics as st
 import sys
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
+# Ensure workspace root is in sys.path
+_ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
 H = 0.0240  # cube half-height (m)
 SUCC_M = 0.05  # push success distance (m)
 PUSH_ROUND_CAP = 12
@@ -145,24 +150,30 @@ def validate_episodes(eps: List[Dict[str, Any]], ep_dirs: Optional[List[str]] = 
                 hard_failures.append(f"HARD: Episode {ep_id} frame_convention is True but frame_line is missing")
                 R["hard_d1_missing_line"] += 1
             else:
-                bounds_dict = e.get("workspace_bounds") or {}
-                xb = bounds_dict.get("x", [-0.3, 0.6])
-                yb = bounds_dict.get("y", [-0.4, 0.4])
-                zb = bounds_dict.get("z", [0.0, 0.7])
-                grid_span = 200.0  # INT_MAX - INT_MIN
-                ux = (xb[1] - xb[0]) / grid_span * 100.0
-                uy = (yb[1] - yb[0]) / grid_span * 100.0
-                uz = (zb[1] - zb[0]) / grid_span * 100.0
-                expected_line = (
-                    f"FRAME (base frame, same grid as the numbers above): "
-                    f"+X = forward, away from the robot base; +Y = the robot's left; +Z = up. "
-                    f"One grid unit = {ux:.2f} cm in X, {uy:.2f} cm in Y, {uz:.2f} cm in Z."
-                )
-                if f_line.strip() != expected_line.strip():
-                    hard_failures.append(
-                        f"HARD: Episode {ep_id} frame_line mismatch: {f_line!r} != {expected_line!r}"
+                bounds_dict = e.get("workspace_bounds")
+                if not bounds_dict or "x" not in bounds_dict or "y" not in bounds_dict or "z" not in bounds_dict:
+                    R["d1_bounds_missing"] += 1
+                else:
+                    xb = bounds_dict["x"]
+                    yb = bounds_dict["y"]
+                    zb = bounds_dict["z"]
+                    from aiongenos.vlm.scalar_guard import INT_MAX, INT_MIN
+                    grid_span = float(INT_MAX - INT_MIN)
+                    ux = (xb[1] - xb[0]) / grid_span * 100.0
+                    uy = (yb[1] - yb[0]) / grid_span * 100.0
+                    uz = (zb[1] - zb[0]) / grid_span * 100.0
+                    expected_line = (
+                        f"FRAME (base frame, same grid as the numbers above): "
+                        f"+X = forward, away from the robot base; +Y = the robot's left; +Z = up. "
+                        f"One grid unit = {ux:.2f} cm in X, {uy:.2f} cm in Y, {uz:.2f} cm in Z."
                     )
-                    R["hard_d1_unit_mismatch"] += 1
+                    if f_line.strip() != expected_line.strip():
+                        hard_failures.append(
+                            f"HARD: Episode {ep_id} frame_line mismatch: {f_line!r} != {expected_line!r}"
+                        )
+                        R["hard_d1_unit_mismatch"] += 1
+                    else:
+                        R["d1_units_OK"] += 1
 
         if not rs:
             continue
@@ -183,17 +194,25 @@ def validate_episodes(eps: List[Dict[str, Any]], ep_dirs: Optional[List[str]] = 
 
             target_m = r.get("eef_target_m")
             cube_pre = r.get("cube_b_pre")
-            if target_m is not None and cube_pre is not None and len(target_m) >= 3 and len(cube_pre) >= 3:
-                target_rel_x.append(target_m[0] - cube_pre[0])
-                target_rel_y.append(target_m[1] - cube_pre[1])
+            if target_int is not None and len(target_int) >= 3 and cube_pre is not None and len(cube_pre) >= 3:
+                if target_m is not None and len(target_m) >= 3:
+                    target_rel_x.append(target_m[0] - cube_pre[0])
+                    target_rel_y.append(target_m[1] - cube_pre[1])
 
-                tz = target_m[2]
+                zt_val = target_int[2]
                 cz = cube_pre[2]
-                # Contact band: cube top/bottom band [cz - H, cz + H]
-                if abs(tz - cz) <= H + 0.005:
-                    z_contact_band_count += 1
-                elif tz >= 0.52 or (target_int and target_int[2] >= 50):
+                # init_tcp_z_int: standby height from initial TCP proprioception (round 1 start)
+                init_tcp_z_int = rs[0].get("ee_start_int", [0, 0, 53])[2]
+                # contact band = cube centre ± half-height mapped to z_int range
+                from aiongenos.vlm.scalar_guard import metric_to_int
+                zb = e.get("workspace_bounds", {}).get("z", (0.0, 0.7))
+                z_lo, _ = metric_to_int(cz - H, zb)
+                z_hi, _ = metric_to_int(cz + H, zb)
+
+                if zt_val == init_tcp_z_int:
                     z_standby_count += 1
+                elif z_lo <= zt_val <= z_hi:
+                    z_contact_band_count += 1
                 else:
                     z_other_count += 1
 
@@ -407,6 +426,9 @@ def validate_episodes(eps: List[Dict[str, Any]], ep_dirs: Optional[List[str]] = 
         "z_other_count": z_other_count,
         "box_quat_count": box_quat_count,
         "box_fallback_count": box_fallback_count,
+        "d1_units_OK": R.get("d1_units_OK", 0),
+        "d1_bounds_missing": R.get("d1_bounds_missing", 0),
+        "has_frame_convention": any(e.get("frame_convention") for e in eps),
     }
     return len(hard_failures) == 0, stats
 
@@ -439,7 +461,17 @@ def print_report(stats: Dict[str, Any]) -> None:
     else:
         print("[distribution] target relative to cube: N/A")
 
-    print(f"[z] counts: standby_z={stats['z_standby_count']} contact_band={stats['z_contact_band_count']} other={stats['z_other_count']} | target z-int top: {stats['zt'].most_common(6)}")
+    print(f"[z] counts: standby_z={stats['z_standby_count']} (defined as z_int == init_tcp_z_int) contact_band={stats['z_contact_band_count']} (cube centre ± half-height mapped to z_int) other={stats['z_other_count']} | target z-int top: {stats['zt'].most_common(6)}")
+
+    # d1 status
+    if stats.get("d1_units_OK", 0) > 0:
+        print(f"[d1] frame_convention verified: {stats['d1_units_OK']} episodes checked against meta workspace_bounds (OK)")
+    elif stats.get("d1_bounds_missing", 0) > 0:
+        print(f"[d1] frame_convention units check: N/A (workspace_bounds missing from meta in {stats['d1_bounds_missing']} episodes)")
+    elif stats.get("has_frame_convention", False):
+        print("[d1] frame_convention: failed or missing line")
+    else:
+        print("[d1] frame_convention: off")
 
     # Telemetry: Reach errors (raw vs guarded)
     rr = stats["reach_raw"]

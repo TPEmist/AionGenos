@@ -462,6 +462,8 @@ def run_push_collect_loop(
             "label": episode_label, "obs_rung": obs_rung, "env_seed": ep_seed, "rounds": round_meta,
             "frame_convention": frame_convention, "verdict_contact_switch": verdict_contact_switch,
             "frame_line": frame_line,
+            "workspace_bounds": {"x": list(bounds.x_bounds), "y": list(bounds.y_bounds),
+                                 "z": list(bounds.z_bounds)},
         })
 
         # recap — always (any outcome) if a buffer is given and not readonly
