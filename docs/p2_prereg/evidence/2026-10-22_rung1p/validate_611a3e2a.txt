@@ -1,0 +1,17 @@
+episodes=50 rounds=155 outcomes={'push_plateau': 30, 'vlm_stop_premature': 9, 'success': 11}
+[task] successes=11/50; contact_episodes=28/50
+[task] closest TCP->cube cm: min=1.8 median=5.6
+[task] initial cube->goal cm: min=7.2 median=8.8 max=10.2; success needs <= 5 cm
+[task] best cube->goal reached per episode cm: min=1.4 median=7.9
+[distribution] target relative to cube (m): X range [-0.162, 0.127] median 0.009; Y range [-0.142, 0.078] median -0.014
+[z] counts: standby_z=30 (defined as z_int == init_tcp_z_int) contact_band=0 (cube centre ± half-height mapped to z_int) other=125 | target z-int top: [(50, 113), (53, 30), (45, 8), (48, 4)]
+[d1] frame_convention verified: 50 episodes checked against meta workspace_bounds (OK)
+[exec] reach_err_cm RAW: median=0.05 p95=0.23 max=0.35
+[exec] reach_err_cm GUARDED: median=0.05 p95=0.23 max=0.35
+[guard] target_clamps=0; setpoint_clamps: total=0 in 0 rounds (max=0)
+[ori] final err deg: median=0.43 max=20.16; rounds > 5 deg: 8/155
+[tau] saturation (tau_flag_steps > 0): 50/155 rounds (max=1); warn: 50 rounds (max=1)
+[box] used quaternion distance in 155 checks; 0 fallbacks
+[feedback] {'fb_move_from==prev_start_OK': 105, 'fb_move_to==this_start_OK': 105, 'fb_target==prev_target_OK': 105}
+
+[PASS] All hard checks passed.

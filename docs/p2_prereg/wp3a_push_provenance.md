@@ -2368,3 +2368,25 @@ Diagnosis: `docs/p2_prereg/wp3a_rung2p_diagnosis_2026-10-22.md` (`26c9fc4`). It 
 - After contact, the reused P1 templates read "moved … closer to target", where "target" is the goal.
 - This is P1 wording reused verbatim, not a rewording.
 - The round in which contact first occurs is still judged on fingertip→cube. Cube→goal applies only from the round after the first contact.
+
+## 2026-10-22 — rung-1′ on the d1+d2 interface: 11/50 → ladder stopped (PI rule ≥5); the successes are a memorized blind sweep
+**Run:** `611a3e2a`, seeds 5000–5049, obs_rung 1 (front RGB + proprio; no distances), history + feedback (proprio only), d1 FRAME line, memory ON (fresh buffer `workspace/recaps_push_pilot_rung1p_d1d2`). Code at master `2bd0e17` / runner `c03709a`.
+- **Smoke run first:** `f6a67777`, 1 episode, seed 4990.
+- **Validator:** `scripts/analysis/wp3a_push_validate.py --run 611a3e2a`, HARD checks PASS (`evidence/2026-10-22_rung1p/validate_611a3e2a.txt`).
+
+**Result:**
+- **11/50 successes**, against rung-1 = 0/50 on the old interface (not comparable).
+- Outcomes: 30 plateau, 9 premature STOP, 155 rounds.
+- 28/50 episodes made contact; best cube→goal 1.4 cm.
+
+**Verification** (3 agy reports, isaac re-ran the key numbers; `evidence/2026-10-22_rung1p/`):
+1. **The successes are physically real (qa2).** The cube slid 3–10 cm, pushed by the left finger or pad. It stayed flat (tilt ≤ 0.19°) and ended 1.4–4.7 cm from the goal.
+2. **The policy is situation-independent.**
+   - ρ(round-1 target, cube) is about 0: X +0.11, Y +0.02.
+   - All 11 successes follow one sequence, ≈[40,20,50] → [60,20,50] → [80,20,50] (Y=20, i.e. y=0.08 m, fixed).
+   - It first appeared at seed 5009, the first success. From then on 35/40 episodes start at exactly [40,20,50] (beh2). Small-n caveat: before 5009 (9 episodes) the round-1 targets varied and correlated with the cube, ρ_X ≈ +0.47.
+   - The success recap is retrieved under the 2/3 success floor, so memory propagates **a marginal (situation-independent) sweep, not conditional knowledge**.
+3. **d1 effect.** Pushes are now along +X (74/155 thoughts cite +X forward). The axis confusion of rung-2′ is gone.
+4. **Task geometry.** The goal is always cube + (0.07–0.10, ±0.04) m and the cube region is 4 × 10 cm (`push_s3a_cfg.py:131–138`). So a fixed +X sweep at y=0.08 solves a substantial fraction of the episodes without perceiving the cube. The conditional component of this task is thin.
+
+**Ladder:** stopped after rung-1′ by the PI rule (≥5 successes). rung-1b′ and rung-2″ were not run. Whether this success counts for step (c) is a PI decision.
