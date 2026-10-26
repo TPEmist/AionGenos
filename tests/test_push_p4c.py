@@ -437,4 +437,189 @@ def test_reach_scan_dry_run_and_custom_configs():
     assert [int(round(t)) for t in parse_grid_override("-60, 0, 60", round_digits=0)] == [-60, 0, 60]
 
 
+class _FakeScanRobot:
+    def __init__(self, joint_val=0.5):
+        self.data = MagicMock()
+        self.data.joint_pos = torch.tensor([[joint_val] * 7])
+
+
+class _FakeScanCube:
+    def __init__(self, pos=(0.40, 0.10, 0.68)):
+        self.data = MagicMock()
+        self.data.root_pos_w = torch.tensor([list(pos)])
+        self.data.root_quat_w = torch.tensor([[1.0, 0.0, 0.0, 0.0]])
+
+    def write_root_pose_to_sim(self, pose):
+        pass
+
+    def write_root_velocity_to_sim(self, vel):
+        pass
+
+
+class _FakeScanIface:
+    def __init__(self, slow_delay=0.0, raise_nan=False, cube_dist=0.001, push_succeeds=False):
+        self.slow_delay = slow_delay
+        self.raise_nan = raise_nan
+        self.cube_dist = cube_dist
+        self.push_succeeds = push_succeeds
+        self.segment_call_count = 0
+        self.cube_pos_b = [0.40 + cube_dist, 0.10, 0.024]
+        self.tcp_pos_b = [0.25, 0.20, 0.053]
+        self.hand_quat_b = torch.tensor([1.0, 0.0, 0.0, 0.0])
+
+    def reset(self, seed=0):
+        self.segment_call_count = 0
+        self.cube_pos_b = [0.40 + self.cube_dist, 0.10, 0.024]
+
+    def get_left_tcp_pos_b(self):
+        return list(self.tcp_pos_b)
+
+    def get_cube_pose_b(self):
+        if self.raise_nan:
+            return [float("nan"), 0.10, 0.024]
+        return list(self.cube_pos_b)
+
+    def get_left_hand_quat_b(self):
+        return self.hand_quat_b.clone()
+
+    def execute_push_segment(self, target, quat, steps, right_hold=True, frame_every=0, target_is_tcp=True):
+        self.segment_call_count += 1
+        if self.slow_delay > 0:
+            import time
+            time.sleep(self.slow_delay)
+        # Stage 1: call 1. Stage 2: calls 2, 3, 4. Stage 3 (push): calls >= 5
+        if self.push_succeeds and self.segment_call_count >= 5:
+            self.cube_pos_b = [0.50, 0.10, 0.024]
+        return {"tau_warn_steps": 0, "tau_flag_steps": 0, "table_guard": {}}
+
+
+def test_scan_check_state_finite():
+    """Rework 5: check_state_finite detects finite vs NaN/Inf tensors."""
+    from scripts.diagnostics.wp3a_reach_scan_p4c import check_state_finite
+
+    robot = _FakeScanRobot()
+    cube = _FakeScanCube()
+    iface = _FakeScanIface()
+    assert check_state_finite(robot, cube, iface) is True
+
+    # NaN in robot
+    robot_nan = _FakeScanRobot(joint_val=float("nan"))
+    assert check_state_finite(robot_nan, cube, iface) is False
+
+    # NaN in iface cube
+    iface_nan = _FakeScanIface(raise_nan=True)
+    assert check_state_finite(robot, cube, iface_nan) is False
+
+
+def test_scan_run_config_variants_success():
+    """Rework 5: run_config_variants succeeds on solvable variant and records elapsed_s."""
+    from scripts.diagnostics.wp3a_reach_scan_p4c import run_config_variants
+
+    robot = _FakeScanRobot()
+    cube = _FakeScanCube()
+    # Cube within 1mm (not disturbed) and final distance < 5cm
+    success_iface = _FakeScanIface(cube_dist=0.001, push_succeeds=True)
+
+    rec = run_config_variants(
+        iface=success_iface,
+        dev="cpu",
+        robot=robot,
+        cube=cube,
+        cx=0.40,
+        cy=0.10,
+        th_deg=0,
+        d=0.10,
+        variant_timeout_s=5.0,
+        variants=[{"id": "V1", "offset_m": 0.01, "use_yaw": False}],
+    )
+    assert rec["success"] is True
+    assert rec["variant_used"] == "V1"
+    assert rec["elapsed_s"] >= 0.0
+    assert len(rec["variants_tried"]) == 1
+    assert rec["variants_tried"][0]["success"] is True
+
+
+
+def test_scan_run_config_variants_timeout():
+    """Rework 5: variant timing out is caught and marked as timeout failure."""
+    from scripts.diagnostics.wp3a_reach_scan_p4c import run_config_variants
+
+    robot = _FakeScanRobot()
+    cube = _FakeScanCube()
+    # Iface delays 0.15s per segment; timeout is 0.05s
+    slow_iface = _FakeScanIface(slow_delay=0.15)
+
+    rec = run_config_variants(
+        iface=slow_iface,
+        dev="cpu",
+        robot=robot,
+        cube=cube,
+        cx=0.40,
+        cy=0.10,
+        th_deg=0,
+        d=0.10,
+        variant_timeout_s=0.05,
+        variants=[{"id": "V1", "offset_m": 0.01, "use_yaw": False}],
+    )
+    assert rec["success"] is False
+    assert rec["elapsed_s"] > 0
+    assert rec["variants_tried"][0]["failure_reason"] == "timeout"
+
+
+def test_scan_run_config_variants_nan_detection():
+    """Rework 5: non-finite state during variant is marked as nan failure."""
+    from scripts.diagnostics.wp3a_reach_scan_p4c import run_config_variants
+
+    robot = _FakeScanRobot()
+    cube = _FakeScanCube()
+    nan_iface = _FakeScanIface(raise_nan=True)
+
+    rec = run_config_variants(
+        iface=nan_iface,
+        dev="cpu",
+        robot=robot,
+        cube=cube,
+        cx=0.40,
+        cy=0.10,
+        th_deg=0,
+        d=0.10,
+        variant_timeout_s=5.0,
+        variants=[{"id": "V1", "offset_m": 0.01, "use_yaw": False}],
+    )
+    assert rec["success"] is False
+    assert rec["variants_tried"][0]["failure_reason"] == "nan"
+
+
+def test_scan_checkpoint_and_resume(tmp_path):
+    """Rework 5: incremental checkpoint writing and --resume recovery."""
+    from scripts.diagnostics.wp3a_reach_scan_p4c import (
+        load_completed_keys,
+        save_checkpoint,
+    )
+
+    out_file = tmp_path / "scan_checkpoint.json"
+    data = {
+        "x_grid": [0.40],
+        "y_grid": [0.10],
+        "theta_deg_grid": [0, 60],
+        "dist_grid": [0.07, 0.10],
+        "results": [
+            {"cube_x": 0.40, "cube_y": 0.10, "theta_deg": 0, "dist": 0.10, "success": True, "elapsed_s": 1.2},
+        ],
+        "skipped": [
+            {"config": (0.34, 0.10, 0, 0.10), "reason": "hand_keepout"},
+        ],
+    }
+    save_checkpoint(out_file, data)
+    assert out_file.exists()
+
+    completed_keys, res, skp = load_completed_keys(out_file)
+    assert (0.40, 0.10, 0, 0.10) in completed_keys
+    assert (0.34, 0.10, 0, 0.10) in completed_keys
+    assert (0.40, 0.10, 60, 0.07) not in completed_keys
+    assert len(res) == 1
+    assert len(skp) == 1
+
+
+
 

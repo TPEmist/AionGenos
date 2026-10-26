@@ -20,7 +20,12 @@ Per configuration:
      Each stage gets <= 3 rounds (execute_push_segment, TCP target, rest orientation, 90 steps).
   3. Outcome (R6): success = final cube->goal <= 5 cm in the world AND approach not disturbed.
      Record telemetry: min finger->cube, joint-limit margin, tau saturation, table guard clamps,
-     pre-push displacement in cm, and winning variant id.
+     pre-push displacement in cm, winning variant id, and elapsed time in seconds.
+  4. Robustness:
+     - Wall-clock timeout per variant (--variant_timeout_s, default: 180s).
+     - NaN/non-finite state check after each stage -> recorded as 'nan' failure and reset.
+     - Incremental checkpoint saving after every config.
+     - --resume support to skip already-completed configs from existing JSON.
 
 Outputs:
   logs/wp3a_reach_scan_p4c.json
@@ -32,10 +37,12 @@ import argparse
 import json
 import math
 import os
+import signal
 import sys
+import time
 import traceback
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Callable, Optional, Sequence
 
 # 3 solvable dry-run configurations
 DRY_RUN_CONFIGS: list[tuple[float, float, int, float]] = [
@@ -53,6 +60,15 @@ APPROACH_VARIANTS: list[dict[str, Any]] = [
 ]
 
 CUBE_KEEP_OUT_X = 0.38  # hand keep-out at reset
+
+
+class VariantTimeoutError(Exception):
+    """Raised when an approach variant exceeds the wall-clock timeout."""
+    pass
+
+
+def _sigalrm_handler(signum, frame):
+    raise VariantTimeoutError("Variant wall-clock timeout exceeded")
 
 
 def is_on_table(pt_b: Sequence[float]) -> bool:
@@ -93,6 +109,308 @@ def parse_grid_override(raw_str: str, round_digits: int = 3) -> list[float]:
     return [round(float(p.strip()), round_digits) for p in raw_str.split(",") if p.strip()]
 
 
+def save_checkpoint(output_path: str | Path, data: dict[str, Any]):
+    """Incrementally and atomically write checkpoint JSON to disk."""
+    p = Path(output_path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = p.with_suffix(p.suffix + ".tmp")
+    with open(tmp_path, "w", encoding="utf-8") as fp:
+        json.dump(data, fp, indent=2)
+        fp.flush()
+        os.fsync(fp.fileno())
+    tmp_path.replace(p)
+
+
+def load_completed_keys(json_path: str | Path) -> tuple[set[tuple[float, float, int, float]], list[dict], list[dict]]:
+    """Load completed config keys and existing results/skipped from a checkpoint JSON."""
+    completed_keys = set()
+    results = []
+    skipped = []
+    p = Path(json_path)
+    if not p.exists():
+        return completed_keys, results, skipped
+    try:
+        with open(p, "r", encoding="utf-8") as fp:
+            data = json.load(fp)
+        results = data.get("results", [])
+        skipped = data.get("skipped", [])
+        for r in results:
+            key = (round(float(r["cube_x"]), 3), round(float(r["cube_y"]), 3),
+                   int(round(float(r["theta_deg"]))), round(float(r["dist"]), 3))
+            completed_keys.add(key)
+        for s in skipped:
+            cfg = s.get("config")
+            if cfg and len(cfg) >= 4:
+                key = (round(float(cfg[0]), 3), round(float(cfg[1]), 3),
+                       int(round(float(cfg[2]))), round(float(cfg[3]), 3))
+                completed_keys.add(key)
+    except Exception as e:
+        print(f"[SCAN RESUME WARNING] Could not parse {json_path}: {e}", flush=True)
+    return completed_keys, results, skipped
+
+
+def check_state_finite(robot: Any, cube: Any, iface: Any) -> bool:
+    """Check if robot joint positions and cube pose are finite (no NaN / Inf)."""
+    try:
+        import torch
+        if hasattr(robot, "data") and hasattr(robot.data, "joint_pos"):
+            q = robot.data.joint_pos[0]
+            if not bool(torch.all(torch.isfinite(q))):
+                return False
+        if hasattr(cube, "data") and hasattr(cube.data, "root_pos_w"):
+            pos = cube.data.root_pos_w[0]
+            if not bool(torch.all(torch.isfinite(pos))):
+                return False
+        if hasattr(iface, "get_cube_pose_b"):
+            c_b = torch.as_tensor(iface.get_cube_pose_b(), dtype=torch.float32)
+            if not bool(torch.all(torch.isfinite(c_b))):
+                return False
+        if hasattr(iface, "get_left_tcp_pos_b"):
+            tcp_b = torch.as_tensor(iface.get_left_tcp_pos_b(), dtype=torch.float32)
+            if not bool(torch.all(torch.isfinite(tcp_b))):
+                return False
+        return True
+    except Exception:
+        return False
+
+
+def run_config_variants(
+    iface: Any,
+    dev: Any,
+    robot: Any,
+    cube: Any,
+    cx: float,
+    cy: float,
+    th_deg: int | float,
+    d: float,
+    variant_timeout_s: float = 180.0,
+    half: float = 0.024,
+    seg: int = 90,
+    rounds_stage: int = 3,
+    success_dist_m: float = 0.05,
+    variants: Sequence[dict[str, Any]] = APPROACH_VARIANTS,
+    finger_to_cube_fn: Optional[Callable[[], float]] = None,
+    joint_margin_fn: Optional[Callable[[], tuple[str, float]]] = None,
+    config_idx: int = 0,
+    z_cube: float = 0.024,
+    cube_spawn_z: float = 0.03,
+    robot_base_z: float = 0.65,
+) -> dict[str, Any]:
+    """Execute approach variants sequentially for a single (cube, theta, d) configuration."""
+    import numpy as np
+    import torch
+    from aiongenos.orchestrator import push_body as pb
+    from aiongenos.vlm.parser import OriOffset
+
+    t_config_start = time.time()
+    th_rad = math.radians(th_deg)
+    ux = math.cos(th_rad)
+    uy = math.sin(th_rad)
+    gx = cx + d * ux
+    gy = cy + d * uy
+
+    variants_tried = []
+    winning_variant = None
+
+    has_alarm = hasattr(signal, "SIGALRM") and hasattr(signal, "alarm")
+
+    for v_idx, var in enumerate(variants):
+        v_id = var["id"]
+        offset_m = var["offset_m"]
+        yaw_deg = th_deg if var["use_yaw"] else 0
+
+        t_var_start = time.time()
+        timed_out = False
+        nan_detected = False
+        failure_reason = None
+
+        old_handler = None
+        if has_alarm and variant_timeout_s > 0:
+            try:
+                old_handler = signal.signal(signal.SIGALRM, _sigalrm_handler)
+                signal.alarm(max(1, int(math.ceil(variant_timeout_s))))
+            except (ValueError, AttributeError):
+                pass
+
+        try:
+            if time.time() - t_var_start > variant_timeout_s:
+                raise VariantTimeoutError("Timeout before starting variant")
+
+            # Reset env and cube/goal before each variant attempt
+            iface.reset(seed=4700 + config_idx * 10 + v_idx)
+            z_standby = float(iface.get_left_tcp_pos_b()[2])
+            q_rest = iface.get_left_hand_quat_b()
+
+            ori = OriOffset(p=0, y=int(round(yaw_deg)), r=0) if yaw_deg != 0 else None
+            q_cmd = pb.command_quat(q_rest, ori)
+
+            # Place cube and goal: write pose (7-dim) and zero velocity (6-dim)
+            cube_pose_w = torch.tensor([[cx, cy, cube_spawn_z + robot_base_z, 1.0, 0.0, 0.0, 0.0]],
+                                       device=dev, dtype=torch.float32)
+            cube_vel_w = torch.zeros((1, 6), device=dev, dtype=torch.float32)
+            cube.write_root_pose_to_sim(cube_pose_w)
+            cube.write_root_velocity_to_sim(cube_vel_w)
+            goal_b = [gx, gy, z_cube]
+
+            # Approach point: cube - u*(half + offset_m)
+            appr_xy = (cx - ux * (half + offset_m), cy - uy * (half + offset_m))
+            transit_high = np.array([appr_xy[0], appr_xy[1], z_standby + 0.05])
+            appr_pt = np.array([appr_xy[0], appr_xy[1], z_cube])
+            push_end = np.array([gx - ux * half, gy - uy * half, z_cube])
+
+            # Stage 1: fly high above approach point
+            iface.execute_push_segment(torch.tensor(transit_high, dtype=torch.float32), q_cmd, seg, frame_every=0, target_is_tcp=True)
+            if not check_state_finite(robot, cube, iface):
+                nan_detected = True
+                failure_reason = "nan"
+                raise FloatingPointError("Non-finite state after Stage 1")
+
+            if time.time() - t_var_start > variant_timeout_s:
+                raise VariantTimeoutError("Timeout after Stage 1")
+
+            # Stage 2: descend to approach point
+            tau_warn_max = 0
+            tau_flag_max = 0
+            target_clamps = 0
+            min_finger_dist = 999.0
+
+            for _ in range(rounds_stage):
+                if time.time() - t_var_start > variant_timeout_s:
+                    raise VariantTimeoutError("Timeout during Stage 2")
+                res_seg = iface.execute_push_segment(torch.tensor(appr_pt, dtype=torch.float32), q_cmd, seg, frame_every=0, target_is_tcp=True)
+                tau_warn_max = max(tau_warn_max, res_seg.get("tau_warn_steps", 0))
+                tau_flag_max = max(tau_flag_max, res_seg.get("tau_flag_steps", 0))
+                if (res_seg.get("table_guard") or {}).get("target_clamp"):
+                    target_clamps += 1
+                if finger_to_cube_fn is not None:
+                    min_finger_dist = min(min_finger_dist, finger_to_cube_fn())
+
+            if not check_state_finite(robot, cube, iface):
+                nan_detected = True
+                failure_reason = "nan"
+                raise FloatingPointError("Non-finite state after Stage 2")
+
+            c_now = np.array(iface.get_cube_pose_b())
+            cube_moved_pre = float(np.linalg.norm(c_now[:2] - np.array([cx, cy])))
+            cube_moved_pre_cm = round(cube_moved_pre * 100.0, 2)
+            disturbed_approach = (cube_moved_pre > 0.005)  # > 5mm disturbed
+
+            # Stage 3: push to end
+            for _ in range(rounds_stage):
+                if time.time() - t_var_start > variant_timeout_s:
+                    raise VariantTimeoutError("Timeout during Stage 3")
+                res_seg = iface.execute_push_segment(torch.tensor(push_end, dtype=torch.float32), q_cmd, seg, frame_every=0, target_is_tcp=True)
+                tau_warn_max = max(tau_warn_max, res_seg.get("tau_warn_steps", 0))
+                tau_flag_max = max(tau_flag_max, res_seg.get("tau_flag_steps", 0))
+                if (res_seg.get("table_guard") or {}).get("target_clamp"):
+                    target_clamps += 1
+                if finger_to_cube_fn is not None:
+                    min_finger_dist = min(min_finger_dist, finger_to_cube_fn())
+
+            if not check_state_finite(robot, cube, iface):
+                nan_detected = True
+                failure_reason = "nan"
+                raise FloatingPointError("Non-finite state after Stage 3")
+
+            c_final = np.array(iface.get_cube_pose_b())
+            final_cube_goal_dist = float(np.linalg.norm(c_final[:2] - np.array(goal_b[:2])))
+            tight_joint, marg_deg = joint_margin_fn() if joint_margin_fn else ("none", 0.0)
+
+            # Success requires final cube->goal <= 5cm AND not disturbed during approach
+            v_success = (final_cube_goal_dist <= success_dist_m) and (not disturbed_approach)
+            if not v_success and failure_reason is None:
+                failure_reason = "disturbed_approach" if disturbed_approach else "goal_distance"
+
+        except VariantTimeoutError:
+            timed_out = True
+            failure_reason = "timeout"
+            v_success = False
+            final_cube_goal_dist = 9.99
+            disturbed_approach = True
+            cube_moved_pre_cm = 99.9
+            tight_joint, marg_deg = ("timeout", 0.0)
+            tau_warn_max = 0
+            tau_flag_max = 0
+            target_clamps = 0
+            min_finger_dist = 999.0
+        except FloatingPointError:
+            nan_detected = True
+            failure_reason = "nan"
+            v_success = False
+            final_cube_goal_dist = 9.99
+            disturbed_approach = True
+            cube_moved_pre_cm = 99.9
+            tight_joint, marg_deg = ("nan", 0.0)
+            tau_warn_max = 0
+            tau_flag_max = 0
+            target_clamps = 0
+            min_finger_dist = 999.0
+        finally:
+            if has_alarm and variant_timeout_s > 0:
+                try:
+                    signal.alarm(0)
+                    if old_handler is not None:
+                        signal.signal(signal.SIGALRM, old_handler)
+                except (ValueError, AttributeError):
+                    pass
+
+            if timed_out or nan_detected:
+                # Full clean reset on timeout or NaN before continuing
+                try:
+                    iface.reset(seed=4700 + config_idx * 10 + v_idx + 999)
+                except Exception:
+                    pass
+
+        var_elapsed = round(time.time() - t_var_start, 2)
+        v_res = {
+            "variant": v_id,
+            "offset_m": offset_m,
+            "yaw_deg": yaw_deg,
+            "success": v_success,
+            "failure_reason": failure_reason,
+            "disturbed_approach": disturbed_approach,
+            "pre_push_cube_displacement_cm": cube_moved_pre_cm,
+            "final_cube_goal_m": round(final_cube_goal_dist, 4),
+            "min_finger_to_cube_cm": round(min_finger_dist, 2),
+            "tightest_joint": [tight_joint, marg_deg],
+            "tau_warn_steps_max": tau_warn_max,
+            "tau_flag_steps_max": tau_flag_max,
+            "target_clamps": target_clamps,
+            "elapsed_s": var_elapsed,
+        }
+        variants_tried.append(v_res)
+
+        if v_success:
+            winning_variant = v_res
+            break
+
+    overall_success = (winning_variant is not None)
+    variant_used = winning_variant["variant"] if winning_variant else None
+    best_v = winning_variant or variants_tried[-1]
+    config_elapsed_s = round(time.time() - t_config_start, 2)
+
+    return {
+        "cube_x": cx,
+        "cube_y": cy,
+        "theta_deg": th_deg,
+        "dist": d,
+        "goal_x": round(gx, 4),
+        "goal_y": round(gy, 4),
+        "success": overall_success,
+        "variant_used": variant_used,
+        "disturbed_approach": best_v["disturbed_approach"],
+        "pre_push_cube_displacement_cm": best_v["pre_push_cube_displacement_cm"],
+        "final_cube_goal_m": best_v["final_cube_goal_m"],
+        "min_finger_to_cube_cm": best_v["min_finger_to_cube_cm"],
+        "tightest_joint": best_v["tightest_joint"],
+        "tau_warn_steps_max": best_v["tau_warn_steps_max"],
+        "tau_flag_steps_max": best_v["tau_flag_steps_max"],
+        "target_clamps": best_v["target_clamps"],
+        "elapsed_s": config_elapsed_s,
+        "variants_tried": variants_tried,
+    }
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--dry_run", action="store_true", help="Run 3 solvable sanity-check configurations")
@@ -100,6 +418,8 @@ def main():
     p.add_argument("--x_grid", type=str, default=None, help="Override X grid: '0.34,0.37,0.40,...'")
     p.add_argument("--y_grid", type=str, default=None, help="Override Y grid: '-0.02,0.01,0.04,...'")
     p.add_argument("--theta_grid", type=str, default=None, help="Override theta deg grid: '-90,-60,-30,0,30,60,90'")
+    p.add_argument("--variant_timeout_s", type=float, default=180.0, help="Wall-clock timeout in seconds per approach variant (default: 180s)")
+    p.add_argument("--resume", action="store_true", help="Resume from existing output JSON, skipping completed configs")
     p.add_argument("--output", type=str, default="logs/wp3a_reach_scan_p4c.json")
     from isaaclab.app import AppLauncher
     AppLauncher.add_app_launcher_args(p)
@@ -122,10 +442,8 @@ def main():
         import omni.usd  # noqa: E402
 
         import aiongenos.tasks  # noqa: E402,F401
-        from aiongenos.orchestrator import push_body as pb  # noqa: E402
         from aiongenos.orchestrator.isaaclab_env_interface import IsaacLabEnvInterface  # noqa: E402
         from aiongenos.tasks.WP1_contact_testbed import push_s3a_cfg as C  # noqa: E402
-        from aiongenos.vlm.parser import OriOffset  # noqa: E402
 
         GID = "Isaac-AionGenos-WP1-Push-TopCam-v0"
         SEG = 90
@@ -188,8 +506,13 @@ def main():
             k = int(torch.argmin(marg))
             return jnames[LJ[k]], round(float(marg[k]), 1)
 
+        completed_keys = set()
         results = []
         skipped = []
+
+        if a.resume and Path(a.output).exists():
+            completed_keys, results, skipped = load_completed_keys(a.output)
+            print(f"[SCAN RESUME] Resuming from {a.output}: found {len(completed_keys)} completed configs ({len(results)} results, {len(skipped)} skipped)", flush=True)
 
         if a.configs:
             configs = parse_custom_configs(a.configs)
@@ -206,142 +529,6 @@ def main():
                             configs.append((cx, cy, th_deg, d))
             print(f"[SCAN] Total grid configurations: {len(configs)} (X={len(x_grid)}, Y={len(y_grid)}, theta={len(theta_grid)})", flush=True)
 
-        for idx, (cx, cy, th_deg, d) in enumerate(configs):
-            skip_reason = filter_config(cx, cy, th_deg, d)
-            if skip_reason is not None:
-                skipped.append({"config": (cx, cy, th_deg, d), "reason": skip_reason})
-                print(f"[SCAN {idx+1}/{len(configs)}] ({cx}, {cy}, th={th_deg}°, d={d}) -> SKIPPED ({skip_reason})", flush=True)
-                continue
-
-            th_rad = math.radians(th_deg)
-            ux = math.cos(th_rad)
-            uy = math.sin(th_rad)
-            gx = cx + d * ux
-            gy = cy + d * uy
-
-            variants_tried = []
-            winning_variant = None
-
-            # Try approach variants sequentially until one succeeds
-            for v_idx, var in enumerate(APPROACH_VARIANTS):
-                v_id = var["id"]
-                offset_m = var["offset_m"]
-                yaw_deg = th_deg if var["use_yaw"] else 0
-
-                # Reset env and cube/goal before each variant attempt
-                iface.reset(seed=4700 + idx * 10 + v_idx)
-                z_standby = float(iface.get_left_tcp_pos_b()[2])
-                z_cube = C._CUBE_REST_Z_B
-                q_rest = iface.get_left_hand_quat_b()
-
-                ori = OriOffset(p=0, y=int(round(yaw_deg)), r=0) if yaw_deg != 0 else None
-                q_cmd = pb.command_quat(q_rest, ori)
-
-                # Place cube and goal: write pose (7-dim) and zero velocity (6-dim)
-                cube_pose_w = torch.tensor([[cx, cy, C._CUBE_SPAWN_Z + C._ROBOT_BASE_Z, 1.0, 0.0, 0.0, 0.0]],
-                                           device=dev, dtype=torch.float32)
-                cube_vel_w = torch.zeros((1, 6), device=dev, dtype=torch.float32)
-                cube.write_root_pose_to_sim(cube_pose_w)
-                cube.write_root_velocity_to_sim(cube_vel_w)
-                goal_b = [gx, gy, z_cube]
-
-                # Approach point: cube - u*(half + offset_m)
-                appr_xy = (cx - ux * (HALF + offset_m), cy - uy * (HALF + offset_m))
-                transit_high = np.array([appr_xy[0], appr_xy[1], z_standby + 0.05])
-                appr_pt = np.array([appr_xy[0], appr_xy[1], z_cube])
-                push_end = np.array([gx - ux * HALF, gy - uy * HALF, z_cube])
-
-                # Stage 1: fly high above approach point
-                iface.execute_push_segment(torch.tensor(transit_high, dtype=torch.float32), q_cmd, SEG, frame_every=0, target_is_tcp=True)
-
-                # Stage 2: descend to approach point
-                tau_warn_max = 0
-                tau_flag_max = 0
-                target_clamps = 0
-                min_finger_dist = 999.0
-
-                for _ in range(ROUNDS_STAGE):
-                    seg = iface.execute_push_segment(torch.tensor(appr_pt, dtype=torch.float32), q_cmd, SEG, frame_every=0, target_is_tcp=True)
-                    tau_warn_max = max(tau_warn_max, seg.get("tau_warn_steps", 0))
-                    tau_flag_max = max(tau_flag_max, seg.get("tau_flag_steps", 0))
-                    if (seg.get("table_guard") or {}).get("target_clamp"):
-                        target_clamps += 1
-                    min_finger_dist = min(min_finger_dist, finger_to_cube_cm())
-
-                c_now = np.array(iface.get_cube_pose_b())
-                cube_moved_pre = float(np.linalg.norm(c_now[:2] - np.array([cx, cy])))
-                cube_moved_pre_cm = round(cube_moved_pre * 100.0, 2)
-                disturbed_approach = (cube_moved_pre > 0.005)  # > 5mm disturbed
-
-                # Stage 3: push to end
-                for _ in range(ROUNDS_STAGE):
-                    seg = iface.execute_push_segment(torch.tensor(push_end, dtype=torch.float32), q_cmd, SEG, frame_every=0, target_is_tcp=True)
-                    tau_warn_max = max(tau_warn_max, seg.get("tau_warn_steps", 0))
-                    tau_flag_max = max(tau_flag_max, seg.get("tau_flag_steps", 0))
-                    if (seg.get("table_guard") or {}).get("target_clamp"):
-                        target_clamps += 1
-                    min_finger_dist = min(min_finger_dist, finger_to_cube_cm())
-
-                c_final = np.array(iface.get_cube_pose_b())
-                final_cube_goal_dist = float(np.linalg.norm(c_final[:2] - np.array(goal_b[:2])))
-                tight_joint, marg_deg = get_joint_margin_deg()
-
-                # Success requires final cube->goal <= 5cm AND not disturbed during approach
-                v_success = (final_cube_goal_dist <= SUCCESS_DIST_M) and (not disturbed_approach)
-                v_res = {
-                    "variant": v_id,
-                    "offset_m": offset_m,
-                    "yaw_deg": yaw_deg,
-                    "success": v_success,
-                    "disturbed_approach": disturbed_approach,
-                    "pre_push_cube_displacement_cm": cube_moved_pre_cm,
-                    "final_cube_goal_m": round(final_cube_goal_dist, 4),
-                    "min_finger_to_cube_cm": round(min_finger_dist, 2),
-                    "tightest_joint": [tight_joint, marg_deg],
-                    "tau_warn_steps_max": tau_warn_max,
-                    "tau_flag_steps_max": tau_flag_max,
-                    "target_clamps": target_clamps,
-                }
-                variants_tried.append(v_res)
-
-                if v_success:
-                    winning_variant = v_res
-                    break
-
-            overall_success = (winning_variant is not None)
-            variant_used = winning_variant["variant"] if winning_variant else None
-            best_v = winning_variant or variants_tried[-1]
-
-            rec = {
-                "cube_x": cx,
-                "cube_y": cy,
-                "theta_deg": th_deg,
-                "dist": d,
-                "goal_x": round(gx, 4),
-                "goal_y": round(gy, 4),
-                "success": overall_success,
-                "variant_used": variant_used,
-                "disturbed_approach": best_v["disturbed_approach"],
-                "pre_push_cube_displacement_cm": best_v["pre_push_cube_displacement_cm"],
-                "final_cube_goal_m": best_v["final_cube_goal_m"],
-                "min_finger_to_cube_cm": best_v["min_finger_to_cube_cm"],
-                "tightest_joint": best_v["tightest_joint"],
-                "tau_warn_steps_max": best_v["tau_warn_steps_max"],
-                "tau_flag_steps_max": best_v["tau_flag_steps_max"],
-                "target_clamps": best_v["target_clamps"],
-                "variants_tried": variants_tried,
-            }
-            results.append(rec)
-
-            if a.dry_run or len(configs) <= 10 or idx % 50 == 0 or idx == len(configs) - 1:
-                v_str = f"variant={variant_used}" if overall_success else f"all {len(variants_tried)} variants failed"
-                print(
-                    f"[SCAN {idx+1}/{len(configs)}] ({cx}, {cy}, th={th_deg}°, d={d}) -> "
-                    f"success={overall_success} ({v_str}, dist={best_v['final_cube_goal_m']*100:.1f}cm, "
-                    f"disp={best_v['pre_push_cube_displacement_cm']:.2f}cm, disturbed={best_v['disturbed_approach']})",
-                    flush=True,
-                )
-
         out_data = {
             "x_grid": x_grid,
             "y_grid": y_grid,
@@ -350,9 +537,60 @@ def main():
             "results": results,
             "skipped": skipped,
         }
-        Path(a.output).parent.mkdir(parents=True, exist_ok=True)
-        with open(a.output, "w") as fp:
-            json.dump(out_data, fp, indent=2)
+
+        for idx, (cx, cy, th_deg, d) in enumerate(configs):
+            cfg_key = (round(cx, 3), round(cy, 3), int(round(th_deg)), round(d, 3))
+            if cfg_key in completed_keys:
+                print(f"[SCAN {idx+1}/{len(configs)}] ({cx}, {cy}, th={th_deg}°, d={d}) -> SKIPPED (already completed in checkpoint)", flush=True)
+                continue
+
+            skip_reason = filter_config(cx, cy, th_deg, d)
+            if skip_reason is not None:
+                skipped.append({"config": (cx, cy, th_deg, d), "reason": skip_reason})
+                completed_keys.add(cfg_key)
+                save_checkpoint(a.output, out_data)
+                print(f"[SCAN {idx+1}/{len(configs)}] ({cx}, {cy}, th={th_deg}°, d={d}) -> SKIPPED ({skip_reason}) [0.0s]", flush=True)
+                continue
+
+            rec = run_config_variants(
+                iface=iface,
+                dev=dev,
+                robot=robot,
+                cube=cube,
+                cx=cx,
+                cy=cy,
+                th_deg=th_deg,
+                d=d,
+                variant_timeout_s=a.variant_timeout_s,
+                half=HALF,
+                seg=SEG,
+                rounds_stage=ROUNDS_STAGE,
+                success_dist_m=SUCCESS_DIST_M,
+                variants=APPROACH_VARIANTS,
+                finger_to_cube_fn=finger_to_cube_cm,
+                joint_margin_fn=get_joint_margin_deg,
+                config_idx=idx,
+                z_cube=C._CUBE_REST_Z_B,
+                cube_spawn_z=C._CUBE_SPAWN_Z,
+                robot_base_z=C._ROBOT_BASE_Z,
+            )
+
+            results.append(rec)
+            completed_keys.add(cfg_key)
+            save_checkpoint(a.output, out_data)
+
+            overall_success = rec["success"]
+            variant_used = rec["variant_used"]
+            v_str = f"variant={variant_used}" if overall_success else f"all {len(rec['variants_tried'])} variants failed"
+            print(
+                f"[SCAN {idx+1}/{len(configs)}] ({cx}, {cy}, th={th_deg}°, d={d}) -> "
+                f"success={overall_success} ({v_str}, dist={rec['final_cube_goal_m']*100:.1f}cm, "
+                f"disp={rec['pre_push_cube_displacement_cm']:.2f}cm, disturbed={rec['disturbed_approach']}) "
+                f"[{rec['elapsed_s']:.1f}s]",
+                flush=True,
+            )
+
+        save_checkpoint(a.output, out_data)
         print(f"[SCAN] Saved {len(results)} records to {a.output}", flush=True)
 
         n_total = len(configs)
