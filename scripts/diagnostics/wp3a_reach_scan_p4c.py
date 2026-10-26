@@ -26,6 +26,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import sys
 import traceback
 from pathlib import Path
@@ -86,7 +87,6 @@ def main():
 
     sim_app = None
     env = None
-    exit_code = 0
 
     try:
         app = AppLauncher(a)
@@ -199,10 +199,12 @@ def main():
             q_rest = iface.get_left_hand_quat_b()
             q_cmd = pb.command_quat(q_rest, None)
 
-            # Place cube and goal
+            # Place cube and goal: write pose (7-dim) and zero velocity (6-dim)
             cube_pose_w = torch.tensor([[cx, cy, C._CUBE_SPAWN_Z + C._ROBOT_BASE_Z, 1.0, 0.0, 0.0, 0.0]],
                                        device=dev, dtype=torch.float32)
-            cube.write_root_state_to_sim(cube_pose_w)
+            cube_vel_w = torch.zeros((1, 6), device=dev, dtype=torch.float32)
+            cube.write_root_pose_to_sim(cube_pose_w)
+            cube.write_root_velocity_to_sim(cube_vel_w)
             goal_b = [gx, gy, z_cube]
 
             # Approach point
@@ -301,14 +303,11 @@ def main():
 
         if not a.dry_run and len(results) == 0:
             print("[SCAN ERROR] Scan produced 0 results (all configurations were skipped). Failing scan.", flush=True)
-            exit_code = 2
-        else:
-            exit_code = 0
+            sys.stdout.flush()
+            sys.stderr.flush()
+            os._exit(2)
 
-    except BaseException as e:
-        traceback.print_exc()
-        exit_code = 1
-    finally:
+        # Clean shutdown only on success
         if env is not None:
             try:
                 env.close()
@@ -319,12 +318,20 @@ def main():
                 sim_app.close()
             except BaseException:
                 pass
-        sys.exit(exit_code)
+        sys.exit(0)
+
+    except BaseException:
+        traceback.print_exc()
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(1)
 
 
 if __name__ == "__main__":
     try:
         main()
-    except BaseException as e:
+    except BaseException:
         traceback.print_exc()
-        sys.exit(1)
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(1)

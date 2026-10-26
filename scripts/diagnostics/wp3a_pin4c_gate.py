@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import math
+import os
 import sys
 import traceback
 from typing import Any, Dict, List, Sequence, Tuple
@@ -124,7 +125,6 @@ def main():
     launcher = None
     sim_app = None
     env = None
-    exit_code = 0
 
     try:
         launcher = AppLauncher(args)
@@ -154,7 +154,7 @@ def main():
 
         samples = []
         allpass = True
-        print(f"[P4C GATE] Running runtime gate for {args.n} resets (seed0={args.seed0})...")
+        print(f"[P4C GATE] Running runtime gate for {args.n} resets (seed0={args.seed0})...", flush=True)
 
         for k in range(args.n):
             seed = args.seed0 + k
@@ -170,42 +170,49 @@ def main():
             ok = determ and drift < 1.0 and goal_static and res["ok"]
             if not ok:
                 allpass = False
-                print(f"[P4C GATE FAIL] seed {seed}: determ={determ} drift={drift:.2f}cm static={goal_static} check={res}")
+                print(f"[P4C GATE FAIL] seed {seed}: determ={determ} drift={drift:.2f}cm static={goal_static} check={res}", flush=True)
             samples.append((c0, g0))
 
         dist_eval = evaluate_pin4c_distribution(samples, C.PIN4C_THETA_MAX, C.PIN4C_DIST_RANGE,
                                                 C.PIN4C_CUBE_REGION_X, C.PIN4C_CUBE_REGION_Y)
-        print(f"[P4C GATE] Evaluated {args.n} resets:")
-        print(f"  dist range: [{dist_eval['dist_min']:.4f}, {dist_eval['dist_max']:.4f}] m (spec: {C.PIN4C_DIST_RANGE})")
-        print(f"  angle range: [{dist_eval['angle_min_deg']:.1f}°, {dist_eval['angle_max_deg']:.1f}°] (spec: ±{math.degrees(C.PIN4C_THETA_MAX):.1f}°)")
-        print(f"  angle bin counts: {dist_eval['bin_counts']} (uniformity_ok={dist_eval['uniformity_ok']})")
+        print(f"[P4C GATE] Evaluated {args.n} resets:", flush=True)
+        print(f"  dist range: [{dist_eval['dist_min']:.4f}, {dist_eval['dist_max']:.4f}] m (spec: {C.PIN4C_DIST_RANGE})", flush=True)
+        print(f"  angle range: [{dist_eval['angle_min_deg']:.1f}°, {dist_eval['angle_max_deg']:.1f}°] (spec: ±{math.degrees(C.PIN4C_THETA_MAX):.1f}°)", flush=True)
+        print(f"  angle bin counts: {dist_eval['bin_counts']} (uniformity_ok={dist_eval['uniformity_ok']})", flush=True)
 
         if allpass and dist_eval["ok"]:
-            print("[P4C GATE] ALL PASS")
-            exit_code = 0
+            print("[P4C GATE] ALL PASS", flush=True)
+            sys.stdout.flush()
+            sys.stderr.flush()
+            if env is not None:
+                try:
+                    env.close()
+                except BaseException:
+                    pass
+            if sim_app is not None:
+                try:
+                    sim_app.close()
+                except BaseException:
+                    pass
+            sys.exit(0)
         else:
-            print("[P4C GATE] FAIL")
-            exit_code = 3
-    except BaseException as e:
+            print("[P4C GATE] FAIL", flush=True)
+            sys.stdout.flush()
+            sys.stderr.flush()
+            os._exit(3)
+
+    except BaseException:
         traceback.print_exc()
-        exit_code = 1
-    finally:
-        if env is not None:
-            try:
-                env.close()
-            except BaseException:
-                pass
-        if sim_app is not None:
-            try:
-                sim_app.close()
-            except BaseException:
-                pass
-        sys.exit(exit_code)
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(1)
 
 
 if __name__ == "__main__":
     try:
         main()
-    except BaseException as e:
+    except BaseException:
         traceback.print_exc()
-        sys.exit(1)
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(1)
