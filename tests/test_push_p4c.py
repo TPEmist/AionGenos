@@ -18,7 +18,11 @@ from aiongenos.orchestrator import push_memory as pm
 from aiongenos.orchestrator.push_collect import run_push_collect_loop
 from aiongenos.replay.buffer import ReplayBuffer
 from aiongenos.replay.schema import EpisodeOutcome
-from aiongenos.tasks.WP1_contact_testbed.cube_relative_goal import compute_polar_goal
+from aiongenos.tasks.WP1_contact_testbed.cube_relative_goal import (
+    CubeRelativePolarCommand,
+    CubeRelativePolarCommandCfg,
+    compute_polar_goal,
+)
 from aiongenos.tasks.WP1_contact_testbed import pin4c_constants as C
 from scripts.diagnostics.wp3a_pin4c_gate import (
     check_pin4c_sample,
@@ -314,3 +318,68 @@ def test_preamble_coords_off_omits_coords_and_redacts_lessons():
 
     # Stored record lesson is UNCHANGED
     assert "(40, 20, 50)" in rec.text_lesson
+
+
+def test_pin4c_placeholder_rejection(tmp_path):
+    """rev1 MINOR: run_push_collect_loop with geometry='pin4c' rejects execution when constants are placeholder."""
+    fake_env = _FakePushEnvP4c()
+    b = WorkspaceBounds(x_bounds=(0.2, 0.8), y_bounds=(-0.4, 0.4), z_bounds=(-0.1, 0.5))
+    lc = LevelConfig(level=99, name="push", control_mode=ControlMode.PUSH_WAYPOINT,
+                     task_instruction_template="Push.", workspace_bounds=b)
+    replay = ReplayBuffer(tmp_path / "replay")
+
+    # 1. When PIN4C_DERIVED_FROM is None, raises RuntimeError
+    orig_derived = C.PIN4C_DERIVED_FROM
+    try:
+        C.PIN4C_DERIVED_FROM = None
+        with pytest.raises(RuntimeError, match="Pin-4c geometry constants are provisional placeholders"):
+            run_push_collect_loop(
+                env=fake_env,
+                level_config=lc,
+                teacher_url="http://mock:18888",
+                replay=replay,
+                num_episodes=1,
+                geometry="pin4c",
+                scripted_targets=[(40, 20, 50)],
+                dump_images_root=str(tmp_path / "dumps"),
+            )
+
+        # 2. When PIN4C_DERIVED_FROM is set, execution proceeds
+        C.PIN4C_DERIVED_FROM = "logs/wp3a_p4c_derived.json"
+        summary = run_push_collect_loop(
+            env=fake_env,
+            level_config=lc,
+            teacher_url="http://mock:18888",
+            replay=replay,
+            num_episodes=1,
+            geometry="pin4c",
+            scripted_targets=[(40, 20, 50)],
+            dump_images_root=str(tmp_path / "dumps_set"),
+        )
+        assert summary["geometry"] == "pin4c"
+    finally:
+        C.PIN4C_DERIVED_FROM = orig_derived
+
+
+def test_cube_relative_polar_command_num_envs_guard():
+    """rev1 MINOR: CubeRelativePolarCommand raises NotImplementedError when num_envs > 1 or multiple env_ids."""
+    cfg = CubeRelativePolarCommandCfg()
+    cfg.object_name = "object"
+    cfg.theta_range = (-1.0, 1.0)
+    cfg.dist_range = (0.07, 0.10)
+
+    # Multi-env env object
+    multi_env = MagicMock()
+    multi_env.num_envs = 4
+    with pytest.raises(NotImplementedError, match="currently only supports num_envs=1"):
+        CubeRelativePolarCommand(cfg=cfg, env=multi_env)
+
+    # Single-env env object
+    single_env = MagicMock()
+    single_env.num_envs = 1
+    cmd = CubeRelativePolarCommand(cfg=cfg, env=single_env)
+
+    # Multi-env resample env_ids
+    with pytest.raises(NotImplementedError, match="currently only supports single-env resets"):
+        cmd._resample_command([0, 1, 2])
+

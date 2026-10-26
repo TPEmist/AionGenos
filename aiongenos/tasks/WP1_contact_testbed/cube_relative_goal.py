@@ -27,8 +27,18 @@ try:
     from isaaclab.utils import configclass
     from isaaclab.utils.math import subtract_frame_transforms
 except (ImportError, ModuleNotFoundError):
-    UniformPoseCommandCfg = object
-    UniformPoseCommand = object
+    class UniformPoseCommandCfg:
+        pass
+
+    class UniformPoseCommand:
+        def __init__(self, cfg=None, env=None):
+            self.cfg = cfg
+            self._env = env
+            self.device = "cpu"
+            self.pose_command_b = torch.zeros((1, 7))
+
+        def _resample_command(self, env_ids: Sequence[int]):
+            pass
 
     def configclass(cls=None):
         return cls if cls is not None else lambda c: c
@@ -84,10 +94,20 @@ class CubeRelativePolarCommand(UniformPoseCommand):
     cfg: "CubeRelativePolarCommandCfg"
 
     def __init__(self, cfg: "CubeRelativePolarCommandCfg", env: Any):
+        num_envs = getattr(env, "num_envs", getattr(getattr(env, "unwrapped", None), "num_envs", 1))
+        if num_envs > 1:
+            raise NotImplementedError(
+                f"CubeRelativePolarCommand currently only supports num_envs=1 (got num_envs={num_envs}). "
+                "Multi-env telemetry recording is not supported."
+            )
         super().__init__(cfg, env)
         self.last_sample: dict[str, Any] = {}
 
     def _resample_command(self, env_ids: Sequence[int]):
+        if len(env_ids) > 1:
+            raise NotImplementedError(
+                f"CubeRelativePolarCommand currently only supports single-env resets (got {len(env_ids)} env_ids)."
+            )
         super()._resample_command(env_ids)
         obj = self._env.scene[self.cfg.object_name]
         cube_b, _ = subtract_frame_transforms(

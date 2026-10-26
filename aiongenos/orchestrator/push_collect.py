@@ -160,6 +160,14 @@ def run_push_collect_loop(
     Seed convention IDENTICAL to collect.py: env_seed_base + ep_idx (None →
     nondeterministic). Per-round records carry the push primitive's 3 numbers
     (requested/clamped disp, was_clamped) + the τ monitor summary."""
+    if geometry == "pin4c":
+        from aiongenos.tasks.WP1_contact_testbed import pin4c_constants
+        if getattr(pin4c_constants, "PIN4C_DERIVED_FROM", None) is None:
+            raise RuntimeError(
+                "Refusing to run with geometry='pin4c': Pin-4c geometry constants are provisional placeholders "
+                "(PIN4C_DERIVED_FROM is None). Run wp3a_reach_scan_p4c.py and wp3a_p4c_derive.py first, "
+                "and update pin4c_constants.py before any pin4c run."
+            )
     _check_episode_budget(env, steps_per_segment)
     # disclosed-scaffold rung lives on the env (it shapes get_state); read it
     # once here so every record states which rung its data came from

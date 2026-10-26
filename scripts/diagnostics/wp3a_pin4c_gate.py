@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import math
 import sys
+import traceback
 from typing import Any, Dict, List, Sequence, Tuple
 
 
@@ -118,69 +119,93 @@ def main():
     parser.add_argument("--seed0", type=int, default=4700)
     AppLauncher.add_app_launcher_args(parser)
     args = parser.parse_args()
-    args.enable_cameras = False
-    launcher = AppLauncher(args)
-    sim_app = launcher.app
+    args.enable_cameras = True
 
-    import gymnasium as gym
-    import numpy as np
-    import torch
-    from isaaclab_tasks.utils import parse_env_cfg
-    import aiongenos.tasks  # noqa
-    from aiongenos.orchestrator.isaaclab_env_interface import IsaacLabEnvInterface
-    from aiongenos.tasks.WP1_contact_testbed import push_s3a_cfg as C
+    launcher = None
+    sim_app = None
+    env = None
+    exit_code = 0
 
-    GID = "Isaac-AionGenos-WP1-Push-P4c-v0"
-    SETTLE = 30
-    env = gym.make(GID, cfg=parse_env_cfg(GID, num_envs=1), render_mode=None)
-    iface = IsaacLabEnvInterface(env)
-    zero = torch.zeros((1, env.action_space.shape[-1]), device=env.unwrapped.device)
+    try:
+        launcher = AppLauncher(args)
+        sim_app = launcher.app
 
-    def reset_settle(seed):
-        iface.reset(seed=seed)
-        c0 = np.array(iface.get_cube_pose_b())
-        g0 = np.array(iface.get_goal_pose_b())
-        for _ in range(SETTLE):
-            env.step(zero)
-        return c0, g0, np.array(iface.get_cube_pose_b()), np.array(iface.get_goal_pose_b())
+        import gymnasium as gym
+        import numpy as np
+        import torch
+        from isaaclab_tasks.utils import parse_env_cfg
+        import aiongenos.tasks  # noqa
+        from aiongenos.orchestrator.isaaclab_env_interface import IsaacLabEnvInterface
+        from aiongenos.tasks.WP1_contact_testbed import push_s3a_cfg as C
 
-    samples = []
-    allpass = True
-    print(f"[P4C GATE] Running runtime gate for {args.n} resets (seed0={args.seed0})...")
+        GID = "Isaac-AionGenos-WP1-Push-P4c-v0"
+        SETTLE = 30
+        env = gym.make(GID, cfg=parse_env_cfg(GID, num_envs=1), render_mode=None)
+        iface = IsaacLabEnvInterface(env)
+        zero = torch.zeros((1, env.action_space.shape[-1]), device=env.unwrapped.device)
 
-    for k in range(args.n):
-        seed = args.seed0 + k
-        c0, g0, c1, g1 = reset_settle(seed)
-        c0b, g0b, _, _ = reset_settle(seed)
+        def reset_settle(seed):
+            iface.reset(seed=seed)
+            c0 = np.array(iface.get_cube_pose_b())
+            g0 = np.array(iface.get_goal_pose_b())
+            for _ in range(SETTLE):
+                env.step(zero)
+            return c0, g0, np.array(iface.get_cube_pose_b()), np.array(iface.get_goal_pose_b())
 
-        determ = np.linalg.norm(c0 - c0b) * 100 < 0.5 and np.allclose(g0, g0b, atol=1e-5)
-        drift = np.linalg.norm(c1[:2] - c0[:2]) * 100
-        goal_static = np.allclose(g0, g1, atol=1e-5)
+        samples = []
+        allpass = True
+        print(f"[P4C GATE] Running runtime gate for {args.n} resets (seed0={args.seed0})...")
 
-        res = check_pin4c_sample(c0, g0, C.PIN4C_THETA_MAX, C.PIN4C_DIST_RANGE,
-                                 C.PIN4C_CUBE_REGION_X, C.PIN4C_CUBE_REGION_Y)
-        ok = determ and drift < 1.0 and goal_static and res["ok"]
-        if not ok:
-            allpass = False
-            print(f"[P4C GATE FAIL] seed {seed}: determ={determ} drift={drift:.2f}cm static={goal_static} check={res}")
-        samples.append((c0, g0))
+        for k in range(args.n):
+            seed = args.seed0 + k
+            c0, g0, c1, g1 = reset_settle(seed)
+            c0b, g0b, _, _ = reset_settle(seed)
 
-    dist_eval = evaluate_pin4c_distribution(samples, C.PIN4C_THETA_MAX, C.PIN4C_DIST_RANGE,
-                                            C.PIN4C_CUBE_REGION_X, C.PIN4C_CUBE_REGION_Y)
-    print(f"[P4C GATE] Evaluated {args.n} resets:")
-    print(f"  dist range: [{dist_eval['dist_min']:.4f}, {dist_eval['dist_max']:.4f}] m (spec: {C.PIN4C_DIST_RANGE})")
-    print(f"  angle range: [{dist_eval['angle_min_deg']:.1f}°, {dist_eval['angle_max_deg']:.1f}°] (spec: ±{math.degrees(C.PIN4C_THETA_MAX):.1f}°)")
-    print(f"  angle bin counts: {dist_eval['bin_counts']} (uniformity_ok={dist_eval['uniformity_ok']})")
+            determ = np.linalg.norm(c0 - c0b) * 100 < 0.5 and np.allclose(g0, g0b, atol=1e-5)
+            drift = np.linalg.norm(c1[:2] - c0[:2]) * 100
+            goal_static = np.allclose(g0, g1, atol=1e-5)
 
-    env.close()
-    sim_app.close()
-    if allpass and dist_eval["ok"]:
-        print("[P4C GATE] ALL PASS")
-        sys.exit(0)
-    else:
-        print("[P4C GATE] FAIL")
-        sys.exit(3)
+            res = check_pin4c_sample(c0, g0, C.PIN4C_THETA_MAX, C.PIN4C_DIST_RANGE,
+                                     C.PIN4C_CUBE_REGION_X, C.PIN4C_CUBE_REGION_Y)
+            ok = determ and drift < 1.0 and goal_static and res["ok"]
+            if not ok:
+                allpass = False
+                print(f"[P4C GATE FAIL] seed {seed}: determ={determ} drift={drift:.2f}cm static={goal_static} check={res}")
+            samples.append((c0, g0))
+
+        dist_eval = evaluate_pin4c_distribution(samples, C.PIN4C_THETA_MAX, C.PIN4C_DIST_RANGE,
+                                                C.PIN4C_CUBE_REGION_X, C.PIN4C_CUBE_REGION_Y)
+        print(f"[P4C GATE] Evaluated {args.n} resets:")
+        print(f"  dist range: [{dist_eval['dist_min']:.4f}, {dist_eval['dist_max']:.4f}] m (spec: {C.PIN4C_DIST_RANGE})")
+        print(f"  angle range: [{dist_eval['angle_min_deg']:.1f}°, {dist_eval['angle_max_deg']:.1f}°] (spec: ±{math.degrees(C.PIN4C_THETA_MAX):.1f}°)")
+        print(f"  angle bin counts: {dist_eval['bin_counts']} (uniformity_ok={dist_eval['uniformity_ok']})")
+
+        if allpass and dist_eval["ok"]:
+            print("[P4C GATE] ALL PASS")
+            exit_code = 0
+        else:
+            print("[P4C GATE] FAIL")
+            exit_code = 3
+    except BaseException as e:
+        traceback.print_exc()
+        exit_code = 1
+    finally:
+        if env is not None:
+            try:
+                env.close()
+            except BaseException:
+                pass
+        if sim_app is not None:
+            try:
+                sim_app.close()
+            except BaseException:
+                pass
+        sys.exit(exit_code)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except BaseException as e:
+        traceback.print_exc()
+        sys.exit(1)

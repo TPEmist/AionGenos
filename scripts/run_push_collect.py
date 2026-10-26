@@ -109,6 +109,15 @@ def _p(m): print(f"[PUSHCOL] {m}", flush=True)
 
 
 def main():
+    if args_cli.geometry == "pin4c":
+        from aiongenos.tasks.WP1_contact_testbed import pin4c_constants
+        if getattr(pin4c_constants, "PIN4C_DERIVED_FROM", None) is None:
+            raise RuntimeError(
+                "Refusing to run --geometry pin4c: Pin-4c geometry constants are provisional placeholders "
+                "(PIN4C_DERIVED_FROM is None). Run wp3a_reach_scan_p4c.py and wp3a_p4c_derive.py first, "
+                "and update pin4c_constants.py before any pin4c run."
+            )
+
     cfg = AionGenosConfig()
     teacher_url = args_cli.teacher_url or cfg.teacher_url
 
