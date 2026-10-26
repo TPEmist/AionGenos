@@ -28,7 +28,11 @@ H = 0.0240  # cube half-height (m)
 SUCC_M = 0.05  # push success distance (m)
 PUSH_ROUND_CAP = 12
 
-FLAG_WHITELIST = frozenset({"push_plateau", "vlm_stop_premature", "env_auto_reset"})
+FLAG_WHITELIST = frozenset({"push_plateau", "vlm_stop_premature", "env_auto_reset", "scripted_policy"})
+
+COORD_PATTERN = re.compile(
+    r"[XYZxyz]\s*=\s*-?\d+|\(\s*-?\d+\s*,\s*-?\d+\s*(?:,\s*-?\d+\s*)?\)"
+)
 
 
 def _is_flag_whitelisted(flag: str) -> bool:
@@ -117,6 +121,14 @@ def validate_episodes(eps: List[Dict[str, Any]], ep_dirs: Optional[List[str]] = 
     box_fallback_count = 0
     box_quat_count = 0
 
+    total_injected_lessons = 0
+    leaked_lesson_count = 0
+    preamble_coord_redactions_total = 0
+    settled_dists: List[float] = []
+    settled_angles: List[float] = []
+    settled_cubes_x: List[float] = []
+    settled_cubes_y: List[float] = []
+
     for ep_idx, e in enumerate(eps):
         ep_id = e.get("episode_id", f"ep_{ep_idx}")
         flags = e.get("flags", [])
@@ -174,6 +186,58 @@ def validate_episodes(eps: List[Dict[str, Any]], ep_dirs: Optional[List[str]] = 
                         R["hard_d1_unit_mismatch"] += 1
                     else:
                         R["d1_units_OK"] += 1
+
+        # HARD check: pin4c geometry check (R3, R11)
+        if e.get("geometry") == "pin4c":
+            gs = e.get("goal_sample")
+            if not gs:
+                hard_failures.append(f"HARD: Episode {ep_id} geometry is pin4c but goal_sample is missing")
+                R["hard_pin4c_missing_sample"] += 1
+            else:
+                dist = gs.get("dist")
+                theta = gs.get("theta")
+                from aiongenos.tasks.WP1_contact_testbed.pin4c_constants import PIN4C_THETA_MAX
+                if dist is None or not (0.07 - 1e-6 <= dist <= 0.10 + 1e-6):
+                    hard_failures.append(f"HARD: Episode {ep_id} pin4c commanded dist {dist} outside [0.07, 0.10]")
+                    R["hard_pin4c_dist_out_of_bounds"] += 1
+                elif theta is None or abs(theta) > PIN4C_THETA_MAX + 1e-6:
+                    hard_failures.append(f"HARD: Episode {ep_id} pin4c commanded |theta| {abs(theta) if theta is not None else None} > theta_max {PIN4C_THETA_MAX}")
+                    R["hard_pin4c_theta_out_of_bounds"] += 1
+                else:
+                    R["pin4c_sample_OK"] += 1
+
+        # Injected lesson leak check
+        for h in e.get("memory_hits", []):
+            lesson = h.get("lesson")
+            if not lesson and "ep_id" in h:
+                hit_ep = h["ep_id"]
+                cand_recaps = glob.glob(f"workspace/recaps*/{hit_ep}/recap.json") + \
+                              glob.glob(f"workspace/recaps*/recap_{hit_ep}.json") + \
+                              glob.glob(f"/home/control/AionGenos/workspace/recaps*/{hit_ep}/recap.json") + \
+                              glob.glob(f"/home/control/AionGenos/workspace/recaps*/*/{hit_ep}/recap.json")
+                if cand_recaps:
+                    try:
+                        with open(cand_recaps[0]) as rf:
+                            lesson = json.load(rf).get("text_lesson")
+                    except Exception:
+                        pass
+            if lesson:
+                total_injected_lessons += 1
+                if COORD_PATTERN.search(lesson):
+                    leaked_lesson_count += 1
+
+        preamble_coord_redactions_total += e.get("preamble_coord_redactions", 0)
+
+        # Settled goal-cube telemetry
+        c_init = e.get("init_cube_pose_b") or (rs[0].get("cube_b_pre") if rs else None)
+        g_init = e.get("goal_pose_b") or (rs[0].get("goal_b_pre") if rs else None)
+        if c_init is not None and g_init is not None:
+            dx = g_init[0] - c_init[0]
+            dy = g_init[1] - c_init[1]
+            settled_dists.append(math.hypot(dx, dy))
+            settled_angles.append(math.degrees(math.atan2(dy, dx)))
+            settled_cubes_x.append(c_init[0])
+            settled_cubes_y.append(c_init[1])
 
         if not rs:
             continue
@@ -429,7 +493,18 @@ def validate_episodes(eps: List[Dict[str, Any]], ep_dirs: Optional[List[str]] = 
         "d1_units_OK": R.get("d1_units_OK", 0),
         "d1_bounds_missing": R.get("d1_bounds_missing", 0),
         "has_frame_convention": any(e.get("frame_convention") for e in eps),
+        "total_injected_lessons": total_injected_lessons,
+        "leaked_lesson_count": leaked_lesson_count,
+        "preamble_coord_redactions_total": preamble_coord_redactions_total,
+        "preamble_coords_mode": eps[0].get("preamble_coords", "on") if eps else "on",
+        "geometry_mode": eps[0].get("geometry", "pin4b") if eps else "pin4b",
+        "settled_dists": settled_dists,
+        "settled_angles": settled_angles,
+        "settled_cubes_x": settled_cubes_x,
+        "settled_cubes_y": settled_cubes_y,
     }
+    from scripts.analysis.wp3a_rho_segments import analyze_rho_segments
+    stats["rho_segments"] = analyze_rho_segments(eps)
     return len(hard_failures) == 0, stats
 
 
@@ -508,6 +583,42 @@ def print_report(stats: Dict[str, Any]) -> None:
     print("[feedback]", fb_stats)
     for b in stats["fb_bad"]:
         print("  BAD", b)
+
+    # Geometry telemetry
+    geom_mode = stats.get("geometry_mode", "pin4b")
+    if stats.get("settled_dists"):
+        sd = stats["settled_dists"]
+        sa = stats["settled_angles"]
+        cx = stats["settled_cubes_x"]
+        cy = stats["settled_cubes_y"]
+        print(f"[geometry] geometry={geom_mode}; settled goal-cube dist (m): min={min(sd):.3f} median={st.median(sd):.3f} max={max(sd):.3f}; settled angle (deg): min={min(sa):.1f} median={st.median(sa):.1f} max={max(sa):.1f}; cube X: [{min(cx):.3f}, {max(cx):.3f}] Y: [{min(cy):.3f}, {max(cy):.3f}]")
+
+    # (e) Preamble and Leak rate telemetry
+    p_coords = stats.get("preamble_coords_mode", "on")
+    redactions = stats.get("preamble_coord_redactions_total", 0)
+    tot_lessons = stats.get("total_injected_lessons", 0)
+    leak_lessons = stats.get("leaked_lesson_count", 0)
+    leak_rate_pct = (100.0 * leak_lessons / tot_lessons) if tot_lessons > 0 else 0.0
+    print(f"[preamble] preamble_coords={p_coords}; coord_redactions={redactions}; lesson_leak_rate={leak_lessons}/{tot_lessons} ({leak_rate_pct:.1f}%)")
+
+    # Segment rho / circular correlation / (c) pass verdict
+    rho_res = stats.get("rho_segments")
+    if rho_res and rho_res.get("segments"):
+        for name, s in rho_res["segments"].items():
+            if s.get("status") == "too_few":
+                print(f"[segment:{name}] n={s['n']} (too few)")
+                continue
+            seeds = s["seeds"]
+            out = [
+                f"rho_X={s['rho_X']:+.3f} p_one_sided={s['p_X']:.4f} band95={s['band95_X']:+.3f}",
+                f"rho_Y={s['rho_Y']:+.3f} p_one_sided={s['p_Y']:.4f} band95={s['band95_Y']:+.3f}",
+                f"circ_corr={s['circ_corr']:+.3f} p_circ={s['p_circ']:.4f}",
+            ]
+            print(f"[segment:{name}] n={s['n']} seeds {seeds[0]}-{seeds[1]} | " + " | ".join(out) + f" | unique_R1_targets={s['unique_R1_targets']}")
+        count_str = "yes" if rho_res["count_met"] else "no"
+        sig_str = "yes" if rho_res["rho_sig"] else "no"
+        verdict_str = "PASS" if rho_res["pass_step_c"] else "NOT PASSED"
+        print(f"[(c) verdict] count>=5: {count_str}; rho_X significant: {sig_str} -> {verdict_str}")
 
     if stats["hard_failures"]:
         print(f"\n[FAIL] {len(stats['hard_failures'])} HARD checks failed:")

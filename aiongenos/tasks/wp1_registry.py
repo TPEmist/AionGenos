@@ -90,6 +90,26 @@ gym.register(
     },
 )
 
+# WP1-③a Pin-4c push environment: polar goal sampling U(theta) x U(d)
+gym.register(
+    id="Isaac-AionGenos-WP1-Push-P4c-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": "aiongenos.tasks.WP1_contact_testbed.push_s3a_cfg:WP1PushP4cEnvCfg",
+    },
+)
+
+# WP1-③a Pin-4c push + fixed top-down RGB camera
+gym.register(
+    id="Isaac-AionGenos-WP1-Push-P4c-TopCam-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": "aiongenos.tasks.WP1_contact_testbed.push_s3a_cfg:WP1PushP4cTopCamEnvCfg",
+    },
+)
+
 # Diagnosis: BI robot + LEFT arm one OSC term + RIGHT arm JointPosition.
 gym.register(
     id="Isaac-AionGenos-OSC-BiLeftOnly-v0",

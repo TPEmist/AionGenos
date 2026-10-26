@@ -138,6 +138,17 @@ _GOAL_CLIP_X = (0.44, 0.50)      # left-reachable box for the goal
 _GOAL_CLIP_Y = (0.07, 0.19)
 _PIN4_Y = (-0.15, 0.15)
 
+# ── Pin-4c geometry constants (single source of truth; PI ruling 2026-10-26) ──
+from aiongenos.tasks.WP1_contact_testbed.pin4c_constants import (  # noqa: F401
+    PIN4C_THETA_MAX,
+    PIN4C_THETA_RANGE,
+    PIN4C_DIST_RANGE,
+    PIN4C_CUBE_REGION_X,
+    PIN4C_CUBE_REGION_Y,
+    PIN4C_CUBE_START_X,
+    PIN4C_CUBE_START_Y,
+)
+
 # Pin-7a (2026-08-25): standby pose TUNED BY THE PI in the free-drive tuner,
 # on the rebuilt scene (base 0.65, table). SINGLE SOURCE OF TRUTH — used by
 # BOTH init_state AND the reset event so they cannot drift (the drift was the
@@ -366,6 +377,67 @@ class WP1PushS3aTopCamEnvCfg(WP1PushS3aEnvCfg):
             spawn=sim_utils.PinholeCameraCfg(
                 # FOV ≈ 2·atan(45/(2·45)) ≈ 53° → ≈0.8 m footprint at the table
                 # (covers base x ≈ 0.0–0.8: hand standby, cube region, goal clip box)
+                focal_length=_TOPCAM_FOCAL_MM, focus_distance=400.0,
+                horizontal_aperture=45.0, clipping_range=(0.1, 1.0e5),
+            ),
+            offset=CameraCfg.OffsetCfg(
+                pos=(_TOPCAM_POS_B[0], _TOPCAM_POS_B[1], _TOPCAM_POS_B[2] + _ROBOT_BASE_Z),
+                rot=_TOPCAM_ROT_WORLD,
+                convention="world",
+            ),
+        )
+
+
+@configclass
+class WP1PushP4cEnvCfg(WP1PushS3aEnvCfg):
+    """WP1-③a Pin-4c push environment: cube spawned in derived box,
+    goal sampled via pure U(theta) x U(d) CubeRelativePolarCommand."""
+
+    def __post_init__(self):
+        super().__post_init__()
+        # Cube spawn region = derived box
+        self.scene.object.init_state.pos = [PIN4C_CUBE_START_X, PIN4C_CUBE_START_Y, _CUBE_SPAWN_Z]
+        self.events.reset_object.params["pose_range"] = {
+            "x": (PIN4C_CUBE_REGION_X[0] - PIN4C_CUBE_START_X, PIN4C_CUBE_REGION_X[1] - PIN4C_CUBE_START_X),
+            "y": (PIN4C_CUBE_REGION_Y[0] - PIN4C_CUBE_START_Y, PIN4C_CUBE_REGION_Y[1] - PIN4C_CUBE_START_Y),
+        }
+        # Swap command to CubeRelativePolarCommand
+        from aiongenos.tasks.WP1_contact_testbed.cube_relative_goal import CubeRelativePolarCommandCfg
+        self.commands.left_ee_pose = CubeRelativePolarCommandCfg(
+            **{f: getattr(self.commands.left_ee_pose, f)
+               for f in self.commands.left_ee_pose.__dataclass_fields__ if f not in ("class_type", "offset_x", "offset_y", "clip_x", "clip_y")},
+            theta_range=PIN4C_THETA_RANGE,
+            dist_range=PIN4C_DIST_RANGE,
+            object_name="object",
+        )
+        g = self.commands.left_ee_pose
+        g.ranges.pos_z = (_CUBE_REST_Z_B, _CUBE_REST_Z_B)
+        g.ranges.roll = (0.0, 0.0)
+        g.ranges.pitch = (0.0, 0.0)
+        g.ranges.yaw = (0.0, 0.0)
+        g.goal_pose_visualizer_cfg = _GREEN_GOAL_MARKER_CFG.replace(
+            prim_path="/Visuals/Command/goal_zone"
+        )
+        for _m in self.commands.left_ee_pose.current_pose_visualizer_cfg.markers.values():
+            _m.visible = False
+        self.commands.right_ee_pose.debug_vis = False
+
+
+@configclass
+class WP1PushP4cTopCamEnvCfg(WP1PushP4cEnvCfg):
+    """WP1PushP4cEnvCfg + a fixed top-down RGB camera (rung-1b and above)."""
+
+    def __post_init__(self):
+        super().__post_init__()
+        from isaaclab.sensors import CameraCfg
+
+        self.scene.camera_top = CameraCfg(
+            prim_path="{ENV_REGEX_NS}/TopCamera",
+            update_period=0.0,
+            height=_TOPCAM_RES,
+            width=_TOPCAM_RES,
+            data_types=["rgb"],
+            spawn=sim_utils.PinholeCameraCfg(
                 focal_length=_TOPCAM_FOCAL_MM, focus_distance=400.0,
                 horizontal_aperture=45.0, clipping_range=(0.1, 1.0e5),
             ),

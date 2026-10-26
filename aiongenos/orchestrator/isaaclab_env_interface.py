@@ -739,6 +739,21 @@ class IsaacLabEnvInterface:
         u = self.env.unwrapped
         return u.command_manager.get_term("left_ee_pose").command[0, :3].cpu().numpy().tolist()
 
+    def get_goal_sample(self):
+        """Returns the commanded (theta, d, cube_xy_at_sample) for Pin-4c, or None."""
+        u = getattr(self.env, "unwrapped", self.env)
+        cmd_mgr = getattr(u, "command_manager", None)
+        if cmd_mgr is not None and hasattr(cmd_mgr, "get_term"):
+            try:
+                term = cmd_mgr.get_term("left_ee_pose")
+                if hasattr(term, "get_last_sample"):
+                    return term.get_last_sample(0)
+                if hasattr(term, "last_sample"):
+                    return term.last_sample
+            except Exception:
+                pass
+        return None
+
     def get_left_ee_pose_b(self):
         """Left EE position in the robot base frame (x,y,z) — translation
         (base root is identity-rot, verified). Used for the EEF motion

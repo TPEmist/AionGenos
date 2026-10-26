@@ -43,6 +43,7 @@ import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
+import re
 from typing import Any, Callable, Optional, Sequence
 
 import numpy as np
@@ -560,6 +561,10 @@ def is_push_record(rec: RecapRecord) -> bool:
     return (rec.metadata or {}).get("task") == PUSH_TASK_TAG
 
 
+COORD_PATTERN = re.compile(
+    r"[XYZxyz]\s*=\s*-?\d+|\(\s*-?\d+\s*,\s*-?\d+\s*(?:,\s*-?\d+\s*)?\)"
+)
+
 _PUSH_PREAMBLE_HEADER = (
     "PAST SIMILAR PUSH EPISODES (image-anchored memory). For each one you can see "
     "the scene at its start, your round-1 fingertip (TCP) target, the outcome, and "
@@ -567,29 +572,46 @@ _PUSH_PREAMBLE_HEADER = (
     "the current scene.\n"
 )
 
+_PUSH_PREAMBLE_HEADER_NOCOORDS = (
+    "PAST SIMILAR PUSH EPISODES (image-anchored memory). For each one you can see "
+    "the scene at its start, the outcome, and a short lesson you wrote afterwards. "
+    "Use these to choose a better target for the current scene.\n"
+)
+
 
 def format_push_preamble_text(records: Sequence[RecapRecord], scores: Sequence[float],
-                              obs_rung="1") -> str:
+                              obs_rung="1", preamble_coords: str = "on",
+                              return_redactions: bool = False):
     """Rung-gated: a record's ``disclosed`` values are printed only up to the
-    CURRENT run's rung (a rung-3 record never leaks coordinates into rung 1)."""
+    CURRENT run's rung (a rung-3 record never leaks coordinates into rung 1).
+    When preamble_coords='off' (Spec §4, REVISION 1 R2/R9):
+      - header uses neutral text without 'your round-1 fingertip (TCP) target'
+      - start TCP and round-1 target coordinate lines are omitted
+      - coordinate patterns in lesson text are replaced by [coordinates omitted] at render time
+      - redactions are counted
+    """
     rung = _check_rung(obs_rung)
     lvl = oracle_level(rung)
+    coords_on = (preamble_coords == "on")
     if not records:
-        return ""
-    parts: list[str] = [_PUSH_PREAMBLE_HEADER]
+        return ("", 0) if return_redactions else ""
+    header = _PUSH_PREAMBLE_HEADER if coords_on else _PUSH_PREAMBLE_HEADER_NOCOORDS
+    parts: list[str] = [header]
+    total_redactions = 0
     for i, (rec, s) in enumerate(zip(records, scores), start=1):
         sa = rec.state_anchor
         disc = sa.get("disclosed") or {}
         parts += ["", f"[PAST EPISODE {i}] (similarity={s:.3f})",
                   f"  Image {i}: the scene at the start of that episode"]
-        if sa.get("init_L_EE"):
-            parts.append(f"  start TCP  = {_fmt3(sa['init_L_EE'])}")
-        if sa.get("r1_eef_target_int"):
-            reached = sa.get("r1_tcp_reached_int")
-            parts.append(f"  round-1 target = {_fmt3(sa['r1_eef_target_int'])} ORI {_fmt_ori(sa.get('r1_ori_offset_deg'))}"
-                         + (f" → TCP reached {_fmt3(reached)}" if reached else ""))
-        if lvl >= 3 and disc.get("init_cube_int") and disc.get("goal_int"):
-            parts.append(f"  cube start = {_fmt2(disc['init_cube_int'])}   goal = {_fmt2(disc['goal_int'])}   (disclosed)")
+        if coords_on:
+            if sa.get("init_L_EE"):
+                parts.append(f"  start TCP  = {_fmt3(sa['init_L_EE'])}")
+            if sa.get("r1_eef_target_int"):
+                reached = sa.get("r1_tcp_reached_int")
+                parts.append(f"  round-1 target = {_fmt3(sa['r1_eef_target_int'])} ORI {_fmt_ori(sa.get('r1_ori_offset_deg'))}"
+                             + (f" → TCP reached {_fmt3(reached)}" if reached else ""))
+            if lvl >= 3 and disc.get("init_cube_int") and disc.get("goal_int"):
+                parts.append(f"  cube start = {_fmt2(disc['init_cube_int'])}   goal = {_fmt2(disc['goal_int'])}   (disclosed)")
         if lvl >= 2 and disc.get("init_cube_goal_dist_cm") is not None:
             rd = disc.get("round_cube_goal_dist_cm") or []
             parts.append(f"  cube→goal  = {disc['init_cube_goal_dist_cm']:.1f} cm at start"
@@ -600,14 +622,20 @@ def format_push_preamble_text(records: Sequence[RecapRecord], scores: Sequence[f
             parts.append(f"  outcome    = {predicate_outcome(rec.outcome)}")
         if sa.get("round_count") is not None:
             parts.append(f"  rounds     = {sa['round_count']}")
-        parts.append(f"  lesson     : {rec.text_lesson.strip()}")
+        lesson_text = rec.text_lesson.strip()
+        if not coords_on:
+            matches = COORD_PATTERN.findall(lesson_text)
+            total_redactions += len(matches)
+            lesson_text = COORD_PATTERN.sub("[coordinates omitted]", lesson_text)
+        parts.append(f"  lesson     : {lesson_text}")
     current = ("The LAST TWO images below are the CURRENT scene you must act on: front "
                "view, then top-down view." if has_top_view(rung) else
                "The LAST image below is the CURRENT scene you must act on.")
     parts += ["", "─── END OF PAST EPISODES ───", "",
               f"{current} Use the past lessons above to choose your target for this "
               "current scene."]
-    return "\n".join(parts)
+    res = "\n".join(parts)
+    return (res, total_redactions) if return_redactions else res
 
 
 class PushMemoryRetriever:
@@ -620,7 +648,8 @@ class PushMemoryRetriever:
                  state_scale_cm: float = DEFAULT_STATE_SCALE_CM,
                  success_floor_frac: float = DEFAULT_SUCCESS_FLOOR_FRAC,
                  obs_rung="1",
-                 embed_fn: Callable[[bytes], np.ndarray] = _default_embed) -> None:
+                 embed_fn: Callable[[bytes], np.ndarray] = _default_embed,
+                 preamble_coords: str = "on") -> None:
         self.buffer = buffer
         self.top_k = top_k
         self.image_weight = image_weight
@@ -628,16 +657,18 @@ class PushMemoryRetriever:
         self.success_floor_frac = success_floor_frac
         self.obs_rung = _check_rung(obs_rung)
         self._embed = embed_fn
+        self.preamble_coords = preamble_coords
         if not buffer._loaded:
             buffer.load()
         logger.info(f"PushMemoryRetriever ready: {len(buffer)} recaps, top_k={top_k}, "
                     f"image_weight={image_weight}, state_scale_cm={state_scale_cm}, "
-                    f"success_floor={success_floor_frac:.2f}, obs_rung={self.obs_rung}")
+                    f"success_floor={success_floor_frac:.2f}, obs_rung={self.obs_rung}, "
+                    f"preamble_coords={self.preamble_coords}")
 
     def retrieve_for_episode(self, init_rgb_bytes: bytes, init_tcp_int: Sequence[int],
                              exclude_run_ids: Optional[set[str]] = None):
         from aiongenos.memory.retriever import MemoryPreamble, _load_past_image_b64_list
-        empty = MemoryPreamble("", [], tuple(), tuple())
+        empty = MemoryPreamble("", [], tuple(), tuple(), 0)
         if len(self.buffer) == 0:
             return empty
         hits = self.buffer.retrieve(
@@ -655,12 +686,17 @@ class PushMemoryRetriever:
         kept = [(r, float(s), b) for (r, s), b in zip(hits, b64s) if b is not None]
         if not kept:
             return empty
+        prelude_text, redactions = format_push_preamble_text(
+            [k[0] for k in kept], [k[1] for k in kept],
+            self.obs_rung, preamble_coords=self.preamble_coords,
+            return_redactions=True,
+        )
         return MemoryPreamble(
-            prelude_text=format_push_preamble_text([k[0] for k in kept], [k[1] for k in kept],
-                                                   self.obs_rung),
+            prelude_text=prelude_text,
             past_image_base64_list=[k[2] for k in kept],
             retrieved_records=tuple(k[0] for k in kept),
             similarities=tuple(k[1] for k in kept),
+            preamble_coord_redactions=redactions,
         )
 
 

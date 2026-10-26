@@ -32,6 +32,7 @@ class EpisodeOutcome(str, Enum):
     # table surface (pushed off the edge) — a distinct failure from OBJECT_LOST.
     PUSH_PLATEAU = "push_plateau"
     PUSH_OBJECT_OFF_TABLE = "push_object_off_table"
+    SCRIPTED_END = "scripted_end"
 
 
 class TimeStep(BaseModel):

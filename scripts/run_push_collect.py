@@ -35,6 +35,13 @@ parser.add_argument("--frame_convention", action="store_true",
                     help="d1 (PI 2026-10-22): add frame-convention line giving base frame axes and cm/grid unit.")
 parser.add_argument("--verdict_contact_switch", action="store_true",
                     help="d2 (PI 2026-10-22): verdict switches from tip->cube to cube->goal after contact.")
+parser.add_argument("--geometry", type=str, default="pin4b", choices=["pin4b", "pin4c"],
+                    help="Task geometry: pin4b (default, forward-dominant) or pin4c (polar U(theta) x U(d))")
+parser.add_argument("--preamble_coords", type=str, default="on", choices=["on", "off"],
+                    help="Push memory preamble coordinates: on (default) or off (lesson text only with redactions)")
+parser.add_argument("--scripted_targets", type=str, default=None,
+                    help="Blind-sweep scripted targets: semicolon-separated grid targets, "
+                         "e.g. '40,20,50;60,20,50;80,20,50'. Replaces VLM with fixed sequence.")
 # ── cross-episode memory (push_memory; mirrors run_collect.py's flag set) ──
 parser.add_argument("--recap_buffer_root", type=str, default=None,
                     help="When set, write a push recap per episode here (and read it for "
@@ -89,18 +96,46 @@ from aiongenos.config import AionGenosConfig, LevelConfig, ControlMode, Workspac
 
 GID = "Isaac-AionGenos-WP1-Push-v0"
 GID_TOPCAM = "Isaac-AionGenos-WP1-Push-TopCam-v0"   # push cfg + scene.camera_top (rung 1b/2/3)
+GID_P4C = "Isaac-AionGenos-WP1-Push-P4c-v0"
+GID_P4C_TOPCAM = "Isaac-AionGenos-WP1-Push-P4c-TopCam-v0"
+
+GID_MAP = {
+    "pin4b": {False: GID, True: GID_TOPCAM},
+    "pin4c": {False: GID_P4C, True: GID_P4C_TOPCAM},
+}
 
 
 def _p(m): print(f"[PUSHCOL] {m}", flush=True)
 
 
 def main():
+    if args_cli.geometry == "pin4c":
+        from aiongenos.tasks.WP1_contact_testbed import pin4c_constants
+        if getattr(pin4c_constants, "PIN4C_DERIVED_FROM", None) is None:
+            raise RuntimeError(
+                "Refusing to run --geometry pin4c: Pin-4c geometry constants are provisional placeholders "
+                "(PIN4C_DERIVED_FROM is None). Run wp3a_reach_scan_p4c.py and wp3a_p4c_derive.py first, "
+                "and update pin4c_constants.py before any pin4c run."
+            )
+
     cfg = AionGenosConfig()
     teacher_url = args_cli.teacher_url or cfg.teacher_url
 
+    scripted_targets_list = None
+    if args_cli.scripted_targets:
+        raw_tgts = [t.strip() for t in args_cli.scripted_targets.split(";") if t.strip()]
+        scripted_targets_list = []
+        for t in raw_tgts:
+            parts = [int(p.strip()) for p in t.split(",") if p.strip()]
+            if len(parts) != 3:
+                raise ValueError(f"Each scripted target must be x,y,z integers, got: {t}")
+            scripted_targets_list.append(tuple(parts))
+        _p(f"scripted blind-sweep mode: {len(scripted_targets_list)} targets: {scripted_targets_list}")
+
     from aiongenos.orchestrator.push_memory import has_top_view
-    gid = GID_TOPCAM if has_top_view(args_cli.obs_rung) else GID
-    _p(f"env id {gid} (obs_rung={args_cli.obs_rung})")
+    top = has_top_view(args_cli.obs_rung)
+    gid = GID_MAP[args_cli.geometry][top]
+    _p(f"env id {gid} (geometry={args_cli.geometry}, obs_rung={args_cli.obs_rung})")
     _cfg = parse_env_cfg(gid, num_envs=1)
     # For the GIF (human-eye gate ONLY — not the training observation): KEEP the
     # GREEN GOAL cuboid visible (the PI must see cube-vs-goal) but hide the
@@ -154,9 +189,10 @@ def main():
                 image_weight=args_cli.memory_image_weight,
                 state_scale_cm=args_cli.memory_state_scale_cm,
                 obs_rung=args_cli.obs_rung,
+                preamble_coords=args_cli.preamble_coords,
             )
             _p(f"memory ON: top_k={args_cli.memory_top_k} img_w={args_cli.memory_image_weight} "
-               f"state_scale={args_cli.memory_state_scale_cm}cm")
+               f"state_scale={args_cli.memory_state_scale_cm}cm preamble_coords={args_cli.preamble_coords}")
     elif args_cli.use_memory:
         _p("WARNING: --use_memory ignored (no --recap_buffer_root)")
 
@@ -178,6 +214,9 @@ def main():
         round_history=args_cli.round_history,
         frame_convention=args_cli.frame_convention,
         verdict_contact_switch=args_cli.verdict_contact_switch,
+        geometry=args_cli.geometry,
+        preamble_coords=args_cli.preamble_coords,
+        scripted_targets=scripted_targets_list,
     )
     _p(f"SUMMARY run_id={summary['run_id']} success={summary['n_success']}/{args_cli.episodes}")
     for ep in summary["episodes"]:

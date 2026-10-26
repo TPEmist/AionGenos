@@ -170,3 +170,81 @@ def test_box_dist_quat_equivalence_on_identity():
     d_quat = box_dist_quat(p, c, q_ident, half_h=0.024)
     d_aa = box_dist_axis_aligned(p, c, half_h=0.024)
     assert abs(d_quat - d_aa) < 1e-6
+
+
+def test_pin4c_valid_sample_passes(sample_episode):
+    """Pin-4c episode with valid commanded goal_sample passes HARD checks."""
+    mut = copy.deepcopy(sample_episode)
+    mut["geometry"] = "pin4c"
+    mut["goal_sample"] = {"theta": 0.5, "dist": 0.085, "cube_xy": [0.40, 0.10]}
+    success, stats = validate_episodes([mut])
+    assert success is True
+    assert stats["R"].get("pin4c_sample_OK") == 1
+
+
+def test_negative_pin4c_missing_sample_caught(sample_episode):
+    """Episode with geometry=pin4c but missing goal_sample must be CAUGHT as HARD failure."""
+    mut = copy.deepcopy(sample_episode)
+    mut["geometry"] = "pin4c"
+    mut.pop("goal_sample", None)
+    success, stats = validate_episodes([mut])
+    assert success is False
+    assert any("goal_sample is missing" in f for f in stats["hard_failures"])
+
+
+def test_negative_pin4c_dist_out_of_bounds_caught(sample_episode):
+    """Pin-4c commanded dist outside [0.07, 0.10] must be CAUGHT as HARD failure."""
+    mut = copy.deepcopy(sample_episode)
+    mut["geometry"] = "pin4c"
+    mut["goal_sample"] = {"theta": 0.0, "dist": 0.060, "cube_xy": [0.40, 0.10]}
+    success, stats = validate_episodes([mut])
+    assert success is False
+    assert any("dist 0.06" in f or "outside [0.07, 0.10]" in f for f in stats["hard_failures"])
+
+
+def test_negative_pin4c_theta_out_of_bounds_caught(sample_episode):
+    """Pin-4c commanded |theta| > theta_max must be CAUGHT as HARD failure."""
+    mut = copy.deepcopy(sample_episode)
+    mut["geometry"] = "pin4c"
+    mut["goal_sample"] = {"theta": 1.50, "dist": 0.085, "cube_xy": [0.40, 0.10]}
+    success, stats = validate_episodes([mut])
+    assert success is False
+    assert any("theta_max" in f for f in stats["hard_failures"])
+
+
+def test_pin4b_ignores_pin4c_sample_checks(sample_episode):
+    """R11: Pin-4b runs keep old checks and are not subject to pin4c sample checks."""
+    mut = copy.deepcopy(sample_episode)
+    mut["geometry"] = "pin4b"
+    # Even with goal_sample missing or out of bounds, pin4b does not trigger pin4c HARD failures
+    mut.pop("goal_sample", None)
+    success, stats = validate_episodes([mut])
+    assert success is True
+
+
+def test_scripted_policy_flag_and_outcome_accepted(sample_episode):
+    """scripted_policy flag and scripted_end outcome must be accepted."""
+    mut = copy.deepcopy(sample_episode)
+    mut["flags"] = ["scripted_policy"]
+    mut["outcome"] = "scripted_end"
+    mut["rounds"] = mut["rounds"][:3]  # e.g. 3 scripted rounds
+    success, stats = validate_episodes([mut])
+    assert success is True
+    assert len(stats["hard_failures"]) == 0
+
+
+def test_lesson_leak_rate_and_redactions_counted(sample_episode):
+    """Lesson coordinate leak rate and redactions are tracked in stats."""
+    mut = copy.deepcopy(sample_episode)
+    mut["preamble_coords"] = "off"
+    mut["preamble_coord_redactions"] = 4
+    mut["memory_hits"] = [
+        {"ep_id": "ep1", "lesson": "Push with X=50"},
+        {"ep_id": "ep2", "lesson": "Good push to green zone"},
+    ]
+    success, stats = validate_episodes([mut])
+    assert success is True
+    assert stats["total_injected_lessons"] == 2
+    assert stats["leaked_lesson_count"] == 1
+    assert stats["preamble_coord_redactions_total"] == 4
+    assert stats["preamble_coords_mode"] == "off"
