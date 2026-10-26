@@ -327,4 +327,10 @@ prior).
 2. **Teacher perception may be richer than the student's.**
    - Distillation moves the marginal (P1). Contact height on a fixed table is marginal, so a multi-view teacher can be distilled into a single-view student.
    - Precedent: Acar et al., RA-L, arXiv 2303.07026.
+3. **The only evidence that the teacher acts conditionally before memory takes over** (PI 2026-10-26: keep this number; EXPLORATORY, small n).
+   - rung-1′ `611a3e2a`, the 9 episodes before the first success (seeds 5000–5008).
+   - Round-1 target vs cube: ρ_X = +0.465 (one-sided permutation p = 0.10, band95 = +0.577; **inside the chance band at n = 9**); ρ_Y = +0.250 (p = 0.23).
+   - From the first success on (seeds 5009–5049, n = 41): ρ_X = −0.216, and the unique round-1 targets fall from 9/9 to 6/41.
+   - Script: `scripts/analysis/wp3a_rho_segments.py 611a3e2a` (10,000 permutations, seed 20261026). Output: `docs/p2_prereg/evidence/2026-10-22_rung1p/rho_segments_611a3e2a.txt`.
+   - Use it only as a direction-consistent observation, not as a test result.
 

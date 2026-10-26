@@ -1,0 +1,4 @@
+run=611a3e2a episodes=50 first_success_seed=5009 perm=10000 seed=20261026
+[all] n=50 seeds 5000-5049 | rho_X=+0.114 p_one_sided=0.2155 band95=+0.238 | rho_Y=+0.016 p_one_sided=0.4520 band95=+0.239 | unique_R1_targets=15
+[before_first_success] n=9 seeds 5000-5008 | rho_X=+0.465 p_one_sided=0.1018 band95=+0.577 | rho_Y=+0.250 p_one_sided=0.2262 band95=+0.666 | unique_R1_targets=9
+[from_first_success] n=41 seeds 5009-5049 | rho_X=-0.216 p_one_sided=0.9148 band95=+0.260 | rho_Y=-0.222 p_one_sided=0.9089 band95=+0.259 | unique_R1_targets=6

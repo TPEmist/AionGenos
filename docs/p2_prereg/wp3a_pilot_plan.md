@@ -91,6 +91,15 @@ base-axis ORI) is the same at every rung:
       *history*.
     - Implemented as ruled: previous-round feedback, no history.
 - successes **≥ 5** at the current rung → proceed to (d) at that rung.
+- **AMENDMENT 2026-10-26 (PI): (c) pass criterion = count AND condition.** Step (c) passes at a rung only if both hold:
+  1. successes ≥ 5;
+  2. ρ_X between the round-1 TCP target X and the cube X, over the rung's 50 episodes, is significantly > 0, i.e. above the permutation band:
+     - one-sided test, 10,000 permutations, seed 20261026;
+     - pass if p < 0.05, equivalently ρ_X > band95;
+     - script: `scripts/analysis/wp3a_rho_segments.py`.
+  - Count met but condition not met → **not passed**. The rung's status is recorded as "count threshold met, condition threshold not met".
+  - rung-1′ `611a3e2a` (11/50, ρ_X = +0.114, p = 0.22, band95 = +0.238) is recorded with exactly this status.
+  - Next for rung-1′: the geometry loop-back below (Pin-4c), then re-run rung-1′.
 - Every rung activation is recorded here + in the provenance log; every
   replay / recap carries `obs_rung`; the P2 paper states which rung the data
   came from. The rung-1 SR is expected to be lower than an oracle prompt —

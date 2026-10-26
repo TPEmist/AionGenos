@@ -2390,3 +2390,15 @@ Diagnosis: `docs/p2_prereg/wp3a_rung2p_diagnosis_2026-10-22.md` (`26c9fc4`). It 
 4. **Task geometry.** The goal is always cube + (0.07–0.10, ±0.04) m and the cube region is 4 × 10 cm (`push_s3a_cfg.py:131–138`). So a fixed +X sweep at y=0.08 solves a substantial fraction of the episodes without perceiving the cube. The conditional component of this task is thin.
 
 **Ladder:** stopped after rung-1′ by the PI rule (≥5 successes). rung-1b′ and rung-2″ were not run. Whether this success counts for step (c) is a PI decision.
+
+## 2026-10-26 — PI ruling on rung-1′ (611a3e2a)
+1. **Step (c) pass criterion amended** (`wp3a_pilot_plan.md`): successes ≥ 5 **and** round-1 ρ_X(target, cube) significantly > 0, by a one-sided permutation test.
+   - rung-1′: **count threshold met, condition threshold not met** (ρ_X = +0.114, p = 0.22). It is not a pass.
+2. **Pin-4c geometry:**
+   - the goal direction is sampled uniformly over ≥ ±60° around the cube, with the upper bound set by a reachability scan;
+   - the push distance stays at 7–10 cm;
+   - the cube region expands to the reachability boundary.
+   - **Blind-sweep baseline first:** the rung-1′ fixed path, run as a scripted policy for 50 episodes. It must reach SR ≤ 10%, otherwise widen the direction range. The blind-sweep SR is kept as a gen-0 control.
+3. rung-1′ is re-run on the new geometry (seeds 5000–5049). Report: the four metrics; ρ_X over all episodes, before the first success, and from the first success on; the number of unique round-1 targets.
+4. **(e) upgraded:** two arms of 50 episodes each, a lesson-text-only preamble vs a preamble with past target coordinates. Compare ρ_X and successes. The question is whether memory transmits lessons or paths. The result goes into P2 prereg §3a as the fifth memory-success-floor instance ("memory can substitute for perception").
+5. **The pre-memory ρ_X is kept as P2 §10 candidate 3.** Its exact value: ρ_X = +0.465, but p = 0.10, inside the n = 9 chance band. It is labelled EXPLORATORY.
