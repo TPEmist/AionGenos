@@ -31,10 +31,53 @@ import traceback
 from pathlib import Path
 from typing import Sequence
 
+# 3 solvable dry-run configurations
+DRY_RUN_CONFIGS: list[tuple[float, float, int, float]] = [
+    (0.40, 0.10, 0, 0.10),
+    (0.40, 0.10, 60, 0.07),
+    (0.40, 0.10, -60, 0.07),
+]
+
+CUBE_KEEP_OUT_X = 0.38  # hand keep-out at reset
+
+
+def is_on_table(pt_b: Sequence[float]) -> bool:
+    """Check table bounds in base frame: x in [0.18, 0.90], y in [-0.45, 0.45]."""
+    return 0.18 <= pt_b[0] <= 0.90 and -0.45 <= pt_b[1] <= 0.45
+
+
+def filter_config(cx: float, cy: float, th_deg: int | float, d: float) -> str | None:
+    """Returns skip reason if config should be skipped, else None."""
+    if cx < CUBE_KEEP_OUT_X:
+        return "hand_keepout"
+    th_rad = math.radians(th_deg)
+    gx = cx + d * math.cos(th_rad)
+    gy = cy + d * math.sin(th_rad)
+    if not is_on_table((gx, gy)):
+        return "goal_off_table"
+    return None
+
+
+def parse_custom_configs(raw_str: str) -> list[tuple[float, float, int, float]]:
+    """Parse custom configs string in format: 'x,y,th_deg,d;x,y,th_deg,d;...'"""
+    configs = []
+    items = [item.strip() for item in raw_str.split(";") if item.strip()]
+    for item in items:
+        parts = [p.strip() for p in item.split(",") if p.strip()]
+        if len(parts) != 4:
+            raise ValueError(f"Each config must have 4 comma-separated values (x,y,theta_deg,d), got: '{item}'")
+        cx = float(parts[0])
+        cy = float(parts[1])
+        th_deg = int(round(float(parts[2])))
+        d = float(parts[3])
+        configs.append((cx, cy, th_deg, d))
+    return configs
+
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--dry_run", action="store_true", help="Run only 2 configurations for sanity check")
+    p.add_argument("--dry_run", action="store_true", help="Run 3 solvable sanity-check configurations")
+    p.add_argument("--configs", type=str, default=None, help="Custom configurations: 'x,y,th_deg,d;...'")
     p.add_argument("--output", type=str, default="logs/wp3a_reach_scan_p4c.json")
     from isaaclab.app import AppLauncher
     AppLauncher.add_app_launcher_args(p)
@@ -67,7 +110,6 @@ def main():
         ROUNDS_STAGE = 3
         SUCCESS_DIST_M = 0.05
         HALF = C._CUBE_HALF_H
-        CUBE_KEEP_OUT_X = 0.38  # hand keep-out at reset
 
         # Grid definitions
         X_GRID = [round(0.34 + i * 0.03, 3) for i in range(7)]   # 0.34 to 0.52
@@ -120,38 +162,36 @@ def main():
             k = int(torch.argmin(marg))
             return jnames[LJ[k]], round(float(marg[k]), 1)
 
-        def is_on_table(pt_b: Sequence[float]) -> bool:
-            return 0.18 <= pt_b[0] <= 0.90 and -0.45 <= pt_b[1] <= 0.45
-
         results = []
         skipped = []
 
-        configs = []
-        for cx in X_GRID:
-            for cy in Y_GRID:
-                for th_deg in THETA_DEG:
-                    for d in DIST_GRID:
-                        configs.append((cx, cy, th_deg, d))
-
-        if a.dry_run:
-            configs = configs[:2]
-
-        print(f"[SCAN] Total configurations: {len(configs)}")
+        if a.configs:
+            configs = parse_custom_configs(a.configs)
+            print(f"[SCAN] Using {len(configs)} custom configurations from --configs", flush=True)
+        elif a.dry_run:
+            configs = list(DRY_RUN_CONFIGS)
+            print(f"[SCAN] Using {len(configs)} dry-run configurations: {configs}", flush=True)
+        else:
+            configs = []
+            for cx in X_GRID:
+                for cy in Y_GRID:
+                    for th_deg in THETA_DEG:
+                        for d in DIST_GRID:
+                            configs.append((cx, cy, th_deg, d))
+            print(f"[SCAN] Total grid configurations: {len(configs)}", flush=True)
 
         for idx, (cx, cy, th_deg, d) in enumerate(configs):
+            skip_reason = filter_config(cx, cy, th_deg, d)
+            if skip_reason is not None:
+                skipped.append({"config": (cx, cy, th_deg, d), "reason": skip_reason})
+                print(f"[SCAN {idx+1}/{len(configs)}] ({cx}, {cy}, th={th_deg}°, d={d}) -> SKIPPED ({skip_reason})", flush=True)
+                continue
+
             th_rad = math.radians(th_deg)
             ux = math.cos(th_rad)
             uy = math.sin(th_rad)
             gx = cx + d * ux
             gy = cy + d * uy
-
-            # Skip checks
-            if cx < CUBE_KEEP_OUT_X:
-                skipped.append({"config": (cx, cy, th_deg, d), "reason": "hand_keepout"})
-                continue
-            if not is_on_table((gx, gy)):
-                skipped.append({"config": (cx, cy, th_deg, d), "reason": "goal_off_table"})
-                continue
 
             iface.reset(seed=4700 + idx)
             z_standby = float(iface.get_left_tcp_pos_b()[2])
@@ -227,8 +267,12 @@ def main():
             }
             results.append(rec)
 
-            if idx % 50 == 0 or idx == len(configs) - 1:
-                print(f"[SCAN {idx+1}/{len(configs)}] ({cx}, {cy}, th={th_deg}°, d={d}) -> success={success} (dist={final_cube_goal_dist*100:.1f}cm, disturbed={disturbed_approach})", flush=True)
+            if a.dry_run or len(configs) <= 10 or idx % 50 == 0 or idx == len(configs) - 1:
+                print(
+                    f"[SCAN {idx+1}/{len(configs)}] ({cx}, {cy}, th={th_deg}°, d={d}) -> "
+                    f"success={success} (dist={final_cube_goal_dist*100:.1f}cm, disturbed={disturbed_approach})",
+                    flush=True,
+                )
 
         out_data = {
             "x_grid": X_GRID,
@@ -241,8 +285,25 @@ def main():
         Path(a.output).parent.mkdir(parents=True, exist_ok=True)
         with open(a.output, "w") as fp:
             json.dump(out_data, fp, indent=2)
-        print(f"[SCAN] Saved {len(results)} records to {a.output}")
-        exit_code = 0
+        print(f"[SCAN] Saved {len(results)} records to {a.output}", flush=True)
+
+        n_total = len(configs)
+        n_skipped = len(skipped)
+        n_tested = len(results)
+        n_success = sum(1 for r in results if r.get("success", False))
+        sr = (n_success / n_tested * 100.0) if n_tested > 0 else 0.0
+
+        print(
+            f"[SCAN SUMMARY] Total configs: {n_total}, Tested: {n_tested}, "
+            f"Success: {n_success} ({sr:.1f}%), Skipped: {n_skipped}",
+            flush=True,
+        )
+
+        if not a.dry_run and len(results) == 0:
+            print("[SCAN ERROR] Scan produced 0 results (all configurations were skipped). Failing scan.", flush=True)
+            exit_code = 2
+        else:
+            exit_code = 0
 
     except BaseException as e:
         traceback.print_exc()

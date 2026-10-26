@@ -383,3 +383,41 @@ def test_cube_relative_polar_command_num_envs_guard():
     with pytest.raises(NotImplementedError, match="currently only supports single-env resets"):
         cmd._resample_command([0, 1, 2])
 
+
+def test_reach_scan_dry_run_and_custom_configs():
+    """AC2 / Rework 2: reach scan dry-run has 3 solvable configs and --configs parser works."""
+    from scripts.diagnostics.wp3a_reach_scan_p4c import (
+        DRY_RUN_CONFIGS,
+        filter_config,
+        parse_custom_configs,
+    )
+
+    # 1. Check dry run configs: exactly 3 solvable configs
+    assert len(DRY_RUN_CONFIGS) == 3
+    expected_configs = [
+        (0.40, 0.10, 0, 0.10),
+        (0.40, 0.10, 60, 0.07),
+        (0.40, 0.10, -60, 0.07),
+    ]
+    assert DRY_RUN_CONFIGS == expected_configs
+
+    # Verify each dry-run config is NOT skipped
+    for cx, cy, th_deg, d in DRY_RUN_CONFIGS:
+        reason = filter_config(cx, cy, th_deg, d)
+        assert reason is None, f"Config {cx, cy, th_deg, d} was skipped for reason: {reason}"
+
+    # 2. Check skip reasons:
+    # x = 0.34 < 0.38 -> hand_keepout
+    assert filter_config(0.34, 0.10, 0, 0.10) == "hand_keepout"
+    # goal off table -> goal_off_table
+    assert filter_config(0.40, 0.10, 0, 0.80) == "goal_off_table"
+
+    # 3. Check custom configs parser
+    parsed = parse_custom_configs("0.40, 0.10, 0, 0.10; 0.45, 0.15, -45, 0.07")
+    assert parsed == [(0.40, 0.10, 0, 0.10), (0.45, 0.15, -45, 0.07)]
+
+    # Malformed configs raise ValueError
+    with pytest.raises(ValueError, match="Each config must have 4 comma-separated values"):
+        parse_custom_configs("0.40, 0.10, 0")
+
+
