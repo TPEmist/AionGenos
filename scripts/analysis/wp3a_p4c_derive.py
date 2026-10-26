@@ -114,8 +114,11 @@ def derive_p4c_geometry(
     results_map: Dict[Tuple[float, float, int, float], bool] = {}
     for r in results:
         k = (round(r["cube_x"], 3), round(r["cube_y"], 3), int(r["theta_deg"]), round(r["dist"], 3))
-        # Success requires outcome success AND not disturbed during approach (R4, R6)
-        succ = bool(r.get("success", False)) and not bool(r.get("disturbed_approach", False))
+        # Derive considers any variant succeeding as success
+        if "variants_tried" in r and r["variants_tried"]:
+            succ = any(bool(v.get("success", False)) for v in r["variants_tried"])
+        else:
+            succ = bool(r.get("success", False)) and not bool(r.get("disturbed_approach", False))
         results_map[k] = succ
 
     theta_step = 15
@@ -219,11 +222,12 @@ def main():
         scan_data = json.load(fp)
 
     res = derive_p4c_geometry(scan_data, min_required_theta_deg=args.min_theta)
-    print(f"[P4C DERIVE] Status: {res['status']}")
-    print(f"[P4C DERIVE] theta+ max: {res['theta_plus_max_deg']}°, theta- max: {res['theta_minus_max_deg']}°")
-    print(f"[P4C DERIVE] Symmetric theta_max: {res['theta_max_symmetric_deg']}° ({res['theta_max_rad']} rad)")
-    print(f"[P4C DERIVE] Derived Cube Box: X={res['cube_box_x']}, Y={res['cube_box_y']} (area={res['cube_box_area']} m^2, pts={res['n_grid_points']})")
-    print(f"[P4C DERIVE] Trade-off: {res['tradeoff_report']}")
+    print(f"[P4C DERIVE] Status: {res['status']}", flush=True)
+    print(f"[P4C DERIVE] theta+ max: +{res['theta_plus_max_deg']}°", flush=True)
+    print(f"[P4C DERIVE] theta- max: -{res['theta_minus_max_deg']}°", flush=True)
+    print(f"[P4C DERIVE] Symmetric theta_max: ±{res['theta_max_symmetric_deg']}° ({res['theta_max_rad']} rad)", flush=True)
+    print(f"[P4C DERIVE] Derived Cube Box: X={res['cube_box_x']}, Y={res['cube_box_y']} (area={res['cube_box_area']} m^2, pts={res['n_grid_points']})", flush=True)
+    print(f"[P4C DERIVE] Trade-off: {res['tradeoff_report']}", flush=True)
 
     out_path = Path(args.output)
     out_path.parent.mkdir(parents=True, exist_ok=True)

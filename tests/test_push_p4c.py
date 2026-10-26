@@ -420,4 +420,21 @@ def test_reach_scan_dry_run_and_custom_configs():
     with pytest.raises(ValueError, match="Each config must have 4 comma-separated values"):
         parse_custom_configs("0.40, 0.10, 0")
 
+    # 4. Check approach variants and grid overrides (Rework 4)
+    from scripts.diagnostics.wp3a_reach_scan_p4c import (
+        APPROACH_VARIANTS,
+        parse_grid_override,
+    )
+    assert len(APPROACH_VARIANTS) == 4
+    assert [v["id"] for v in APPROACH_VARIANTS] == ["V1", "V2", "V3", "V4"]
+    assert APPROACH_VARIANTS[0] == {"id": "V1", "offset_m": 0.010, "use_yaw": False}
+    assert APPROACH_VARIANTS[1] == {"id": "V2", "offset_m": 0.025, "use_yaw": False}
+    assert APPROACH_VARIANTS[2] == {"id": "V3", "offset_m": 0.025, "use_yaw": True}
+    assert APPROACH_VARIANTS[3] == {"id": "V4", "offset_m": 0.040, "use_yaw": True}
+
+    # Grid overrides parsing
+    assert parse_grid_override("0.34, 0.40, 0.46") == [0.34, 0.40, 0.46]
+    assert [int(round(t)) for t in parse_grid_override("-60, 0, 60", round_digits=0)] == [-60, 0, 60]
+
+
 

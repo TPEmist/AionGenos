@@ -10,12 +10,17 @@ Grid:
 Per configuration:
   1. Transit (R4): flies at standby z + 0.05 m to the point above the approach point,
      then descends to approach point at cube-centre z.
-     Approach point: cube - u*(half + 1 cm).
+     Approach variants tried sequentially until success:
+       V1: offset=1.0cm, yaw=0
+       V2: offset=2.5cm, yaw=0
+       V3: offset=2.5cm, yaw=theta (LEFT_TARGET_ORI Y=theta via push_body.command_quat)
+       V4: offset=4.0cm, yaw=theta
      Check whether cube was disturbed during approach (>5 mm movement -> failure).
   2. Push: push to goal - u*half at cube-centre z.
      Each stage gets <= 3 rounds (execute_push_segment, TCP target, rest orientation, 90 steps).
-  3. Outcome (R6): success = final cube->goal <= 5 cm in the world.
-     Record telemetry: min finger->cube, joint-limit margin, tau saturation, table guard clamps.
+  3. Outcome (R6): success = final cube->goal <= 5 cm in the world AND approach not disturbed.
+     Record telemetry: min finger->cube, joint-limit margin, tau saturation, table guard clamps,
+     pre-push displacement in cm, and winning variant id.
 
 Outputs:
   logs/wp3a_reach_scan_p4c.json
@@ -30,13 +35,21 @@ import os
 import sys
 import traceback
 from pathlib import Path
-from typing import Sequence
+from typing import Any, Sequence
 
 # 3 solvable dry-run configurations
 DRY_RUN_CONFIGS: list[tuple[float, float, int, float]] = [
     (0.40, 0.10, 0, 0.10),
     (0.40, 0.10, 60, 0.07),
     (0.40, 0.10, -60, 0.07),
+]
+
+# Approach variants tried sequentially until success
+APPROACH_VARIANTS: list[dict[str, Any]] = [
+    {"id": "V1", "offset_m": 0.010, "use_yaw": False},
+    {"id": "V2", "offset_m": 0.025, "use_yaw": False},
+    {"id": "V3", "offset_m": 0.025, "use_yaw": True},
+    {"id": "V4", "offset_m": 0.040, "use_yaw": True},
 ]
 
 CUBE_KEEP_OUT_X = 0.38  # hand keep-out at reset
@@ -75,10 +88,18 @@ def parse_custom_configs(raw_str: str) -> list[tuple[float, float, int, float]]:
     return configs
 
 
+def parse_grid_override(raw_str: str, round_digits: int = 3) -> list[float]:
+    """Parse comma-separated float grid, e.g. '0.34, 0.37, 0.40'."""
+    return [round(float(p.strip()), round_digits) for p in raw_str.split(",") if p.strip()]
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--dry_run", action="store_true", help="Run 3 solvable sanity-check configurations")
     p.add_argument("--configs", type=str, default=None, help="Custom configurations: 'x,y,th_deg,d;...'")
+    p.add_argument("--x_grid", type=str, default=None, help="Override X grid: '0.34,0.37,0.40,...'")
+    p.add_argument("--y_grid", type=str, default=None, help="Override Y grid: '-0.02,0.01,0.04,...'")
+    p.add_argument("--theta_grid", type=str, default=None, help="Override theta deg grid: '-90,-60,-30,0,30,60,90'")
     p.add_argument("--output", type=str, default="logs/wp3a_reach_scan_p4c.json")
     from isaaclab.app import AppLauncher
     AppLauncher.add_app_launcher_args(p)
@@ -104,6 +125,7 @@ def main():
         from aiongenos.orchestrator import push_body as pb  # noqa: E402
         from aiongenos.orchestrator.isaaclab_env_interface import IsaacLabEnvInterface  # noqa: E402
         from aiongenos.tasks.WP1_contact_testbed import push_s3a_cfg as C  # noqa: E402
+        from aiongenos.vlm.parser import OriOffset  # noqa: E402
 
         GID = "Isaac-AionGenos-WP1-Push-TopCam-v0"
         SEG = 90
@@ -111,11 +133,15 @@ def main():
         SUCCESS_DIST_M = 0.05
         HALF = C._CUBE_HALF_H
 
-        # Grid definitions
+        # Grid definitions (default)
         X_GRID = [round(0.34 + i * 0.03, 3) for i in range(7)]   # 0.34 to 0.52
         Y_GRID = [round(-0.02 + i * 0.03, 3) for i in range(9)]  # -0.02 to 0.22
         THETA_DEG = list(range(-90, 91, 15))                      # -90 to +90, step 15
         DIST_GRID = [0.07, 0.10]
+
+        x_grid = parse_grid_override(a.x_grid) if a.x_grid else X_GRID
+        y_grid = parse_grid_override(a.y_grid) if a.y_grid else Y_GRID
+        theta_grid = [int(round(t)) for t in parse_grid_override(a.theta_grid, round_digits=0)] if a.theta_grid else THETA_DEG
 
         env = gym.make(GID, cfg=parse_env_cfg(GID, num_envs=1), render_mode=None)
         iface = IsaacLabEnvInterface(env)
@@ -173,12 +199,12 @@ def main():
             print(f"[SCAN] Using {len(configs)} dry-run configurations: {configs}", flush=True)
         else:
             configs = []
-            for cx in X_GRID:
-                for cy in Y_GRID:
-                    for th_deg in THETA_DEG:
+            for cx in x_grid:
+                for cy in y_grid:
+                    for th_deg in theta_grid:
                         for d in DIST_GRID:
                             configs.append((cx, cy, th_deg, d))
-            print(f"[SCAN] Total grid configurations: {len(configs)}", flush=True)
+            print(f"[SCAN] Total grid configurations: {len(configs)} (X={len(x_grid)}, Y={len(y_grid)}, theta={len(theta_grid)})", flush=True)
 
         for idx, (cx, cy, th_deg, d) in enumerate(configs):
             skip_reason = filter_config(cx, cy, th_deg, d)
@@ -193,63 +219,98 @@ def main():
             gx = cx + d * ux
             gy = cy + d * uy
 
-            iface.reset(seed=4700 + idx)
-            z_standby = float(iface.get_left_tcp_pos_b()[2])
-            z_cube = C._CUBE_REST_Z_B
-            q_rest = iface.get_left_hand_quat_b()
-            q_cmd = pb.command_quat(q_rest, None)
+            variants_tried = []
+            winning_variant = None
 
-            # Place cube and goal: write pose (7-dim) and zero velocity (6-dim)
-            cube_pose_w = torch.tensor([[cx, cy, C._CUBE_SPAWN_Z + C._ROBOT_BASE_Z, 1.0, 0.0, 0.0, 0.0]],
-                                       device=dev, dtype=torch.float32)
-            cube_vel_w = torch.zeros((1, 6), device=dev, dtype=torch.float32)
-            cube.write_root_pose_to_sim(cube_pose_w)
-            cube.write_root_velocity_to_sim(cube_vel_w)
-            goal_b = [gx, gy, z_cube]
+            # Try approach variants sequentially until one succeeds
+            for v_idx, var in enumerate(APPROACH_VARIANTS):
+                v_id = var["id"]
+                offset_m = var["offset_m"]
+                yaw_deg = th_deg if var["use_yaw"] else 0
 
-            # Approach point
-            appr_xy = (cx - ux * (HALF + 0.01), cy - uy * (HALF + 0.01))
-            # R4: Transit flies at standby z + 0.05m to above approach point, then descends to cube-centre z
-            transit_high = np.array([appr_xy[0], appr_xy[1], z_standby + 0.05])
-            appr_pt = np.array([appr_xy[0], appr_xy[1], z_cube])
-            push_end = np.array([gx - ux * HALF, gy - uy * HALF, z_cube])
+                # Reset env and cube/goal before each variant attempt
+                iface.reset(seed=4700 + idx * 10 + v_idx)
+                z_standby = float(iface.get_left_tcp_pos_b()[2])
+                z_cube = C._CUBE_REST_Z_B
+                q_rest = iface.get_left_hand_quat_b()
 
-            # Stage 1: fly high above approach point
-            iface.execute_push_segment(torch.tensor(transit_high, dtype=torch.float32), q_cmd, SEG, frame_every=0, target_is_tcp=True)
+                ori = OriOffset(p=0, y=int(round(yaw_deg)), r=0) if yaw_deg != 0 else None
+                q_cmd = pb.command_quat(q_rest, ori)
 
-            # Stage 2: descend to approach point
-            tau_warn_max = 0
-            tau_flag_max = 0
-            target_clamps = 0
-            min_finger_dist = 999.0
+                # Place cube and goal: write pose (7-dim) and zero velocity (6-dim)
+                cube_pose_w = torch.tensor([[cx, cy, C._CUBE_SPAWN_Z + C._ROBOT_BASE_Z, 1.0, 0.0, 0.0, 0.0]],
+                                           device=dev, dtype=torch.float32)
+                cube_vel_w = torch.zeros((1, 6), device=dev, dtype=torch.float32)
+                cube.write_root_pose_to_sim(cube_pose_w)
+                cube.write_root_velocity_to_sim(cube_vel_w)
+                goal_b = [gx, gy, z_cube]
 
-            for _ in range(ROUNDS_STAGE):
-                seg = iface.execute_push_segment(torch.tensor(appr_pt, dtype=torch.float32), q_cmd, SEG, frame_every=0, target_is_tcp=True)
-                tau_warn_max = max(tau_warn_max, seg.get("tau_warn_steps", 0))
-                tau_flag_max = max(tau_flag_max, seg.get("tau_flag_steps", 0))
-                if (seg.get("table_guard") or {}).get("target_clamp"):
-                    target_clamps += 1
-                min_finger_dist = min(min_finger_dist, finger_to_cube_cm())
+                # Approach point: cube - u*(half + offset_m)
+                appr_xy = (cx - ux * (HALF + offset_m), cy - uy * (HALF + offset_m))
+                transit_high = np.array([appr_xy[0], appr_xy[1], z_standby + 0.05])
+                appr_pt = np.array([appr_xy[0], appr_xy[1], z_cube])
+                push_end = np.array([gx - ux * HALF, gy - uy * HALF, z_cube])
 
-            c_now = np.array(iface.get_cube_pose_b())
-            cube_moved_pre = float(np.linalg.norm(c_now[:2] - np.array([cx, cy])))
-            disturbed_approach = (cube_moved_pre > 0.005)  # > 5mm disturbed
+                # Stage 1: fly high above approach point
+                iface.execute_push_segment(torch.tensor(transit_high, dtype=torch.float32), q_cmd, SEG, frame_every=0, target_is_tcp=True)
 
-            # Stage 3: push to end
-            for _ in range(ROUNDS_STAGE):
-                seg = iface.execute_push_segment(torch.tensor(push_end, dtype=torch.float32), q_cmd, SEG, frame_every=0, target_is_tcp=True)
-                tau_warn_max = max(tau_warn_max, seg.get("tau_warn_steps", 0))
-                tau_flag_max = max(tau_flag_max, seg.get("tau_flag_steps", 0))
-                if (seg.get("table_guard") or {}).get("target_clamp"):
-                    target_clamps += 1
-                min_finger_dist = min(min_finger_dist, finger_to_cube_cm())
+                # Stage 2: descend to approach point
+                tau_warn_max = 0
+                tau_flag_max = 0
+                target_clamps = 0
+                min_finger_dist = 999.0
 
-            c_final = np.array(iface.get_cube_pose_b())
-            final_cube_goal_dist = float(np.linalg.norm(c_final[:2] - np.array(goal_b[:2])))
-            tight_joint, marg_deg = get_joint_margin_deg()
+                for _ in range(ROUNDS_STAGE):
+                    seg = iface.execute_push_segment(torch.tensor(appr_pt, dtype=torch.float32), q_cmd, SEG, frame_every=0, target_is_tcp=True)
+                    tau_warn_max = max(tau_warn_max, seg.get("tau_warn_steps", 0))
+                    tau_flag_max = max(tau_flag_max, seg.get("tau_flag_steps", 0))
+                    if (seg.get("table_guard") or {}).get("target_clamp"):
+                        target_clamps += 1
+                    min_finger_dist = min(min_finger_dist, finger_to_cube_cm())
 
-            # R6: success = outcome only (cube->goal <= 5cm) AND not disturbed during approach
-            success = (final_cube_goal_dist <= SUCCESS_DIST_M) and (not disturbed_approach)
+                c_now = np.array(iface.get_cube_pose_b())
+                cube_moved_pre = float(np.linalg.norm(c_now[:2] - np.array([cx, cy])))
+                cube_moved_pre_cm = round(cube_moved_pre * 100.0, 2)
+                disturbed_approach = (cube_moved_pre > 0.005)  # > 5mm disturbed
+
+                # Stage 3: push to end
+                for _ in range(ROUNDS_STAGE):
+                    seg = iface.execute_push_segment(torch.tensor(push_end, dtype=torch.float32), q_cmd, SEG, frame_every=0, target_is_tcp=True)
+                    tau_warn_max = max(tau_warn_max, seg.get("tau_warn_steps", 0))
+                    tau_flag_max = max(tau_flag_max, seg.get("tau_flag_steps", 0))
+                    if (seg.get("table_guard") or {}).get("target_clamp"):
+                        target_clamps += 1
+                    min_finger_dist = min(min_finger_dist, finger_to_cube_cm())
+
+                c_final = np.array(iface.get_cube_pose_b())
+                final_cube_goal_dist = float(np.linalg.norm(c_final[:2] - np.array(goal_b[:2])))
+                tight_joint, marg_deg = get_joint_margin_deg()
+
+                # Success requires final cube->goal <= 5cm AND not disturbed during approach
+                v_success = (final_cube_goal_dist <= SUCCESS_DIST_M) and (not disturbed_approach)
+                v_res = {
+                    "variant": v_id,
+                    "offset_m": offset_m,
+                    "yaw_deg": yaw_deg,
+                    "success": v_success,
+                    "disturbed_approach": disturbed_approach,
+                    "pre_push_cube_displacement_cm": cube_moved_pre_cm,
+                    "final_cube_goal_m": round(final_cube_goal_dist, 4),
+                    "min_finger_to_cube_cm": round(min_finger_dist, 2),
+                    "tightest_joint": [tight_joint, marg_deg],
+                    "tau_warn_steps_max": tau_warn_max,
+                    "tau_flag_steps_max": tau_flag_max,
+                    "target_clamps": target_clamps,
+                }
+                variants_tried.append(v_res)
+
+                if v_success:
+                    winning_variant = v_res
+                    break
+
+            overall_success = (winning_variant is not None)
+            variant_used = winning_variant["variant"] if winning_variant else None
+            best_v = winning_variant or variants_tried[-1]
 
             rec = {
                 "cube_x": cx,
@@ -258,28 +319,33 @@ def main():
                 "dist": d,
                 "goal_x": round(gx, 4),
                 "goal_y": round(gy, 4),
-                "success": success,
-                "disturbed_approach": disturbed_approach,
-                "final_cube_goal_m": round(final_cube_goal_dist, 4),
-                "min_finger_to_cube_cm": round(min_finger_dist, 2),
-                "tightest_joint": [tight_joint, marg_deg],
-                "tau_warn_steps_max": tau_warn_max,
-                "tau_flag_steps_max": tau_flag_max,
-                "target_clamps": target_clamps,
+                "success": overall_success,
+                "variant_used": variant_used,
+                "disturbed_approach": best_v["disturbed_approach"],
+                "pre_push_cube_displacement_cm": best_v["pre_push_cube_displacement_cm"],
+                "final_cube_goal_m": best_v["final_cube_goal_m"],
+                "min_finger_to_cube_cm": best_v["min_finger_to_cube_cm"],
+                "tightest_joint": best_v["tightest_joint"],
+                "tau_warn_steps_max": best_v["tau_warn_steps_max"],
+                "tau_flag_steps_max": best_v["tau_flag_steps_max"],
+                "target_clamps": best_v["target_clamps"],
+                "variants_tried": variants_tried,
             }
             results.append(rec)
 
             if a.dry_run or len(configs) <= 10 or idx % 50 == 0 or idx == len(configs) - 1:
+                v_str = f"variant={variant_used}" if overall_success else f"all {len(variants_tried)} variants failed"
                 print(
                     f"[SCAN {idx+1}/{len(configs)}] ({cx}, {cy}, th={th_deg}°, d={d}) -> "
-                    f"success={success} (dist={final_cube_goal_dist*100:.1f}cm, disturbed={disturbed_approach})",
+                    f"success={overall_success} ({v_str}, dist={best_v['final_cube_goal_m']*100:.1f}cm, "
+                    f"disp={best_v['pre_push_cube_displacement_cm']:.2f}cm, disturbed={best_v['disturbed_approach']})",
                     flush=True,
                 )
 
         out_data = {
-            "x_grid": X_GRID,
-            "y_grid": Y_GRID,
-            "theta_deg_grid": THETA_DEG,
+            "x_grid": x_grid,
+            "y_grid": y_grid,
+            "theta_deg_grid": theta_grid,
             "dist_grid": DIST_GRID,
             "results": results,
             "skipped": skipped,

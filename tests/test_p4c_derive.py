@@ -117,3 +117,21 @@ def test_derive_below_60deg_reports_stop_and_tradeoff():
     assert res["status"] == "STOP"
     assert res["theta_max_symmetric_deg"] == 45
     assert "STOP" in res["tradeoff_report"]
+
+
+def test_derive_any_variant_success_counted():
+    """Rework 4: derive treats any successful variant as success."""
+    scan = make_synthetic_scan(lambda cx, cy, th, d: (False, True))
+    # Give all records a successful variant V3
+    for r in scan["results"]:
+        r["variants_tried"] = [
+            {"variant": "V1", "success": False, "disturbed_approach": True},
+            {"variant": "V2", "success": False, "disturbed_approach": True},
+            {"variant": "V3", "success": True, "disturbed_approach": False},
+        ]
+    res = derive_p4c_geometry(scan, min_required_theta_deg=60.0)
+    assert res["status"] == "PASS"
+    assert res["theta_max_symmetric_deg"] == 90
+    assert res["theta_plus_max_deg"] == 90
+    assert res["theta_minus_max_deg"] == 90
+
