@@ -2402,3 +2402,20 @@ Diagnosis: `docs/p2_prereg/wp3a_rung2p_diagnosis_2026-10-22.md` (`26c9fc4`). It 
 3. rung-1′ is re-run on the new geometry (seeds 5000–5049). Report: the four metrics; ρ_X over all episodes, before the first success, and from the first success on; the number of unique round-1 targets.
 4. **(e) upgraded:** two arms of 50 episodes each, a lesson-text-only preamble vs a preamble with past target coordinates. Compare ρ_X and successes. The question is whether memory transmits lessons or paths. The result goes into P2 prereg §3a as the fifth memory-success-floor instance ("memory can substitute for perception").
 5. **The pre-memory ρ_X is kept as P2 §10 candidate 3.** Its exact value: ρ_X = +0.465, but p = 0.10, inside the n = 9 chance band. It is labelled EXPLORATORY.
+
+## 2026-10-26 — Pin-4c build; blind-sweep positive control on Pin-4b = 43/50
+**Code:** merged at master `2e434f4` (gates: design ×2, review ×2, QA ×2, acceptance GO; diff_hash `090470da2009db8a`).
+- It adds the polar goal sampler, the scripted blind-sweep mode, `--preamble_coords`, the validator's ρ segments and geometry checks, and the reach-scan and gate scripts.
+- The Pin-4c constants are **PLACEHOLDERS** until the scan has been derived; `--geometry pin4c` refuses to run until then.
+
+**Blind-sweep positive control, Pin-4b geometry:**
+- Run `4b7a8186`: the scripted fixed path [40,20,50] → [60,20,50] → [80,20,50], seeds 5000–5049, no VLM.
+- **43/50 successes (86%)**; 48/50 episodes made contact. Validator HARD checks PASS (`evidence/2026-10-26_p4c/validate_4b7a8186.txt`).
+- A blind path therefore solves 86% of the Pin-4b situations. The rung-1′ VLM got 11/50 on the same path, the difference being its hesitation repeats.
+- This confirms the geometry diagnosis behind Pin-4c.
+
+**Reach scan (GPU):**
+- Full grid: cube x {0.40…0.52} × y {−0.02…0.22} (3 cm steps) × θ {−90…+90} (15° steps) × d {0.07, 0.10} = 1,170 configurations. Approach variants V1–V4 per configuration; 180 s watchdog per variant; incremental checkpoint.
+- The script was run at commit `f291f6a` (branch `wp3a-p4c`).
+- Hazard found and handled: an earlier full run stalled with the simulator crawling, and no timeout existed. The watchdog was added and reviewed.
+- Grid points with x < 0.38 are excluded via `--x_grid` (hand keep-out).
