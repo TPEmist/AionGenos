@@ -151,6 +151,9 @@ def run_push_collect_loop(
     round_history: bool = False,                 # rung-2' full P1 condition: one EpisodeConversation per episode
     frame_convention: bool = False,              # d1 (PI 2026-10-22): frame convention line in stage-1 prompt
     verdict_contact_switch: bool = False,        # d2 (PI 2026-10-22): contact-switched P1 verdict
+    geometry: str = "pin4b",                     # Pin-4b (default) or Pin-4c
+    preamble_coords: str = "on",                 # Push preamble coords: on (default) or off
+    scripted_targets: Optional[Sequence[Sequence[int]]] = None,  # Scripted blind-sweep mode
 ) -> dict:
     """Drive `num_episodes` push episodes. Returns a summary dict.
 
@@ -176,11 +179,13 @@ def run_push_collect_loop(
     run_id = ReplayBuffer.new_run_id()
     logger.info(f"push_collect run_id={run_id} episodes={num_episodes} label={episode_label} obs_rung={obs_rung}")
     summary = {"run_id": run_id, "label": episode_label, "obs_rung": obs_rung, "episodes": [],
-               "n_success": 0, "memory_on": memory_retriever is not None,
+               "n_success": 0, "memory_on": memory_retriever is not None and scripted_targets is None,
                "top_view": top_view, "plateau_rule": "pin12_after_contact" if pin12 else "pin11_from_round1",
                "round_feedback": round_feedback, "round_history": round_history,
                "frame_convention": frame_convention, "verdict_contact_switch": verdict_contact_switch,
-               "frame_line": frame_line}
+               "frame_line": frame_line,
+               "geometry": geometry, "preamble_coords": preamble_coords,
+               "scripted_policy": bool(scripted_targets is not None)}
     gif_frames = []   # PNG bytes across the run (if gif_frame_every>0)
 
     for ep_idx in range(num_episodes):
@@ -207,6 +212,8 @@ def run_push_collect_loop(
         trajectory = []
         vlm_interactions = []
         flags = [f"label:{episode_label}"]
+        if scripted_targets is not None:
+            flags.append("scripted_policy")
         round_meta = []
         outcome = EpisodeOutcome.TIMEOUT
         plateau_count = 0
@@ -222,13 +229,15 @@ def run_push_collect_loop(
         memory_text: Optional[str] = None
         memory_imgs: Optional[list[str]] = None
         memory_hits: list[dict] = []
-        if memory_retriever is not None and rgb_start:
+        preamble_coord_redactions = 0
+        if memory_retriever is not None and rgb_start and scripted_targets is None:
             try:
                 pre = memory_retriever.retrieve_for_episode(rgb_start, init_snap.tcp_int)
+                preamble_coord_redactions = getattr(pre, "preamble_coord_redactions", 0)
                 if not pre.is_empty:
                     memory_text, memory_imgs = pre.prelude_text, pre.past_image_base64_list
                     memory_hits = [{"ep_id": r.ep_id, "run_id": r.run_id, "score": round(s, 4),
-                                    "outcome": r.outcome}
+                                    "outcome": r.outcome, "lesson": r.text_lesson}
                                    for r, s in zip(pre.retrieved_records, pre.similarities)]
                     hit_ids = ",".join(h["ep_id"][:8] for h in memory_hits)
                     hit_scores = ",".join(f"{h['score']:.2f}" for h in memory_hits)
@@ -240,7 +249,8 @@ def run_push_collect_loop(
                 logger.warning(f"  ep{ep_idx} memory retrieval failed (continuing without): {e}")
 
         prev_fb = None   # (target_int, tcp_start_int, scalars_cm or None) of the previous round
-        for round_idx in range(PUSH_ROUND_CAP):
+        max_rounds = len(scripted_targets) if scripted_targets is not None else PUSH_ROUND_CAP
+        for round_idx in range(max_rounds):
             rgb = env.get_rgb()
             pm.dump_png(ep_dump_dir, f"round_{round_idx + 1:02d}_pre.png", rgb)
             rgb_top = env.get_rgb_top() if top_view else b""
@@ -264,35 +274,46 @@ def run_push_collect_loop(
             # from task_instruction_template) — the PUSH prompt has {instruction}
             state["instruction"] = level_config.task_instruction_template
 
-            # Option A (ledger item 7): the memory preamble rides ROUND 1 only, in a
-            # fresh single-turn EpisodeConversation (same payload layout as the
-            # stateless call + preamble). Rounds 2+ — and every round when no
-            # preamble — keep conversation=None (stateless, unchanged).
-            if round_history:
-                # P1 collect.py: one conversation for the whole episode (first turn +
-                # last DEFAULT_RECENT_WINDOW pairs, older images stripped by client.py);
-                # the memory preamble still rides round 1 only.
-                if round_idx == 0:
-                    ep_conv = EpisodeConversation(get_stage1_system_prompt())
-                r1_conv = ep_conv
+            if scripted_targets is not None:
+                from aiongenos.vlm.parser import EEFStage1Response, PositionTarget
+                st_tgt = scripted_targets[round_idx]
+                parsed = EEFStage1Response(
+                    thought="[scripted_policy]",
+                    target_pos=PositionTarget(x=int(st_tgt[0]), y=int(st_tgt[1]), z=int(st_tgt[2])),
+                    target_ori=None,
+                    grip="close",
+                    stop=False,
+                )
             else:
-                r1_conv = (EpisodeConversation(get_stage1_system_prompt())
-                           if round_idx == 0 and memory_text else None)
-            parsed, latency_ms, err = run_stage1_eef(
-                level_config, teacher_url, rgb, state,
-                conversation=r1_conv,
-                memory_preamble_text=memory_text if r1_conv is not None and round_idx == 0 else None,
-                memory_preamble_images_b64=memory_imgs if r1_conv is not None and round_idx == 0 else None,
-                # rung 1b+: top-down view right after the front image
-                extra_image_bytes=[rgb_top] if top_view else None,
-                critic_feedback=critic_feedback,
-            )
-            if parsed is None:
-                flags.append("vlm_parse_fail")
-                outcome = EpisodeOutcome.VLM_PARSE_FAIL
-                logger.warning(f"  ep{ep_idx} round{round_idx+1} parse fail → bail ({err})")
-                break
-            vlm_interactions.append(_make_eef_vlm_interaction(parsed, latency_ms))
+                # Option A (ledger item 7): the memory preamble rides ROUND 1 only, in a
+                # fresh single-turn EpisodeConversation (same payload layout as the
+                # stateless call + preamble). Rounds 2+ — and every round when no
+                # preamble — keep conversation=None (stateless, unchanged).
+                if round_history:
+                    # P1 collect.py: one conversation for the whole episode (first turn +
+                    # last DEFAULT_RECENT_WINDOW pairs, older images stripped by client.py);
+                    # the memory preamble still rides round 1 only.
+                    if round_idx == 0:
+                        ep_conv = EpisodeConversation(get_stage1_system_prompt())
+                    r1_conv = ep_conv
+                else:
+                    r1_conv = (EpisodeConversation(get_stage1_system_prompt())
+                               if round_idx == 0 and memory_text else None)
+                parsed, latency_ms, err = run_stage1_eef(
+                    level_config, teacher_url, rgb, state,
+                    conversation=r1_conv,
+                    memory_preamble_text=memory_text if r1_conv is not None and round_idx == 0 else None,
+                    memory_preamble_images_b64=memory_imgs if r1_conv is not None and round_idx == 0 else None,
+                    # rung 1b+: top-down view right after the front image
+                    extra_image_bytes=[rgb_top] if top_view else None,
+                    critic_feedback=critic_feedback,
+                )
+                if parsed is None:
+                    flags.append("vlm_parse_fail")
+                    outcome = EpisodeOutcome.VLM_PARSE_FAIL
+                    logger.warning(f"  ep{ep_idx} round{round_idx+1} parse fail → bail ({err})")
+                    break
+                vlm_interactions.append(_make_eef_vlm_interaction(parsed, latency_ms))
 
             # A-spec v2: teacher emits a left-TCP target (base-frame grid).
             # De-normalize int→metric (same grid as the state). Orientation =
@@ -374,7 +395,7 @@ def run_push_collect_loop(
                 "tau_flag_steps": seg["tau_flag_steps"],
                 "servo_min_err_cm": round(seg["min_err_cm"], 2),
                 "vlm_thought": getattr(parsed, "thought", ""),
-                "vlm_full_response": vlm_interactions[-1].full_response,
+                "vlm_full_response": vlm_interactions[-1].full_response if vlm_interactions else "",
                 "vlm_stop": parsed.stop,
             })
             prev_fb = ((parsed.target_pos.x, parsed.target_pos.y, parsed.target_pos.z),
@@ -409,12 +430,16 @@ def run_push_collect_loop(
                 flags.append("vlm_stop_premature")
                 break
 
+        if scripted_targets is not None and outcome == EpisodeOutcome.TIMEOUT:
+            outcome = EpisodeOutcome.SCRIPTED_END
+
         rgb_end = env.get_rgb()
         final_snap = pm.snapshot_push_state(env, level_config)
         pm.dump_png(ep_dump_dir, "episode_end.png", rgb_end)
         if top_view:
             pm.dump_png(ep_dump_dir, "episode_end_top.png", env.get_rgb_top())
         total_latency = sum(vi.latency_ms for vi in vlm_interactions)
+        goal_sample = env.get_goal_sample() if hasattr(env, "get_goal_sample") else None
         ep_meta = {
             "label": episode_label,
             "task": pm.PUSH_TASK_TAG,
@@ -438,8 +463,13 @@ def run_push_collect_loop(
             # after an auto-reset the end state is a fresh reset → not recorded
             "final_cube_pose_b": None if auto_reset else list(final_snap.cube_b),
             "rounds_state": pm.replay_rounds_state(round_meta),
-            "memory_on": memory_retriever is not None,
+            "memory_on": memory_retriever is not None and scripted_targets is None,
             "memory_hits": memory_hits,
+            "geometry": geometry,
+            "goal_sample": goal_sample,
+            "preamble_coords": preamble_coords,
+            "preamble_coord_redactions": preamble_coord_redactions,
+            "scripted_policy": bool(scripted_targets is not None),
             "dump_dir": str(ep_dump_dir) if ep_dump_dir is not None else None,
         }
         pm.write_push_episode(
@@ -453,6 +483,10 @@ def run_push_collect_loop(
                                     "plateau_armed_round": plateau_armed_round,
                                     "init_cube_b": list(init_snap.cube_b), "goal_b": list(init_snap.goal_b),
                                     "init_tcp_b": list(init_snap.tcp_b), "memory_hits": memory_hits,
+                                    "geometry": geometry, "goal_sample": goal_sample,
+                                    "preamble_coords": preamble_coords,
+                                    "preamble_coord_redactions": preamble_coord_redactions,
+                                    "scripted_policy": bool(scripted_targets is not None),
                                     "round_meta": round_meta})
         if outcome == EpisodeOutcome.SUCCESS:
             summary["n_success"] += 1
@@ -464,6 +498,11 @@ def run_push_collect_loop(
             "frame_line": frame_line,
             "workspace_bounds": {"x": list(bounds.x_bounds), "y": list(bounds.y_bounds),
                                  "z": list(bounds.z_bounds)},
+            "geometry": geometry,
+            "goal_sample": goal_sample,
+            "preamble_coords": preamble_coords,
+            "preamble_coord_redactions": preamble_coord_redactions,
+            "scripted_policy": bool(scripted_targets is not None),
         })
 
         # recap — always (any outcome) if a buffer is given and not readonly
@@ -472,7 +511,8 @@ def run_push_collect_loop(
         # (it would teach memory a false outcome; ledger 15).
         if auto_reset and recap_buffer is not None:
             logger.warning(f"  ep{ep_idx} recap skipped (env_auto_reset)")
-        if recap_buffer is not None and not recap_buffer_readonly and not auto_reset:
+        if (recap_buffer is not None and not recap_buffer_readonly and not auto_reset
+                and scripted_targets is None):
             try:
                 pm.emit_push_recap(
                     recap_buffer=recap_buffer, ep_id=ep_id, run_id=run_id,

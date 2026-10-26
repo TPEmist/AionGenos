@@ -44,6 +44,7 @@ class MemoryPreamble:
     past_image_base64_list: list[str]  # one entry per retrieved record
     retrieved_records: tuple[RecapRecord, ...]  # for logging / debugging
     similarities: tuple[float, ...]
+    preamble_coord_redactions: int = 0
 
     @property
     def is_empty(self) -> bool:
