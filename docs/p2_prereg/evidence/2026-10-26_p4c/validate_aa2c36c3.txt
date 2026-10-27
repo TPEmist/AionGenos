@@ -1,0 +1,23 @@
+episodes=50 rounds=150 outcomes={'push_plateau': 38, 'success': 5, 'scripted_end': 7}
+[task] successes=5/50; contact_episodes=13/50
+[task] closest TCP->cube cm: min=3.3 median=8.3
+[task] initial cube->goal cm: min=7.0 median=8.5 max=10.1; success needs <= 5 cm
+[task] best cube->goal reached per episode cm: min=1.6 median=8.2
+[distribution] target relative to cube (m): X range [-0.128, 0.109] median -0.009; Y range [-0.019, 0.099] median 0.049
+[z] counts: standby_z=0 (defined as z_int == init_tcp_z_int) contact_band=0 (cube centre ± half-height mapped to z_int) other=150 | target z-int top: [(50, 150)]
+[d1] frame_convention: off
+[exec] reach_err_cm RAW: median=0.05 p95=0.12 max=0.21
+[exec] reach_err_cm GUARDED: median=0.05 p95=0.12 max=0.21
+[guard] target_clamps=0; setpoint_clamps: total=0 in 0 rounds (max=0)
+[ori] final err deg: median=0.37 max=5.47; rounds > 5 deg: 1/150
+[tau] saturation (tau_flag_steps > 0): 50/150 rounds (max=1); warn: 50 rounds (max=1)
+[box] used quaternion distance in 150 checks; 0 fallbacks
+[feedback] {'fb_missing': 100}
+[geometry] geometry=pin4c; settled goal-cube dist (m): min=0.070 median=0.085 max=0.101; settled angle (deg): min=-67.6 median=12.2 max=70.5; cube X: [0.402, 0.458] Y: [-0.019, 0.099]
+[preamble] preamble_coords=on; coord_redactions=0; lesson_leak_rate=0/0 (0.0%)
+[segment:all] n=50 seeds 5000-5049 | rho_X=+nan p_one_sided=nan band95=+nan | rho_Y=+nan p_one_sided=nan band95=+nan | circ_corr=+0.171 p_circ=0.1150 | unique_R1_targets=1
+[segment:before_first_success] n=12 seeds 5000-5011 | rho_X=+nan p_one_sided=nan band95=+nan | rho_Y=+nan p_one_sided=nan band95=+nan | circ_corr=+0.595 p_circ=0.0236 | unique_R1_targets=1
+[segment:from_first_success] n=38 seeds 5012-5049 | rho_X=+nan p_one_sided=nan band95=+nan | rho_Y=+nan p_one_sided=nan band95=+nan | circ_corr=+0.096 p_circ=0.2862 | unique_R1_targets=1
+[(c) verdict] count>=5: yes; rho_X significant: no -> NOT PASSED
+
+[PASS] All hard checks passed.

@@ -2419,3 +2419,43 @@ Diagnosis: `docs/p2_prereg/wp3a_rung2p_diagnosis_2026-10-22.md` (`26c9fc4`). It 
 - The script was run at commit `f291f6a` (branch `wp3a-p4c`).
 - Hazard found and handled: an earlier full run stalled with the simulator crawling, and no timeout existed. The watchdog was added and reviewed.
 - Grid points with x < 0.38 are excluded via `--x_grid` (hand keep-out).
+
+## 2026-10-27 — Pin-4c geometry fixed at ±75°, cube X [0.40, 0.46] × Y [−0.02, 0.10]; blind sweep 5/50 (qualifies)
+**Reach scan.** 1,055 configurations: the main grid of 981, plus x=0.52 at θ=0, plus 66 retests and x=0.52 rows.
+- Evidence (`evidence/2026-10-26_p4c/`):
+  - `scan_main_981.json`, `scan_x052.json`, `scan_retest2.json`;
+  - `derived_final.json` (sha256 `d524d9a3…`);
+  - `box_check_critic1.md` (an independent recomputation that matches).
+- **Solvability = outcome only** (spec R6): some approach variant ends with cube→goal ≤ 5 cm.
+  - Approach-disturbance is telemetry. Disturbances are often large (median 8.3 cm, critic1), so this criterion is permissive.
+  - The strict (no-disturbance) boxes are about half the size; see the table in the critic1 report.
+- **Probe noise:** 1/6 retests flipped from fail to success; 1 physics blow-up (the cube flew about 6 m).
+- **Candidates** (largest box for which every θ in range is solvable at d = 7 and 10 cm):
+
+  | θ | box |
+  |---|---|
+  | ±60° | X 0.40–0.46 × Y −0.02–0.16 |
+  | ±75° | X 0.40–0.46 × Y −0.02–0.10 |
+  | ±90° | X 0.43–0.46 × Y 0.01–0.13 |
+
+**Blind-sweep gate** (the rung-1′ fixed path as a scripted policy, seeds 5000–5049; SR ≤ 10% required):
+- ±60°: run `6ce58e20`, **10/50 = 20% → not qualified**. Direction range widened per the PI rule.
+- **±75°:** run `aa2c36c3`, **5/50 = 10% → qualifies** (at the threshold). Validator HARD checks PASS.
+  - **This blind-sweep SR (5/50) is the gen-0 blind control.**
+- Runtime gate (`wp3a_pin4c_gate.py`, 200 resets):
+  - ±60°: ALL PASS;
+  - ±75°: ALL PASS, sampled θ ∈ [−74.7°, 74.1°], uniformity χ² = 2.32.
+
+**Instrument bugs found only on GPU** (all fixed and reviewed):
+- the camera was disabled;
+- the exit code was 0 on a crash;
+- the wrong cube pose API was used;
+- the dry run tested nothing;
+- the approach was too narrow;
+- there was no watchdog;
+- the P4c cfg crashed on duplicate kwargs;
+- the gate tolerance was too tight.
+
+Lesson for the gate checklist: **every new gym id and every Isaac script must be instantiated once on GPU before acceptance**; CPU tests cannot catch these.
+
+**Constants:** master `f004646`. Each later run records `geometry=pin4c`.

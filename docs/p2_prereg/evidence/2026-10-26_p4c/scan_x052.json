@@ -1,0 +1,1121 @@
+{
+  "x_grid": [
+    0.34,
+    0.37,
+    0.4,
+    0.43,
+    0.46,
+    0.49,
+    0.52
+  ],
+  "y_grid": [
+    -0.02,
+    0.01,
+    0.04,
+    0.07,
+    0.1,
+    0.13,
+    0.16,
+    0.19,
+    0.22
+  ],
+  "theta_deg_grid": [
+    -90,
+    -75,
+    -60,
+    -45,
+    -30,
+    -15,
+    0,
+    15,
+    30,
+    45,
+    60,
+    75,
+    90
+  ],
+  "dist_grid": [
+    0.07,
+    0.1
+  ],
+  "results": [
+    {
+      "cube_x": 0.52,
+      "cube_y": 0.04,
+      "theta_deg": 0,
+      "dist": 0.07,
+      "goal_x": 0.59,
+      "goal_y": 0.04,
+      "success": true,
+      "variant_used": "V1",
+      "disturbed_approach": false,
+      "pre_push_cube_displacement_cm": 0.0,
+      "final_cube_goal_m": 0.0014,
+      "min_finger_to_cube_cm": 0.22,
+      "tightest_joint": [
+        "openarm_left_joint2",
+        0.0
+      ],
+      "tau_warn_steps_max": 90,
+      "tau_flag_steps_max": 72,
+      "target_clamps": 0,
+      "elapsed_s": 36.5,
+      "variants_tried": [
+        {
+          "variant": "V1",
+          "offset_m": 0.01,
+          "yaw_deg": 0,
+          "success": true,
+          "failure_reason": null,
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.0014,
+          "min_finger_to_cube_cm": 0.22,
+          "tightest_joint": [
+            "openarm_left_joint2",
+            0.0
+          ],
+          "tau_warn_steps_max": 90,
+          "tau_flag_steps_max": 72,
+          "target_clamps": 0,
+          "elapsed_s": 36.5
+        }
+      ]
+    },
+    {
+      "cube_x": 0.52,
+      "cube_y": 0.04,
+      "theta_deg": 0,
+      "dist": 0.1,
+      "goal_x": 0.62,
+      "goal_y": 0.04,
+      "success": true,
+      "variant_used": "V1",
+      "disturbed_approach": false,
+      "pre_push_cube_displacement_cm": 0.01,
+      "final_cube_goal_m": 0.0276,
+      "min_finger_to_cube_cm": 0.22,
+      "tightest_joint": [
+        "openarm_left_joint2",
+        -0.0
+      ],
+      "tau_warn_steps_max": 90,
+      "tau_flag_steps_max": 90,
+      "target_clamps": 0,
+      "elapsed_s": 37.53,
+      "variants_tried": [
+        {
+          "variant": "V1",
+          "offset_m": 0.01,
+          "yaw_deg": 0,
+          "success": true,
+          "failure_reason": null,
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.01,
+          "final_cube_goal_m": 0.0276,
+          "min_finger_to_cube_cm": 0.22,
+          "tightest_joint": [
+            "openarm_left_joint2",
+            -0.0
+          ],
+          "tau_warn_steps_max": 90,
+          "tau_flag_steps_max": 90,
+          "target_clamps": 0,
+          "elapsed_s": 37.53
+        }
+      ]
+    },
+    {
+      "cube_x": 0.52,
+      "cube_y": 0.07,
+      "theta_deg": 0,
+      "dist": 0.07,
+      "goal_x": 0.59,
+      "goal_y": 0.07,
+      "success": true,
+      "variant_used": "V1",
+      "disturbed_approach": false,
+      "pre_push_cube_displacement_cm": 0.0,
+      "final_cube_goal_m": 0.0115,
+      "min_finger_to_cube_cm": 0.22,
+      "tightest_joint": [
+        "openarm_left_joint5",
+        -1383.1
+      ],
+      "tau_warn_steps_max": 73,
+      "tau_flag_steps_max": 68,
+      "target_clamps": 0,
+      "elapsed_s": 36.97,
+      "variants_tried": [
+        {
+          "variant": "V1",
+          "offset_m": 0.01,
+          "yaw_deg": 0,
+          "success": true,
+          "failure_reason": null,
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.0115,
+          "min_finger_to_cube_cm": 0.22,
+          "tightest_joint": [
+            "openarm_left_joint5",
+            -1383.1
+          ],
+          "tau_warn_steps_max": 73,
+          "tau_flag_steps_max": 68,
+          "target_clamps": 0,
+          "elapsed_s": 36.97
+        }
+      ]
+    },
+    {
+      "cube_x": 0.52,
+      "cube_y": 0.07,
+      "theta_deg": 0,
+      "dist": 0.1,
+      "goal_x": 0.62,
+      "goal_y": 0.07,
+      "success": true,
+      "variant_used": "V2",
+      "disturbed_approach": false,
+      "pre_push_cube_displacement_cm": 0.0,
+      "final_cube_goal_m": 0.0218,
+      "min_finger_to_cube_cm": 1.75,
+      "tightest_joint": [
+        "openarm_left_joint3",
+        38.7
+      ],
+      "tau_warn_steps_max": 90,
+      "tau_flag_steps_max": 90,
+      "target_clamps": 0,
+      "elapsed_s": 75.52,
+      "variants_tried": [
+        {
+          "variant": "V1",
+          "offset_m": 0.01,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.01,
+          "final_cube_goal_m": 0.0736,
+          "min_finger_to_cube_cm": 0.2,
+          "tightest_joint": [
+            "openarm_left_joint3",
+            -0.0
+          ],
+          "tau_warn_steps_max": 90,
+          "tau_flag_steps_max": 90,
+          "target_clamps": 0,
+          "elapsed_s": 37.88
+        },
+        {
+          "variant": "V2",
+          "offset_m": 0.025,
+          "yaw_deg": 0,
+          "success": true,
+          "failure_reason": null,
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.0218,
+          "min_finger_to_cube_cm": 1.75,
+          "tightest_joint": [
+            "openarm_left_joint3",
+            38.7
+          ],
+          "tau_warn_steps_max": 90,
+          "tau_flag_steps_max": 90,
+          "target_clamps": 0,
+          "elapsed_s": 37.64
+        }
+      ]
+    },
+    {
+      "cube_x": 0.52,
+      "cube_y": 0.1,
+      "theta_deg": 0,
+      "dist": 0.07,
+      "goal_x": 0.59,
+      "goal_y": 0.1,
+      "success": true,
+      "variant_used": "V1",
+      "disturbed_approach": false,
+      "pre_push_cube_displacement_cm": 0.01,
+      "final_cube_goal_m": 0.0286,
+      "min_finger_to_cube_cm": 0.23,
+      "tightest_joint": [
+        "openarm_left_joint5",
+        -2321.2
+      ],
+      "tau_warn_steps_max": 90,
+      "tau_flag_steps_max": 90,
+      "target_clamps": 0,
+      "elapsed_s": 36.31,
+      "variants_tried": [
+        {
+          "variant": "V1",
+          "offset_m": 0.01,
+          "yaw_deg": 0,
+          "success": true,
+          "failure_reason": null,
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.01,
+          "final_cube_goal_m": 0.0286,
+          "min_finger_to_cube_cm": 0.23,
+          "tightest_joint": [
+            "openarm_left_joint5",
+            -2321.2
+          ],
+          "tau_warn_steps_max": 90,
+          "tau_flag_steps_max": 90,
+          "target_clamps": 0,
+          "elapsed_s": 36.31
+        }
+      ]
+    },
+    {
+      "cube_x": 0.52,
+      "cube_y": 0.1,
+      "theta_deg": 0,
+      "dist": 0.1,
+      "goal_x": 0.62,
+      "goal_y": 0.1,
+      "success": true,
+      "variant_used": "V1",
+      "disturbed_approach": false,
+      "pre_push_cube_displacement_cm": 0.0,
+      "final_cube_goal_m": 0.0337,
+      "min_finger_to_cube_cm": 0.3,
+      "tightest_joint": [
+        "openarm_left_joint1",
+        0.0
+      ],
+      "tau_warn_steps_max": 52,
+      "tau_flag_steps_max": 49,
+      "target_clamps": 0,
+      "elapsed_s": 34.51,
+      "variants_tried": [
+        {
+          "variant": "V1",
+          "offset_m": 0.01,
+          "yaw_deg": 0,
+          "success": true,
+          "failure_reason": null,
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.0337,
+          "min_finger_to_cube_cm": 0.3,
+          "tightest_joint": [
+            "openarm_left_joint1",
+            0.0
+          ],
+          "tau_warn_steps_max": 52,
+          "tau_flag_steps_max": 49,
+          "target_clamps": 0,
+          "elapsed_s": 34.51
+        }
+      ]
+    },
+    {
+      "cube_x": 0.52,
+      "cube_y": 0.13,
+      "theta_deg": 0,
+      "dist": 0.07,
+      "goal_x": 0.59,
+      "goal_y": 0.13,
+      "success": false,
+      "variant_used": null,
+      "disturbed_approach": false,
+      "pre_push_cube_displacement_cm": 0.0,
+      "final_cube_goal_m": 0.07,
+      "min_finger_to_cube_cm": 92.92,
+      "tightest_joint": [
+        "openarm_left_joint3",
+        -409.9
+      ],
+      "tau_warn_steps_max": 66,
+      "tau_flag_steps_max": 63,
+      "target_clamps": 0,
+      "elapsed_s": 138.37,
+      "variants_tried": [
+        {
+          "variant": "V1",
+          "offset_m": 0.01,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.1907,
+          "min_finger_to_cube_cm": 0.2,
+          "tightest_joint": [
+            "openarm_left_joint6",
+            -0.0
+          ],
+          "tau_warn_steps_max": 90,
+          "tau_flag_steps_max": 90,
+          "target_clamps": 0,
+          "elapsed_s": 34.9
+        },
+        {
+          "variant": "V2",
+          "offset_m": 0.025,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.01,
+          "final_cube_goal_m": 0.0703,
+          "min_finger_to_cube_cm": 1.73,
+          "tightest_joint": [
+            "openarm_left_joint3",
+            -722.8
+          ],
+          "tau_warn_steps_max": 73,
+          "tau_flag_steps_max": 65,
+          "target_clamps": 0,
+          "elapsed_s": 36.9
+        },
+        {
+          "variant": "V3",
+          "offset_m": 0.025,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 1.6892,
+          "min_finger_to_cube_cm": 1.71,
+          "tightest_joint": [
+            "openarm_left_joint6",
+            -61864.2
+          ],
+          "tau_warn_steps_max": 90,
+          "tau_flag_steps_max": 90,
+          "target_clamps": 0,
+          "elapsed_s": 34.54
+        },
+        {
+          "variant": "V4",
+          "offset_m": 0.04,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.07,
+          "min_finger_to_cube_cm": 92.92,
+          "tightest_joint": [
+            "openarm_left_joint3",
+            -409.9
+          ],
+          "tau_warn_steps_max": 66,
+          "tau_flag_steps_max": 63,
+          "target_clamps": 0,
+          "elapsed_s": 32.02
+        }
+      ]
+    },
+    {
+      "cube_x": 0.52,
+      "cube_y": 0.13,
+      "theta_deg": 0,
+      "dist": 0.1,
+      "goal_x": 0.62,
+      "goal_y": 0.13,
+      "success": false,
+      "variant_used": null,
+      "disturbed_approach": false,
+      "pre_push_cube_displacement_cm": 0.0,
+      "final_cube_goal_m": 0.1,
+      "min_finger_to_cube_cm": 93.11,
+      "tightest_joint": [
+        "openarm_left_joint5",
+        -3503.8
+      ],
+      "tau_warn_steps_max": 79,
+      "tau_flag_steps_max": 79,
+      "target_clamps": 0,
+      "elapsed_s": 128.64,
+      "variants_tried": [
+        {
+          "variant": "V1",
+          "offset_m": 0.01,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.1,
+          "min_finger_to_cube_cm": 92.79,
+          "tightest_joint": [
+            "openarm_left_joint1",
+            0.0
+          ],
+          "tau_warn_steps_max": 77,
+          "tau_flag_steps_max": 75,
+          "target_clamps": 0,
+          "elapsed_s": 31.99
+        },
+        {
+          "variant": "V2",
+          "offset_m": 0.025,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.1,
+          "min_finger_to_cube_cm": 92.94,
+          "tightest_joint": [
+            "openarm_left_joint3",
+            -12128.9
+          ],
+          "tau_warn_steps_max": 90,
+          "tau_flag_steps_max": 90,
+          "target_clamps": 0,
+          "elapsed_s": 31.98
+        },
+        {
+          "variant": "V3",
+          "offset_m": 0.025,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.1,
+          "min_finger_to_cube_cm": 92.94,
+          "tightest_joint": [
+            "openarm_left_joint3",
+            -12128.9
+          ],
+          "tau_warn_steps_max": 90,
+          "tau_flag_steps_max": 90,
+          "target_clamps": 0,
+          "elapsed_s": 32.24
+        },
+        {
+          "variant": "V4",
+          "offset_m": 0.04,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.1,
+          "min_finger_to_cube_cm": 93.11,
+          "tightest_joint": [
+            "openarm_left_joint5",
+            -3503.8
+          ],
+          "tau_warn_steps_max": 79,
+          "tau_flag_steps_max": 79,
+          "target_clamps": 0,
+          "elapsed_s": 32.43
+        }
+      ]
+    },
+    {
+      "cube_x": 0.52,
+      "cube_y": 0.16,
+      "theta_deg": 0,
+      "dist": 0.07,
+      "goal_x": 0.59,
+      "goal_y": 0.16,
+      "success": false,
+      "variant_used": null,
+      "disturbed_approach": false,
+      "pre_push_cube_displacement_cm": 0.0,
+      "final_cube_goal_m": 0.07,
+      "min_finger_to_cube_cm": 91.36,
+      "tightest_joint": [
+        "openarm_left_joint3",
+        -461.9
+      ],
+      "tau_warn_steps_max": 66,
+      "tau_flag_steps_max": 57,
+      "target_clamps": 0,
+      "elapsed_s": 129.62,
+      "variants_tried": [
+        {
+          "variant": "V1",
+          "offset_m": 0.01,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.07,
+          "min_finger_to_cube_cm": 92.79,
+          "tightest_joint": [
+            "openarm_left_joint3",
+            -4959.0
+          ],
+          "tau_warn_steps_max": 85,
+          "tau_flag_steps_max": 85,
+          "target_clamps": 0,
+          "elapsed_s": 32.43
+        },
+        {
+          "variant": "V2",
+          "offset_m": 0.025,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.07,
+          "min_finger_to_cube_cm": 82.41,
+          "tightest_joint": [
+            "openarm_left_joint3",
+            28.3
+          ],
+          "tau_warn_steps_max": 58,
+          "tau_flag_steps_max": 52,
+          "target_clamps": 0,
+          "elapsed_s": 32.34
+        },
+        {
+          "variant": "V3",
+          "offset_m": 0.025,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.07,
+          "min_finger_to_cube_cm": 82.41,
+          "tightest_joint": [
+            "openarm_left_joint3",
+            28.3
+          ],
+          "tau_warn_steps_max": 58,
+          "tau_flag_steps_max": 52,
+          "target_clamps": 0,
+          "elapsed_s": 32.36
+        },
+        {
+          "variant": "V4",
+          "offset_m": 0.04,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.07,
+          "min_finger_to_cube_cm": 91.36,
+          "tightest_joint": [
+            "openarm_left_joint3",
+            -461.9
+          ],
+          "tau_warn_steps_max": 66,
+          "tau_flag_steps_max": 57,
+          "target_clamps": 0,
+          "elapsed_s": 32.49
+        }
+      ]
+    },
+    {
+      "cube_x": 0.52,
+      "cube_y": 0.16,
+      "theta_deg": 0,
+      "dist": 0.1,
+      "goal_x": 0.62,
+      "goal_y": 0.16,
+      "success": false,
+      "variant_used": null,
+      "disturbed_approach": false,
+      "pre_push_cube_displacement_cm": 0.0,
+      "final_cube_goal_m": 0.1,
+      "min_finger_to_cube_cm": 93.1,
+      "tightest_joint": [
+        "openarm_left_joint1",
+        0.0
+      ],
+      "tau_warn_steps_max": 70,
+      "tau_flag_steps_max": 65,
+      "target_clamps": 0,
+      "elapsed_s": 129.53,
+      "variants_tried": [
+        {
+          "variant": "V1",
+          "offset_m": 0.01,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.1,
+          "min_finger_to_cube_cm": 92.79,
+          "tightest_joint": [
+            "openarm_left_joint2",
+            -1806.3
+          ],
+          "tau_warn_steps_max": 90,
+          "tau_flag_steps_max": 90,
+          "target_clamps": 0,
+          "elapsed_s": 32.57
+        },
+        {
+          "variant": "V2",
+          "offset_m": 0.025,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.1,
+          "min_finger_to_cube_cm": 92.93,
+          "tightest_joint": [
+            "openarm_left_joint3",
+            -0.0
+          ],
+          "tau_warn_steps_max": 90,
+          "tau_flag_steps_max": 90,
+          "target_clamps": 0,
+          "elapsed_s": 32.32
+        },
+        {
+          "variant": "V3",
+          "offset_m": 0.025,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.1,
+          "min_finger_to_cube_cm": 92.93,
+          "tightest_joint": [
+            "openarm_left_joint3",
+            -0.0
+          ],
+          "tau_warn_steps_max": 90,
+          "tau_flag_steps_max": 90,
+          "target_clamps": 0,
+          "elapsed_s": 32.33
+        },
+        {
+          "variant": "V4",
+          "offset_m": 0.04,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.1,
+          "min_finger_to_cube_cm": 93.1,
+          "tightest_joint": [
+            "openarm_left_joint1",
+            0.0
+          ],
+          "tau_warn_steps_max": 70,
+          "tau_flag_steps_max": 65,
+          "target_clamps": 0,
+          "elapsed_s": 32.3
+        }
+      ]
+    },
+    {
+      "cube_x": 0.52,
+      "cube_y": 0.19,
+      "theta_deg": 0,
+      "dist": 0.07,
+      "goal_x": 0.59,
+      "goal_y": 0.19,
+      "success": false,
+      "variant_used": null,
+      "disturbed_approach": false,
+      "pre_push_cube_displacement_cm": 0.0,
+      "final_cube_goal_m": 0.07,
+      "min_finger_to_cube_cm": 93.1,
+      "tightest_joint": [
+        "openarm_left_joint2",
+        -2890.7
+      ],
+      "tau_warn_steps_max": 88,
+      "tau_flag_steps_max": 84,
+      "target_clamps": 0,
+      "elapsed_s": 129.7,
+      "variants_tried": [
+        {
+          "variant": "V1",
+          "offset_m": 0.01,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.07,
+          "min_finger_to_cube_cm": 92.78,
+          "tightest_joint": [
+            "openarm_left_joint3",
+            -567.5
+          ],
+          "tau_warn_steps_max": 87,
+          "tau_flag_steps_max": 82,
+          "target_clamps": 0,
+          "elapsed_s": 32.31
+        },
+        {
+          "variant": "V2",
+          "offset_m": 0.025,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.07,
+          "min_finger_to_cube_cm": 92.02,
+          "tightest_joint": [
+            "openarm_left_joint2",
+            -1143.5
+          ],
+          "tau_warn_steps_max": 87,
+          "tau_flag_steps_max": 78,
+          "target_clamps": 0,
+          "elapsed_s": 32.4
+        },
+        {
+          "variant": "V3",
+          "offset_m": 0.025,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.07,
+          "min_finger_to_cube_cm": 92.02,
+          "tightest_joint": [
+            "openarm_left_joint2",
+            -1143.5
+          ],
+          "tau_warn_steps_max": 87,
+          "tau_flag_steps_max": 78,
+          "target_clamps": 0,
+          "elapsed_s": 32.42
+        },
+        {
+          "variant": "V4",
+          "offset_m": 0.04,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.07,
+          "min_finger_to_cube_cm": 93.1,
+          "tightest_joint": [
+            "openarm_left_joint2",
+            -2890.7
+          ],
+          "tau_warn_steps_max": 88,
+          "tau_flag_steps_max": 84,
+          "target_clamps": 0,
+          "elapsed_s": 32.58
+        }
+      ]
+    },
+    {
+      "cube_x": 0.52,
+      "cube_y": 0.19,
+      "theta_deg": 0,
+      "dist": 0.1,
+      "goal_x": 0.62,
+      "goal_y": 0.19,
+      "success": false,
+      "variant_used": null,
+      "disturbed_approach": false,
+      "pre_push_cube_displacement_cm": 0.0,
+      "final_cube_goal_m": 0.1,
+      "min_finger_to_cube_cm": 93.1,
+      "tightest_joint": [
+        "openarm_left_joint1",
+        -199.0
+      ],
+      "tau_warn_steps_max": 74,
+      "tau_flag_steps_max": 71,
+      "target_clamps": 0,
+      "elapsed_s": 128.73,
+      "variants_tried": [
+        {
+          "variant": "V1",
+          "offset_m": 0.01,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.1,
+          "min_finger_to_cube_cm": 92.2,
+          "tightest_joint": [
+            "openarm_left_joint3",
+            -0.0
+          ],
+          "tau_warn_steps_max": 90,
+          "tau_flag_steps_max": 90,
+          "target_clamps": 0,
+          "elapsed_s": 32.28
+        },
+        {
+          "variant": "V2",
+          "offset_m": 0.025,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.1,
+          "min_finger_to_cube_cm": 92.93,
+          "tightest_joint": [
+            "openarm_left_joint5",
+            -10694.5
+          ],
+          "tau_warn_steps_max": 89,
+          "tau_flag_steps_max": 88,
+          "target_clamps": 0,
+          "elapsed_s": 32.28
+        },
+        {
+          "variant": "V3",
+          "offset_m": 0.025,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.1,
+          "min_finger_to_cube_cm": 92.93,
+          "tightest_joint": [
+            "openarm_left_joint5",
+            -10694.5
+          ],
+          "tau_warn_steps_max": 89,
+          "tau_flag_steps_max": 88,
+          "target_clamps": 0,
+          "elapsed_s": 32.09
+        },
+        {
+          "variant": "V4",
+          "offset_m": 0.04,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.1,
+          "min_finger_to_cube_cm": 93.1,
+          "tightest_joint": [
+            "openarm_left_joint1",
+            -199.0
+          ],
+          "tau_warn_steps_max": 74,
+          "tau_flag_steps_max": 71,
+          "target_clamps": 0,
+          "elapsed_s": 32.09
+        }
+      ]
+    },
+    {
+      "cube_x": 0.52,
+      "cube_y": 0.22,
+      "theta_deg": 0,
+      "dist": 0.07,
+      "goal_x": 0.59,
+      "goal_y": 0.22,
+      "success": false,
+      "variant_used": null,
+      "disturbed_approach": false,
+      "pre_push_cube_displacement_cm": 0.0,
+      "final_cube_goal_m": 0.07,
+      "min_finger_to_cube_cm": 86.06,
+      "tightest_joint": [
+        "openarm_left_joint3",
+        -138.8
+      ],
+      "tau_warn_steps_max": 83,
+      "tau_flag_steps_max": 80,
+      "target_clamps": 0,
+      "elapsed_s": 128.5,
+      "variants_tried": [
+        {
+          "variant": "V1",
+          "offset_m": 0.01,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.07,
+          "min_finger_to_cube_cm": 86.31,
+          "tightest_joint": [
+            "openarm_left_joint3",
+            -0.0
+          ],
+          "tau_warn_steps_max": 90,
+          "tau_flag_steps_max": 90,
+          "target_clamps": 0,
+          "elapsed_s": 32.2
+        },
+        {
+          "variant": "V2",
+          "offset_m": 0.025,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.07,
+          "min_finger_to_cube_cm": 84.64,
+          "tightest_joint": [
+            "openarm_left_joint1",
+            0.0
+          ],
+          "tau_warn_steps_max": 64,
+          "tau_flag_steps_max": 57,
+          "target_clamps": 0,
+          "elapsed_s": 32.01
+        },
+        {
+          "variant": "V3",
+          "offset_m": 0.025,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.07,
+          "min_finger_to_cube_cm": 84.64,
+          "tightest_joint": [
+            "openarm_left_joint1",
+            0.0
+          ],
+          "tau_warn_steps_max": 64,
+          "tau_flag_steps_max": 57,
+          "target_clamps": 0,
+          "elapsed_s": 32.34
+        },
+        {
+          "variant": "V4",
+          "offset_m": 0.04,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.07,
+          "min_finger_to_cube_cm": 86.06,
+          "tightest_joint": [
+            "openarm_left_joint3",
+            -138.8
+          ],
+          "tau_warn_steps_max": 83,
+          "tau_flag_steps_max": 80,
+          "target_clamps": 0,
+          "elapsed_s": 31.94
+        }
+      ]
+    },
+    {
+      "cube_x": 0.52,
+      "cube_y": 0.22,
+      "theta_deg": 0,
+      "dist": 0.1,
+      "goal_x": 0.62,
+      "goal_y": 0.22,
+      "success": false,
+      "variant_used": null,
+      "disturbed_approach": false,
+      "pre_push_cube_displacement_cm": 0.0,
+      "final_cube_goal_m": 0.1,
+      "min_finger_to_cube_cm": 93.1,
+      "tightest_joint": [
+        "openarm_left_joint3",
+        -640.8
+      ],
+      "tau_warn_steps_max": 82,
+      "tau_flag_steps_max": 80,
+      "target_clamps": 0,
+      "elapsed_s": 128.12,
+      "variants_tried": [
+        {
+          "variant": "V1",
+          "offset_m": 0.01,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.1,
+          "min_finger_to_cube_cm": 86.31,
+          "tightest_joint": [
+            "openarm_left_joint3",
+            -0.0
+          ],
+          "tau_warn_steps_max": 90,
+          "tau_flag_steps_max": 90,
+          "target_clamps": 0,
+          "elapsed_s": 32.05
+        },
+        {
+          "variant": "V2",
+          "offset_m": 0.025,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.1,
+          "min_finger_to_cube_cm": 92.93,
+          "tightest_joint": [
+            "openarm_left_joint3",
+            -952.8
+          ],
+          "tau_warn_steps_max": 73,
+          "tau_flag_steps_max": 70,
+          "target_clamps": 0,
+          "elapsed_s": 32.07
+        },
+        {
+          "variant": "V3",
+          "offset_m": 0.025,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.1,
+          "min_finger_to_cube_cm": 92.93,
+          "tightest_joint": [
+            "openarm_left_joint3",
+            -952.8
+          ],
+          "tau_warn_steps_max": 73,
+          "tau_flag_steps_max": 70,
+          "target_clamps": 0,
+          "elapsed_s": 31.93
+        },
+        {
+          "variant": "V4",
+          "offset_m": 0.04,
+          "yaw_deg": 0,
+          "success": false,
+          "failure_reason": "goal_distance",
+          "disturbed_approach": false,
+          "pre_push_cube_displacement_cm": 0.0,
+          "final_cube_goal_m": 0.1,
+          "min_finger_to_cube_cm": 93.1,
+          "tightest_joint": [
+            "openarm_left_joint3",
+            -640.8
+          ],
+          "tau_warn_steps_max": 82,
+          "tau_flag_steps_max": 80,
+          "target_clamps": 0,
+          "elapsed_s": 32.07
+        }
+      ]
+    }
+  ],
+  "skipped": []
+}
