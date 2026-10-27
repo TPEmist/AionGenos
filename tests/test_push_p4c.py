@@ -621,5 +621,127 @@ def test_scan_checkpoint_and_resume(tmp_path):
     assert len(skp) == 1
 
 
+def test_p4c_command_cfg_construction_no_duplicate_kwargs():
+    """Verify that constructing CubeRelativePolarCommandCfg from parent command fields
+    does not cause TypeError: multiple values for keyword argument ('object_name', 'theta_range', etc.).
+    Simulates parent command field extraction with a stub target."""
+    from dataclasses import dataclass
+    from aiongenos.tasks.WP1_contact_testbed.pin4c_constants import (
+        PIN4C_DIST_RANGE,
+        PIN4C_THETA_RANGE,
+    )
+
+    # 1. Stub parent simulating CubeRelativePoseCommandCfg (which has object_name, offset_*, clip_*)
+    @dataclass
+    class _StubParentCommandCfg:
+        class_type: type = object
+        object_name: str = "object"
+        offset_x: tuple[float, float] = (0.01, 0.05)
+        offset_y: tuple[float, float] = (-0.02, 0.02)
+        clip_x: tuple[float, float] = (0.38, 0.52)
+        clip_y: tuple[float, float] = (-0.05, 0.25)
+        resampling_time_range: tuple[float, float] = (1e20, 1e20)
+        debug_vis: bool = False
+
+    parent_cmd = _StubParentCommandCfg(object_name="cube_target_object")
+
+    # 2. Stub command cfg simulating CubeRelativePolarCommandCfg signature under @configclass
+    class _StubCubeRelativePolarCommandCfg:
+        def __init__(
+            self,
+            resampling_time_range=(1e20, 1e20),
+            debug_vis=False,
+            object_name="object",
+            theta_range=None,
+            dist_range=None,
+            **kwargs,
+        ):
+            self.resampling_time_range = resampling_time_range
+            self.debug_vis = debug_vis
+            self.object_name = object_name
+            self.theta_range = theta_range
+            self.dist_range = dist_range
+            self.extra = kwargs
+
+    # 3. Old extraction logic (WITHOUT object_name excluded) reproduces the exact failure
+    old_exclude = ("class_type", "offset_x", "offset_y", "clip_x", "clip_y")
+    bad_kwargs = {
+        f: getattr(parent_cmd, f)
+        for f in parent_cmd.__dataclass_fields__
+        if f not in old_exclude
+    }
+    with pytest.raises(TypeError, match="multiple values for keyword argument 'object_name'"):
+        _StubCubeRelativePolarCommandCfg(
+            **bad_kwargs,
+            theta_range=PIN4C_THETA_RANGE,
+            dist_range=PIN4C_DIST_RANGE,
+            object_name="object",
+        )
+
+    # 4. New extraction logic (with exclude_fields): ensures no duplicate kwargs
+    exclude_fields = (
+        "class_type",
+        "object_name",
+        "theta_range",
+        "dist_range",
+        "offset_x",
+        "offset_y",
+        "clip_x",
+        "clip_y",
+    )
+    copied_kwargs = {
+        f: getattr(parent_cmd, f)
+        for f in getattr(parent_cmd, "__dataclass_fields__", {})
+        if f not in exclude_fields and hasattr(parent_cmd, f)
+    }
+
+    assert "object_name" not in copied_kwargs
+    assert "theta_range" not in copied_kwargs
+    assert "dist_range" not in copied_kwargs
+    assert "offset_x" not in copied_kwargs
+
+    # Instantiation succeeds without TypeError
+    polar_cfg = _StubCubeRelativePolarCommandCfg(
+        **copied_kwargs,
+        theta_range=PIN4C_THETA_RANGE,
+        dist_range=PIN4C_DIST_RANGE,
+        object_name=getattr(parent_cmd, "object_name", "object"),
+    )
+    assert polar_cfg.object_name == "cube_target_object"
+    assert polar_cfg.theta_range == PIN4C_THETA_RANGE
+    assert polar_cfg.dist_range == PIN4C_DIST_RANGE
+    assert polar_cfg.resampling_time_range == (1e20, 1e20)
+    assert polar_cfg.debug_vis is False
+
+    # 5. Also test when parent already has polar fields (e.g. re-instantiation / subclassing)
+    @dataclass
+    class _StubPolarParentCommandCfg:
+        class_type: type = object
+        object_name: str = "object"
+        theta_range: tuple[float, float] = (-0.5, 0.5)
+        dist_range: tuple[float, float] = (0.05, 0.08)
+        resampling_time_range: tuple[float, float] = (1e20, 1e20)
+
+    polar_parent = _StubPolarParentCommandCfg()
+    copied_kwargs_polar = {
+        f: getattr(polar_parent, f)
+        for f in getattr(polar_parent, "__dataclass_fields__", {})
+        if f not in exclude_fields and hasattr(polar_parent, f)
+    }
+    assert "theta_range" not in copied_kwargs_polar
+    assert "dist_range" not in copied_kwargs_polar
+    assert "object_name" not in copied_kwargs_polar
+
+    reconstructed_polar = _StubCubeRelativePolarCommandCfg(
+        **copied_kwargs_polar,
+        theta_range=PIN4C_THETA_RANGE,
+        dist_range=PIN4C_DIST_RANGE,
+        object_name=getattr(polar_parent, "object_name", "object"),
+    )
+    assert reconstructed_polar.theta_range == PIN4C_THETA_RANGE
+    assert reconstructed_polar.dist_range == PIN4C_DIST_RANGE
+
+
+
 
 

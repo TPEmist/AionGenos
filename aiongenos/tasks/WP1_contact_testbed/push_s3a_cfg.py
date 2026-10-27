@@ -403,12 +403,25 @@ class WP1PushP4cEnvCfg(WP1PushS3aEnvCfg):
         }
         # Swap command to CubeRelativePolarCommand
         from aiongenos.tasks.WP1_contact_testbed.cube_relative_goal import CubeRelativePolarCommandCfg
+        exclude_fields = (
+            "class_type",
+            "object_name",
+            "theta_range",
+            "dist_range",
+            "offset_x",
+            "offset_y",
+            "clip_x",
+            "clip_y",
+        )
         self.commands.left_ee_pose = CubeRelativePolarCommandCfg(
-            **{f: getattr(self.commands.left_ee_pose, f)
-               for f in self.commands.left_ee_pose.__dataclass_fields__ if f not in ("class_type", "offset_x", "offset_y", "clip_x", "clip_y")},
+            **{
+                f: getattr(self.commands.left_ee_pose, f)
+                for f in getattr(self.commands.left_ee_pose, "__dataclass_fields__", {})
+                if f not in exclude_fields and hasattr(self.commands.left_ee_pose, f)
+            },
             theta_range=PIN4C_THETA_RANGE,
             dist_range=PIN4C_DIST_RANGE,
-            object_name="object",
+            object_name=getattr(self.commands.left_ee_pose, "object_name", "object"),
         )
         g = self.commands.left_ee_pose
         g.ranges.pos_z = (_CUBE_REST_Z_B, _CUBE_REST_Z_B)
