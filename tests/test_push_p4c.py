@@ -742,6 +742,160 @@ def test_p4c_command_cfg_construction_no_duplicate_kwargs():
     assert reconstructed_polar.dist_range == PIN4C_DIST_RANGE
 
 
+def test_pin4c_gate_hard_and_runtime_tolerance_logic():
+    """Verify two-layer gate checking:
+      - HARD check: sampler last_sample strictly within range (1e-6)
+      - RUNTIME check: tolerance ±1.0° angle and ±2mm distance
+      - Captures seed 4837 case (-60.44° from ~0.7mm shift) as passing within tolerance
+    """
+    theta_max = C.PIN4C_THETA_MAX  # 60.0 deg
+    dist_rng = C.PIN4C_DIST_RANGE  # (0.07, 0.10)
+    cube_x = C.PIN4C_CUBE_REGION_X  # (0.40, 0.46)
+    cube_y = C.PIN4C_CUBE_REGION_Y  # (-0.02, 0.16)
+
+    c0 = [0.42, 0.05]
+
+    # 1. HARD check: sampler last_sample exactly within spec (1e-6)
+    good_last_sample = {"theta": -math.radians(60.0), "dist": 0.0916}
+    # Corresponding runtime position with ~0.7mm physics shift giving -60.44 deg
+    g_seed4837 = [
+        c0[0] + 0.0916 * math.cos(math.radians(-60.44)),
+        c0[1] + 0.0916 * math.sin(math.radians(-60.44)),
+    ]
+
+    res_pass = check_pin4c_sample(
+        c0=c0,
+        g0=g_seed4837,
+        theta_max_rad=theta_max,
+        dist_range=dist_rng,
+        cube_region_x=cube_x,
+        cube_region_y=cube_y,
+        last_sample=good_last_sample,
+        angle_tol_deg=1.0,
+        dist_tol_m=0.002,
+    )
+    assert res_pass["hard_ok"] is True
+    assert res_pass["runtime_ok"] is True
+    assert res_pass["in_angle"] is True
+    assert res_pass["exceeds_exact"] is True  # -60.44° exceeded exact 60.0°
+    assert res_pass["exceeds_tolerance"] is False  # but within 1.0° tolerance
+    assert res_pass["ok"] is True
+
+    # 2. HARD check failure: last_sample theta exceeds theta_max by > 1e-6
+    bad_theta_last_sample = {"theta": -math.radians(60.01), "dist": 0.0916}
+    res_hard_fail_theta = check_pin4c_sample(
+        c0=c0,
+        g0=g_seed4837,
+        theta_max_rad=theta_max,
+        dist_range=dist_rng,
+        cube_region_x=cube_x,
+        cube_region_y=cube_y,
+        last_sample=bad_theta_last_sample,
+    )
+    assert res_hard_fail_theta["hard_ok"] is False
+    assert res_hard_fail_theta["hard_angle_ok"] is False
+    assert res_hard_fail_theta["ok"] is False
+
+    # 3. HARD check failure: last_sample dist exceeds dist_range by > 1e-6
+    bad_dist_last_sample = {"theta": 0.0, "dist": 0.1001}
+    res_hard_fail_dist = check_pin4c_sample(
+        c0=c0,
+        g0=[c0[0] + 0.08, c0[1]],
+        theta_max_rad=theta_max,
+        dist_range=dist_rng,
+        cube_region_x=cube_x,
+        cube_region_y=cube_y,
+        last_sample=bad_dist_last_sample,
+    )
+    assert res_hard_fail_dist["hard_ok"] is False
+    assert res_hard_fail_dist["hard_dist_ok"] is False
+    assert res_hard_fail_dist["ok"] is False
+
+    # 4. RUNTIME check failure: runtime angle exceeds 1.0° tolerance (-61.2°)
+    g_exceed_angle = [
+        c0[0] + 0.09 * math.cos(math.radians(-61.2)),
+        c0[1] + 0.09 * math.sin(math.radians(-61.2)),
+    ]
+    res_angle_fail = check_pin4c_sample(
+        c0=c0,
+        g0=g_exceed_angle,
+        theta_max_rad=theta_max,
+        dist_range=dist_rng,
+        cube_region_x=cube_x,
+        cube_region_y=cube_y,
+        last_sample=good_last_sample,
+        angle_tol_deg=1.0,
+    )
+    assert res_angle_fail["runtime_ok"] is False
+    assert res_angle_fail["in_angle"] is False
+    assert res_angle_fail["exceeds_tolerance"] is True
+    assert res_angle_fail["ok"] is False
+
+    # 5. RUNTIME distance tolerance checks
+    # Distance slightly above 0.100m (+1.5mm <= 2mm tol) -> PASS
+    g_dist_tol_pass = [c0[0] + 0.1015, c0[1]]
+    res_d_pass = check_pin4c_sample(
+        c0=c0, g0=g_dist_tol_pass, theta_max_rad=theta_max, dist_range=dist_rng,
+        cube_region_x=cube_x, cube_region_y=cube_y, dist_tol_m=0.002,
+    )
+    assert res_d_pass["in_dist"] is True
+    assert res_d_pass["exceeds_exact"] is True
+    assert res_d_pass["exceeds_tolerance"] is False
+    assert res_d_pass["ok"] is True
+
+    # Distance above tolerance (+3mm > 2mm tol) -> FAIL
+    g_dist_tol_fail = [c0[0] + 0.1030, c0[1]]
+    res_d_fail = check_pin4c_sample(
+        c0=c0, g0=g_dist_tol_fail, theta_max_rad=theta_max, dist_range=dist_rng,
+        cube_region_x=cube_x, cube_region_y=cube_y, dist_tol_m=0.002,
+    )
+    assert res_d_fail["in_dist"] is False
+    assert res_d_fail["exceeds_tolerance"] is True
+    assert res_d_fail["ok"] is False
+
+    # 6. Distribution evaluation and summary reporting
+    samples = []
+    rng = np.random.RandomState(4837)
+    for _ in range(99):
+        cx = rng.uniform(cube_x[0], cube_x[1])
+        cy = rng.uniform(cube_y[0], cube_y[1])
+        th = rng.uniform(-theta_max, theta_max)
+        d = rng.uniform(dist_rng[0], dist_rng[1])
+        gx = cx + d * math.cos(th)
+        gy = cy + d * math.sin(th)
+        ls = {"theta": th, "dist": d}
+        samples.append(([cx, cy], [gx, gy], ls))
+
+    # Add the seed 4837-like sample (exact sampler theta = -60°, post-reset angle = -60.44°)
+    samples.append((c0, g_seed4837, good_last_sample))
+
+    summary = evaluate_pin4c_distribution(
+        samples,
+        theta_max_rad=theta_max,
+        dist_range=dist_rng,
+        cube_region_x=cube_x,
+        cube_region_y=cube_y,
+        n_bins=6,
+        angle_tol_deg=1.0,
+        dist_tol_m=0.002,
+    )
+
+    assert summary["ok"] is True
+    assert summary["fail_count"] == 0
+    assert summary["exceeds_exact_count"] >= 1  # Captured seed 4837
+    assert summary["exceeds_tolerance_count"] == 0
+    assert "angle_min_deg" in summary
+    assert "angle_max_deg" in summary
+    assert "dist_min" in summary
+    assert "dist_max" in summary
+    assert "cube_x_min" in summary
+    assert "cube_x_max" in summary
+    assert "cube_y_min" in summary
+    assert "cube_y_max" in summary
+    assert "bin_counts" in summary
+    assert "uniformity_ok" in summary
+
+
 
 
 
