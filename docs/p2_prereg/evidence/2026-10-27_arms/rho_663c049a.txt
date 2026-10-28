@@ -1,0 +1,5 @@
+run=663c049a episodes=50 first_success_seed=5001 perm=10000 seed=20261026
+[all] n=50 seeds 5000-5049 | rho_X=+0.196 p_one_sided=0.0839 band95=+0.232 | rho_Y=+0.109 p_one_sided=0.2319 band95=+0.229 | circ_corr=+0.098 p_circ=0.2531 | unique_R1_targets=10
+[before_first_success] n=1 (too few)
+[from_first_success] n=49 seeds 5001-5049 | rho_X=+0.211 p_one_sided=0.0684 band95=+0.231 | rho_Y=+0.054 p_one_sided=0.3752 band95=+0.231 | circ_corr=+0.099 p_circ=0.2373 | unique_R1_targets=9
+(c) pass verdict: count>=5: no; rho_X significant: no -> NOT PASSED

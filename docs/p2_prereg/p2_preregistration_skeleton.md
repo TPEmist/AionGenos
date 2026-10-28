@@ -171,6 +171,22 @@ The three P1 instances become falsifiable P2 predictions:
   multi-step competence itself is consolidated. Matched evidence: per-gen
   rescue-distance profiling (the 4c analysis, run each generation).
 
+- **Pilot instance: memory can substitute for perception** (WP1-③a, Pin-4c; PI 2026-10-26 recorded this as the fifth memory-success-floor instance; **EXPLORATORY**, one run per arm, n = 50).
+  - Setup: same seeds 5000–5049, same interface (obs rung 1, d1+d2, history+feedback, memory ON), fresh buffers.
+  - The only difference between arms: whether the preamble shows past round-1 TCP target coordinates.
+    - **Coords ON** (`663c049a`): 3/50.
+      - An early lucky success ([60,10,53], seed 5001) was retrieved under the 2/3 success floor.
+      - 37/49 episodes then emitted a round-1 target copied verbatim from the preamble.
+      - 10 unique round-1 targets; Z=53 (standby) in 161/183 rounds.
+    - **Coords OFF** (lesson text and images only; coordinate patterns in lessons redacted at render, 34 redactions, 0 leaks): 13/50.
+      - 42 unique round-1 targets; 55/150 rounds in the contact band.
+      - ρ_Y(round-1 target, cube) = +0.278, one-sided permutation p = 0.026.
+    - Blind-sweep control on the same geometry (`aa2c36c3`): 5/50.
+  - Fisher exact, two-sided: OFF vs ON p = 0.012; OFF vs blind p = 0.066; ON vs blind p = 0.72.
+  - Reading: once a success's coordinates are in memory, the teacher **copies the path instead of perceiving the scene**, and does worse than a blind script. With lessons only, it perceives and descends.
+  - P2 prediction candidate: a coordinate-bearing memory format suppresses the conditional (perception-driven) component that r-tracking needs.
+  - Evidence: `docs/p2_prereg/evidence/2026-10-27_arms/`.
+
 ### 3b. Dose-dependent marginal → a dose-response CURVE (was: n=2 before/after)
 P1/L2 showed even the marginal under-transferred at low training dose
 (L0a 992 rounds → full; L2 511 → 72% short). P2 predicts a **dose-response

@@ -2459,3 +2459,26 @@ Diagnosis: `docs/p2_prereg/wp3a_rung2p_diagnosis_2026-10-22.md` (`26c9fc4`). It 
 Lesson for the gate checklist: **every new gym id and every Isaac script must be instantiated once on GPU before acceptance**; CPU tests cannot catch these.
 
 **Constants:** master `f004646`. Each later run records `geometry=pin4c`.
+
+## 2026-10-27 — rung-1′ on Pin-4c, and the (e) two-arm result (memory transmits paths)
+Runner: `scripts/wp3a_p4c_arms.sh` (`d2bfeb0`). Both arms: seeds 5000–5049, obs rung 1, d1+d2, history+feedback, memory ON, fresh buffers, Pin-4c ±75°.
+
+| arm | run | SR | ρ_X (p) | ρ_Y (p) | unique R1 targets | Z=53 rounds | contact-band rounds |
+|---|---|---|---|---|---|---|---|
+| rung-1′ / coords ON | `663c049a` | 3/50 | +0.196 (0.084) | +0.109 (0.23) | 10 | 161/183 | 1/183 |
+| (e) lesson-only / coords OFF | `3786f4e5` | **13/50** | −0.098 (0.75) | **+0.278 (0.026)** | 42 | 37/150 | 55/150 |
+| blind-sweep control | `aa2c36c3` | 5/50 | — | — | 1 | — | — |
+
+- **Fisher two-sided:** OFF vs ON p = 0.012; OFF vs blind p = 0.066.
+- **ON arm:** after the lucky [60,10,53] success at seed 5001, 37/49 round-1 targets were verbatim preamble copies.
+- **OFF arm:** 34 coordinate redactions and 0 leaks (beh2). All 16 successes across both arms are physically real (qa2).
+
+**Step (c) per the amended criterion:**
+- ON: NOT PASSED (count 3 < 5).
+- OFF: count met (13); **ρ_X not significant (p = 0.75)**; ρ_Y significant.
+- **Instrument note for the PI (prose_disc, mem2 earlier):**
+  - In Pin-4c the cube's x spans only 6 cm (σ_x = 1.7 cm, about 1.9 grid units), against σ_y = 3.3 cm.
+  - The goal-direction variance is 7.5 times larger in y.
+  - So ρ_X has little stimulus variance to track. This is a PI decision on the criterion.
+
+**Validator:** the HARD fail on `3786f4e5` was a validator whitelist bug (`vlm_parse_fail`, one episode). It was fixed in `580fb19` and re-validated: PASS.

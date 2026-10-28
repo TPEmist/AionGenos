@@ -1,0 +1,23 @@
+episodes=50 rounds=150 outcomes={'push_plateau': 21, 'success': 13, 'vlm_stop_premature': 15, 'vlm_parse_fail': 1}
+[task] successes=13/50; contact_episodes=35/50
+[task] closest TCP->cube cm: min=0.3 median=8.1
+[task] initial cube->goal cm: min=6.9 median=8.5 max=10.1; success needs <= 5 cm
+[task] best cube->goal reached per episode cm: min=0.8 median=7.1
+[distribution] target relative to cube (m): X range [-0.350, 0.130] median -0.004; Y range [-0.144, 0.209] median -0.013
+[z] counts: standby_z=37 (defined as z_int == init_tcp_z_int) contact_band=55 (cube centre ± half-height mapped to z_int) other=58 | target z-int top: [(53, 37), (50, 26), (40, 23), (20, 11), (38, 9), (45, 7)]
+[d1] frame_convention verified: 50 episodes checked against meta workspace_bounds (OK)
+[exec] reach_err_cm RAW: median=0.32 p95=8.70 max=50.10
+[exec] reach_err_cm GUARDED: median=0.32 p95=6.49 max=48.39
+[guard] target_clamps=18; setpoint_clamps: total=1387 in 19 rounds (max=90)
+[ori] final err deg: median=11.26 max=162.36; rounds > 5 deg: 92/150
+[tau] saturation (tau_flag_steps > 0): 59/150 rounds (max=90); warn: 63 rounds (max=90)
+[box] used quaternion distance in 150 checks; 0 fallbacks
+[feedback] {'fb_move_from==prev_start_OK': 100, 'fb_move_to==this_start_OK': 100, 'fb_target==prev_target_OK': 100}
+[geometry] geometry=pin4c; settled goal-cube dist (m): min=0.069 median=0.085 max=0.101; settled angle (deg): min=-67.6 median=12.4 max=70.7; cube X: [0.401, 0.458] Y: [-0.019, 0.099]
+[preamble] preamble_coords=off; coord_redactions=34; lesson_leak_rate=0/0 (0.0%)
+[segment:all] n=50 seeds 5000-5049 | rho_X=-0.098 p_one_sided=0.7506 band95=+0.234 | rho_Y=+0.278 p_one_sided=0.0260 band95=+0.237 | circ_corr=+0.172 p_circ=0.1066 | unique_R1_targets=42
+[segment:before_first_success] n=0 (too few)
+[segment:from_first_success] n=50 seeds 5000-5049 | rho_X=-0.098 p_one_sided=0.7506 band95=+0.234 | rho_Y=+0.278 p_one_sided=0.0260 band95=+0.237 | circ_corr=+0.172 p_circ=0.1066 | unique_R1_targets=42
+[(c) verdict] count>=5: yes; rho_X significant: no -> NOT PASSED
+
+[PASS] All hard checks passed.

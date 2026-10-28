@@ -1,0 +1,23 @@
+episodes=50 rounds=183 outcomes={'vlm_stop_premature': 16, 'push_plateau': 31, 'success': 3}
+[task] successes=3/50; contact_episodes=33/50
+[task] closest TCP->cube cm: min=3.4 median=8.3
+[task] initial cube->goal cm: min=7.0 median=8.5 max=10.1; success needs <= 5 cm
+[task] best cube->goal reached per episode cm: min=3.3 median=8.1
+[distribution] target relative to cube (m): X range [-12.242, 0.194] median 0.067; Y range [-34.492, 0.594] median 0.010
+[z] counts: standby_z=161 (defined as z_int == init_tcp_z_int) contact_band=1 (cube centre ± half-height mapped to z_int) other=21 | target z-int top: [(53, 161), (54, 9), (50, 5), (52, 4), (55, 1), (60, 1)]
+[d1] frame_convention verified: 50 episodes checked against meta workspace_bounds (OK)
+[exec] reach_err_cm RAW: median=0.08 p95=27.94 max=79.55
+[exec] reach_err_cm GUARDED: median=0.08 p95=27.94 max=79.55
+[guard] target_clamps=0; setpoint_clamps: total=823 in 14 rounds (max=90)
+[ori] final err deg: median=1.84 max=165.94; rounds > 5 deg: 60/183
+[tau] saturation (tau_flag_steps > 0): 94/183 rounds (max=90); warn: 96 rounds (max=90)
+[box] used quaternion distance in 183 checks; 0 fallbacks
+[feedback] {'fb_move_from==prev_start_OK': 133, 'fb_move_to==this_start_OK': 133, 'fb_target==prev_target_OK': 133}
+[geometry] geometry=pin4c; settled goal-cube dist (m): min=0.070 median=0.085 max=0.101; settled angle (deg): min=-67.6 median=12.4 max=70.2; cube X: [0.401, 0.457] Y: [-0.019, 0.100]
+[preamble] preamble_coords=on; coord_redactions=0; lesson_leak_rate=0/0 (0.0%)
+[segment:all] n=50 seeds 5000-5049 | rho_X=+0.196 p_one_sided=0.0839 band95=+0.232 | rho_Y=+0.109 p_one_sided=0.2319 band95=+0.229 | circ_corr=+0.098 p_circ=0.2531 | unique_R1_targets=10
+[segment:before_first_success] n=1 (too few)
+[segment:from_first_success] n=49 seeds 5001-5049 | rho_X=+0.211 p_one_sided=0.0684 band95=+0.231 | rho_Y=+0.054 p_one_sided=0.3752 band95=+0.231 | circ_corr=+0.099 p_circ=0.2373 | unique_R1_targets=9
+[(c) verdict] count>=5: no; rho_X significant: no -> NOT PASSED
+
+[PASS] All hard checks passed.
