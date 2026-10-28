@@ -28,7 +28,31 @@ H = 0.0240  # cube half-height (m)
 SUCC_M = 0.05  # push success distance (m)
 PUSH_ROUND_CAP = 12
 
-FLAG_WHITELIST = frozenset({"push_plateau", "vlm_stop_premature", "env_auto_reset", "scripted_policy"})
+# Whitelist of valid episode flags.
+# Categorization:
+#   1. Written by push_collect.py (via grep flags.append / init):
+#      - 'label:<...>'       : episode label prefix (handled by _is_flag_whitelisted)
+#      - 'scripted_policy'   : run with scripted trajectory policy
+#      - 'vlm_parse_fail'    : VLM emitted unparseable action; episode bailed early
+#      - 'push_plateau'      : Pin-11 plateau early termination (disp < 1cm for 3 rounds)
+#      - 'vlm_stop_premature': VLM emitted STOP=True before reaching goal
+#      - 'env_auto_reset'    : simulation auto-reset (whitelisted as recognized flag,
+#                              caught as HARD failure in validate_episodes)
+#   2. Legacy collector / scalar guard flags (collect.py, isaaclab_env_interface.py):
+#      - 'plateau', 'clamped', 'out_of_workspace', 'near_singularity'
+FLAG_WHITELIST = frozenset({
+    # push_collect.py flags
+    "scripted_policy",
+    "vlm_parse_fail",
+    "push_plateau",
+    "vlm_stop_premature",
+    "env_auto_reset",
+    # legacy / scalar guard flags
+    "plateau",
+    "clamped",
+    "out_of_workspace",
+    "near_singularity",
+})
 
 COORD_PATTERN = re.compile(
     r"[XYZxyz]\s*=\s*-?\d+|\(\s*-?\d+\s*,\s*-?\d+\s*(?:,\s*-?\d+\s*)?\)"
@@ -78,7 +102,7 @@ def validate_episodes(eps: List[Dict[str, Any]], ep_dirs: Optional[List[str]] = 
       - feedback/runtime consistency (including PROGRESS/REGRESS/FLAT and d2 metric rule)
       - d1 units
       - env_auto_reset present
-      - episode with outcome=timeout but fewer than PUSH_ROUND_CAP rounds (unless auto-reset)
+      - episode with outcome=timeout but fewer than PUSH_ROUND_CAP rounds (unless auto-reset or parse-fail)
       - flags outside whitelist
     """
     hard_failures: List[str] = []
@@ -149,8 +173,9 @@ def validate_episodes(eps: List[Dict[str, Any]], ep_dirs: Optional[List[str]] = 
             hard_failures.append(msg)
             R["hard_env_auto_reset"] += 1
 
-        # HARD check: timeout episode with fewer than PUSH_ROUND_CAP rounds
-        if outcome == "timeout" and len(rs) < PUSH_ROUND_CAP and "env_auto_reset" not in flags:
+        # HARD check: timeout episode with fewer than PUSH_ROUND_CAP rounds (exempt if auto-reset or parse-fail)
+        is_parse_fail = ("vlm_parse_fail" in flags) or (outcome == "vlm_parse_fail")
+        if outcome == "timeout" and len(rs) < PUSH_ROUND_CAP and "env_auto_reset" not in flags and not is_parse_fail:
             msg = f"HARD: Episode {ep_id} timeout with {len(rs)} rounds < {PUSH_ROUND_CAP} (no auto_reset flag)"
             hard_failures.append(msg)
             R["hard_premature_timeout"] += 1

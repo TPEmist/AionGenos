@@ -248,3 +248,87 @@ def test_lesson_leak_rate_and_redactions_counted(sample_episode):
     assert stats["leaked_lesson_count"] == 1
     assert stats["preamble_coord_redactions_total"] == 4
     assert stats["preamble_coords_mode"] == "off"
+
+
+def test_vlm_parse_fail_flag_and_outcome_accepted(sample_episode):
+    """vlm_parse_fail outcome and flag with early exit (rounds < 12) must be accepted."""
+    mut = copy.deepcopy(sample_episode)
+    mut["outcome"] = "vlm_parse_fail"
+    mut["flags"] = ["label:pilot", "vlm_parse_fail"]
+    mut["rounds"] = mut["rounds"][:3]
+    success, stats = validate_episodes([mut])
+    assert success is True
+    assert len(stats["hard_failures"]) == 0
+    assert stats["outcomes"]["vlm_parse_fail"] == 1
+
+
+def test_vlm_parse_fail_with_timeout_outcome_exempt_from_cap_check(sample_episode):
+    """If outcome is timeout but vlm_parse_fail is present, premature timeout cap check is exempt."""
+    mut = copy.deepcopy(sample_episode)
+    mut["outcome"] = "timeout"
+    mut["flags"] = ["label:pilot", "vlm_parse_fail"]
+    mut["rounds"] = mut["rounds"][:4]
+    success, stats = validate_episodes([mut])
+    assert success is True
+    assert len(stats["hard_failures"]) == 0
+    assert not any("premature_timeout" in f or "fewer than" in f for f in stats["hard_failures"])
+
+
+def test_real_run_3786f4e5_parse_fail_episode_passes():
+    """Verify the real parse-fail episode 5d22865f-13b from run 3786f4e5 passes validation."""
+    meta_path = pathlib.Path("/home/control/AionGenos/data/collect_dumps/3786f4e5/5d22865f-13b/meta.json")
+    if not meta_path.exists():
+        pytest.skip("Run 3786f4e5 not found on disk")
+    with open(meta_path, "r", encoding="utf-8") as f:
+        ep = json.load(f)
+    assert ep["outcome"] == "vlm_parse_fail"
+    assert "vlm_parse_fail" in ep["flags"]
+    assert len(ep["rounds"]) < 12
+    success, stats = validate_episodes([ep])
+    assert success is True
+    assert len(stats["hard_failures"]) == 0
+
+
+def test_negative_vlm_parse_fail_with_unwhitelisted_flag_caught(sample_episode):
+    """vlm_parse_fail episode that also contains a rogue flag must still be CAUGHT."""
+    mut = copy.deepcopy(sample_episode)
+    mut["outcome"] = "vlm_parse_fail"
+    mut["flags"] = ["vlm_parse_fail", "unwhitelisted_custom_flag"]
+    mut["rounds"] = mut["rounds"][:3]
+    success, stats = validate_episodes([mut])
+    assert success is False
+    assert any("unwhitelisted_custom_flag" in f for f in stats["hard_failures"])
+
+
+def test_negative_vlm_parse_fail_with_env_auto_reset_caught(sample_episode):
+    """vlm_parse_fail episode that also contains env_auto_reset must still be CAUGHT as HARD."""
+    mut = copy.deepcopy(sample_episode)
+    mut["outcome"] = "vlm_parse_fail"
+    mut["flags"] = ["vlm_parse_fail", "env_auto_reset"]
+    mut["rounds"] = mut["rounds"][:3]
+    success, stats = validate_episodes([mut])
+    assert success is False
+    assert any("env_auto_reset" in f for f in stats["hard_failures"])
+
+
+def test_negative_timeout_without_parse_fail_flag_still_caught(sample_episode):
+    """Premature timeout without vlm_parse_fail flag must still be CAUGHT."""
+    mut = copy.deepcopy(sample_episode)
+    mut["outcome"] = "timeout"
+    mut["flags"] = ["label:pilot", "scripted_policy"]
+    mut["rounds"] = mut["rounds"][:3]
+    success, stats = validate_episodes([mut])
+    assert success is False
+    assert any("premature_timeout" in f or "fewer than" in f or "3 rounds < 12" in f for f in stats["hard_failures"])
+
+
+def test_whitelisted_push_collect_and_guard_flags_accepted(sample_episode):
+    """All legitimate flags from push_collect and scalar guard pass whitelist check."""
+    from scripts.analysis.wp3a_push_validate import FLAG_WHITELIST
+    safe_flags = FLAG_WHITELIST - {"env_auto_reset"}  # env_auto_reset is deliberately caught as HARD
+    for flag in safe_flags:
+        mut = copy.deepcopy(sample_episode)
+        mut["flags"] = ["label:pilot", flag]
+        success, stats = validate_episodes([mut])
+        assert not any(f"has invalid flag {flag!r}" in f for f in stats["hard_failures"]), f"Flag {flag} failed whitelist"
+
