@@ -2508,3 +2508,8 @@ Runner: `scripts/wp3a_p4c_arms.sh` (`d2bfeb0`). Both arms: seeds 5000–5049, ob
 - **Plateau:** neither. Accumulation is capped → look for the mechanism.
 - If SR rises but the primary indicator does not, the result is recorded as a **shortcut**, not a climb (PI 2e).
 - The thresholds (p < 0.05; window size 50) are lead-proposed defaults, marked [inherited, not derived] until the PI changes them.
+**Clarifications (critic1 review, still before data):**
+- **Slope test:** with 6 windows, permuting the labels gives exactly 720 orderings, so the test is an **exact enumeration** of all 720. Two-sided p = the fraction with |slope| ≥ |observed|. The smallest attainable p is 2/720. Window-6-alone significance uses the 10,000-permutation within-window test.
+- **NaN windows:** a window whose indicator is undefined (fewer than 5 episodes with a valid round-1 target, or zero variance) is excluded, and the slope is computed on the remaining windows. If **≥ 2 windows** are excluded, the life is reported as **"uninformative"**.
+- **Shortcut:** the SR-per-window slope is > 0 with exact p < 0.05, while the primary slope is not (p ≥ 0.05 or slope ≤ 0). This is recorded as a shortcut, not a climb.
+- **Two lives:** a "climb" (or "degrade") is claimed only if **both** lives show it. If only one does, the result is reported as **"not reproduced"**. If life 2 cannot run, life 1 alone is reported as single-life and exploratory.

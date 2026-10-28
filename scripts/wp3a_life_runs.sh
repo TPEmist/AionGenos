@@ -6,6 +6,7 @@ PY=/home/control/env_isaaclab/bin/python; TEACHER=http://10.80.9.148:18888
 STATUS=logs/wp3a_life_runs_$(date +%Y%m%d_%H%M%S).status
 log() { echo "[life $(date +%F' '%T)] $*" | tee -a "$STATUS"; }
 for spec in "5000:life1" "5300:life2"; do
+  g=$(nvidia-smi --query-compute-apps=pid --format=csv,noheader | wc -l); [ "$g" -gt 0 ] && { log "GPU busy ($g procs) — STOP"; exit 5; }
   seed=${spec%%:*}; tag=${spec##*:}
   curl -s -m 10 "$TEACHER/health" | grep -q '"ok"' || { log "teacher down — STOP before $tag"; exit 2; }
   L=logs/pilot_${tag}_p4c_lesson_$(date +%Y%m%d_%H%M%S).log; log "start $tag seed=$seed eps=300 → $L"
