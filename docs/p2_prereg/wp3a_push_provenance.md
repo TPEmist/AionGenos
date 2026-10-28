@@ -2482,3 +2482,29 @@ Runner: `scripts/wp3a_p4c_arms.sh` (`d2bfeb0`). Both arms: seeds 5000–5049, ob
   - So ρ_X has little stimulus variance to track. This is a PI decision on the criterion.
 
 **Validator:** the HARD fail on `3786f4e5` was a validator whitelist bug (`vlm_parse_fail`, one episode). It was fixed in `580fb19` and re-validated: PASS.
+
+## 2026-10-28 — PRE-REGISTERED before data: memory time-axis pilot (long life)
+**PI 2026-10-28:** the "lesson-only lock" is withdrawn, because (e) was n=50 with two options and does not answer the question. The first question to answer is whether memory accumulates over time in this system.
+
+**Configuration:** the (e) lesson-only arm, i.e.
+- Pin-4c ±75°, obs rung 1, d1 + d2, history + feedback, memory ON, `--preamble_coords off`;
+- **one continuous life of 300 episodes**: seeds 5000–5299, one buffer that is never reset (`workspace/recaps_push_life1_p4c_lesson`);
+- if the GPU allows, **life 2**: seeds 5300–5599, its own fresh buffer (`workspace/recaps_push_life2_p4c_lesson`), for reproducibility.
+- Runner: `scripts/wp3a_life_runs.sh`.
+
+**Per 50-episode window (6 windows):**
+- SR;
+- **direction consistency** (PRIMARY): the circular correlation between the round-1 target's bearing from the cube and the goal bearing θ, with a one-sided permutation p (10,000 permutations, seed 20261026);
+- ρ_X and ρ_Y (secondary);
+- buffer size at window start;
+- retrieval hit rate = the fraction of retrieved recaps that came from successful episodes;
+- confabulation rate = recap assertions vs the contact report (`wp3a_pilot_report.py` flagger, with the known imperative false positives hand-checked);
+- the number of unique round-1 targets.
+
+**Curve-shape reading, fixed now** (on the primary indicator; SR is supporting evidence only):
+- Statistic: the slope of the window metric against the window index (1–6). Its significance is tested by permuting the window labels (10,000 permutations, two-sided).
+- **Climb:** slope > 0 with p < 0.05, **and** window 6 is significant on its own (one-sided p < 0.05) → memory accumulates → enters the P2 factorial (§3a rewrite).
+- **Degrade:** slope < 0 with p < 0.05 → wrong-lesson accumulation → axis E (forgetting) moves earlier.
+- **Plateau:** neither. Accumulation is capped → look for the mechanism.
+- If SR rises but the primary indicator does not, the result is recorded as a **shortcut**, not a climb (PI 2e).
+- The thresholds (p < 0.05; window size 50) are lead-proposed defaults, marked [inherited, not derived] until the PI changes them.
